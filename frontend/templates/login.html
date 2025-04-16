@@ -1,0 +1,66 @@
+{{ template "head" . }}
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+<div class="w-full max-w-md">
+    <!-- Login Card -->
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <!-- Logo Section -->
+        <div class="bg-green-600 p-8 flex flex-col items-center justify-center">
+            <h1 class="text-3xl font-bold text-white tracking-tight">PeoplePilot</h1>
+            <p class="text-green-100 mt-2">HR-Management-System</p>
+        </div>
+
+        <!-- Form Section -->
+        <div class="p-8">
+            {{if .error}}
+            <div class="mb-4 p-3 bg-red-100 border border-red-200 text-red-600 rounded-lg">
+                <p class="text-sm">{{.error}}</p>
+            </div>
+            {{end}}
+
+            <form class="space-y-5" action="/auth" method="POST">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">E-Mail</label>
+                    <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                                </svg>
+                            </span>
+                        <input type="email" name="email" id="email"
+                               class="pl-10 w-full py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                               placeholder="E-Mail-Adresse eingeben" required>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Passwort</label>
+                    <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                                </svg>
+                            </span>
+                        <input type="password" name="password" id="password"
+                               class="pl-10 w-full py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                               placeholder="Passwort eingeben" required>
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit"
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                        Anmelden
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-6 text-center text-gray-500 text-sm">
+        <p>&copy; {{ .year }} PeoplePilot - HR Management System</p>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,308 @@
+{{ template "head" . }}
+<body class="bg-gray-50 min-h-screen flex flex-col">
+<!-- Navigation -->
+{{ template "navigation" . }}
+
+<!-- Main Content -->
+<main class="container mx-auto px-4 py-6 flex-grow">
+  <!-- Dashboard Header mit Statistiken -->
+  <div class="grid grid-cols-1 gap-6 mb-6 lg:grid-cols-4">
+    <div class="flex items-center p-4 bg-white rounded-lg shadow-md border-l-4 border-green-500">
+      <div class="flex-shrink-0 mr-4 text-green-500">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      </div>
+      <div>
+        <span class="block text-2xl font-bold dark:text-white">{{.totalEmployees}}</span>
+        <span class="block text-gray-500">Gesamtmitarbeiter</span>
+      </div>
+    </div>
+    <div class="flex items-center p-4 bg-white rounded-lg shadow-md border-l-4 border-blue-500">
+      <div class="flex-shrink-0 mr-4 text-blue-500">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <div>
+        <span class="block text-2xl font-bold dark:text-white">{{.pendingRequests}}</span>
+        <span class="block text-gray-500">Offene Anfragen</span>
+      </div>
+    </div>
+    <div class="flex items-center p-4 bg-white rounded-lg shadow-md border-l-4 border-yellow-500">
+      <div class="flex-shrink-0 mr-4 text-yellow-500">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+      </div>
+      <div>
+        <span class="block text-2xl font-bold dark:text-white">{{.upcomingReviews}}</span>
+        <span class="block text-gray-500">Anstehende Gespräche</span>
+      </div>
+    </div>
+    <div class="flex items-center p-4 bg-white rounded-lg shadow-md border-l-4 border-red-500">
+      <div class="flex-shrink-0 mr-4 text-red-500">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <div>
+        <span class="block text-2xl font-bold dark:text-white">{{.expiredDocuments}}</span>
+        <span class="block text-gray-500">Abgelaufene Dokumente</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hauptbereich mit Karten -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Linke Spalte -->
+    <div class="lg:col-span-2 space-y-6">
+      <!-- Mitarbeiterübersicht-Karte -->
+      <div class="bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">Mitarbeiterübersicht</h3>
+          <div class="flex space-x-2">
+            <div class="relative">
+              <select id="employee-filter" class="text-sm border-gray-300 rounded-md pr-8 focus:ring-green-500 focus:border-green-500">
+                <option value="all">Alle</option>
+                <option value="active">Aktiv</option>
+                <option value="onLeave">Im Urlaub</option>
+                <option value="remote">Remote</option>
+              </select>
+            </div>
+            <a href="/employees" class="text-sm text-green-600 hover:underline">Alle anzeigen</a>
+          </div>
+        </div>
+        <div class="p-4">
+          <!-- Employee Grid Section -->
+          <div id="employees-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+            {{range .recentEmployees}}
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+              <div class="flex items-center p-4">
+                <img class="h-12 w-12 rounded-full mr-4" src="{{.ProfileImage}}" alt="{{.Name}}">
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900 truncate">{{.Name}}</p>
+                  <p class="text-sm text-gray-500 truncate">{{.Position}}</p>
+                  <div class="flex items-center mt-1">
+                    <span class="flex h-2 w-2 rounded-full bg-green-500 mr-1.5"></span>
+                    <span class="text-xs text-gray-500">{{.Status}}</span>
+                  </div>
+                </div>
+                <a href="/employees/{{.ID}}" class="inline-flex items-center text-xs font-medium text-green-600 hover:text-green-800">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                    <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                  </svg>
+                  Details
+                </a>
+              </div>
+            </div>
+            {{else}}
+            <div class="col-span-2 p-4 text-center text-gray-500">
+              Keine Mitarbeiter gefunden
+            </div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+
+      <!-- Aktivitätsdiagramm-Karte -->
+      <div class="bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="p-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">Mitarbeiterstatistik</h3>
+        </div>
+        <div class="p-4">
+          <div class="relative h-64">
+            <canvas id="employeeStatsChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rechte Spalte -->
+    <div class="space-y-6">
+      <!-- Abteilungsverteilung -->
+      <div class="bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">Abteilungsverteilung</h3>
+        </div>
+        <div class="p-4">
+          <div class="h-64">
+            <canvas id="departmentChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Anstehende Gespräche -->
+      <div class="bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">Anstehende Gespräche</h3>
+          <a href="/reviews" class="text-sm text-green-600 hover:underline">Alle anzeigen</a>
+        </div>
+        <div class="p-4">
+          <ul class="divide-y divide-gray-200">
+            {{range .upcomingReviewsList}}
+            <li class="py-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-gray-900">{{.EmployeeName}}</p>
+                  <p class="text-sm text-gray-500">{{.ReviewType}}</p>
+                </div>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        {{.Date}}
+                                    </span>
+              </div>
+            </li>
+            {{else}}
+            <li class="py-3 text-center text-gray-500">
+              Keine anstehenden Gespräche
+            </li>
+            {{end}}
+          </ul>
+        </div>
+      </div>
+
+      <!-- Letzte Aktivitäten -->
+      <div class="bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">Letzte Aktivitäten</h3>
+        </div>
+        <div class="p-4">
+          <div class="flow-root">
+            <ul class="-mb-8">
+              {{range .recentActivities}}
+              <li>
+                <div class="relative pb-8">
+                  {{if not .IsLast}}
+                  <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                  {{end}}
+                  <div class="relative flex space-x-3">
+                    <div>
+                                                <span class="h-8 w-8 rounded-full {{.IconBgClass}} flex items-center justify-center ring-8 ring-white">
+                                                    {{.IconSVG | safeHTML}}
+                                                </span>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div>
+                        <div class="text-sm text-gray-500">
+                          {{.Message | safeHTML}}
+                        </div>
+                        <p class="mt-0.5 text-sm text-gray-500">{{.Time}}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+              {{else}}
+              <li class="text-center text-gray-500 py-2">
+                Keine Aktivitäten gefunden
+              </li>
+              {{end}}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Footer -->
+{{ template "footer" . }}
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Mitarbeiterstatistik-Diagramm
+    const statsCtx = document.getElementById('employeeStatsChart').getContext('2d');
+    const employeeStatsChart = new Chart(statsCtx, {
+      type: 'line',
+      data: {
+        labels: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+        datasets: [
+          {
+            label: 'Neueinstellungen',
+            data: [3, 2, 1, 4, 2, 3, 1, 2, 3, 1, 0, 2],
+            borderColor: '#16a34a',
+            backgroundColor: 'rgba(22, 163, 74, 0.1)',
+            fill: true,
+            tension: 0.4
+          },
+          {
+            label: 'Austritte',
+            data: [1, 0, 1, 2, 0, 1, 0, 1, 1, 0, 1, 0],
+            borderColor: '#ef4444',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            fill: true,
+            tension: 0.4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          tooltip: {
+            mode: 'index',
+            intersect: false
+          },
+          legend: {
+            position: 'top',
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              display: false}
+          },
+          y: {
+            suggestedMin: 0,
+            suggestedMax: 5,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+
+    // Abteilungsverteilung-Diagramm
+    const deptCtx = document.getElementById('departmentChart').getContext('2d');
+    const departmentChart = new Chart(deptCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['IT', 'Vertrieb', 'HR', 'Marketing', 'Finanzen', 'Produktion'],
+        datasets: [{
+          data: [12, 8, 3, 5, 6, 10],
+          backgroundColor: [
+            '#16a34a', // Grün
+            '#3b82f6', // Blau
+            '#f59e0b', // Gelb
+            '#ef4444', // Rot
+            '#8b5cf6', // Lila
+            '#06b6d4'  // Cyan
+          ],
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+          }
+        },
+      }
+    });
+
+    // Filter für Mitarbeiterübersicht
+    const employeeFilter = document.getElementById('employee-filter');
+    if (employeeFilter) {
+      employeeFilter.addEventListener('change', function() {
+        // Hier würde in einer echten Anwendung ein AJAX-Call erfolgen
+        console.log('Filter geändert zu:', this.value);
+      });
+    }
+  });
+</script>
+</body>
+</html>
