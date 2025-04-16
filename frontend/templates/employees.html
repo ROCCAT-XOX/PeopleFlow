@@ -1,0 +1,483 @@
+{{ template "head" . }}
+<body class="bg-gray-50 min-h-screen flex flex-col">
+<!-- Navigation -->
+{{ template "navigation" . }}
+
+<!-- Main Content -->
+<main class="container mx-auto px-4 py-6 flex-grow">
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <div>
+            <div class="flex items-center gap-x-3">
+                <h2 class="text-lg font-medium text-gray-800">Mitarbeiter</h2>
+                <span class="px-3 py-1 text-xs text-blue-600 bg-blue-100 rounded-full">{{.totalEmployees}} Mitarbeiter</span>
+            </div>
+            <p class="mt-1 text-sm text-gray-500">Verwalten Sie alle Mitarbeiter und deren Informationen.</p>
+        </div>
+
+        <div class="flex items-center mt-4 gap-x-3">
+            <button id="filterBtn" class="flex items-center justify-center w-1/2 px-5 py-2 text-sm text-gray-700 transition-colors duration-200 bg-white border rounded-lg gap-x-2 sm:w-auto hover:bg-gray-100">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 4C3.34315 4 2 5.34315 2 7V7C2 8.65685 3.34315 10 5 10V10C6.65685 10 8 8.65685 8 7V7C8 5.34315 6.65685 4 5 4V4Z" stroke="currentColor" stroke-width="1.5" />
+                    <path d="M5 16C3.34315 16 2 14.6569 2 13V13C2 11.3431 3.34315 10 5 10V10C6.65685 10 8 11.3431 8 13V13C8 14.6569 6.65685 16 5 16V16Z" stroke="currentColor" stroke-width="1.5" />
+                    <path d="M15 16C13.3431 16 12 14.6569 12 13V13C12 11.3431 13.3431 10 15 10V10C16.6569 10 18 11.3431 18 13V13C18 14.6569 16.6569 16 15 16V16Z" stroke="currentColor" stroke-width="1.5" />
+                    <path d="M15 4C13.3431 4 12 5.34315 12 7V7C12 8.65685 13.3431 10 15 10V10C16.6569 10 18 8.65685 18 7V7C18 5.34315 16.6569 4 15 4V4Z" stroke="currentColor" stroke-width="1.5" />
+                </svg>
+                <span>Filter</span>
+            </button>
+
+            <button id="newEmployeeBtn" onclick="openModal('addEmployeeModal')" class="flex items-center justify-center w-1/2 px-5 py-2 text-sm tracking-wide text-white transition-colors duration-200 bg-green-600 rounded-lg gap-x-2 sm:w-auto hover:bg-green-500">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M10 5C10.5523 5 11 5.44772 11 6V9H14C14.5523 9 15 9.44772 15 10C15 10.5523 14.5523 11 14 11H11V14C11 14.5523 10.5523 15 10 15C9.44772 15 9 14.5523 9 14V11H6C5.44772 11 5 10.5523 5 10C5 9.44772 5.44772 9 6 9H9V6C9 5.44772 9.44772 5 10 5Z" fill="currentColor" />
+                </svg>
+                <span>Mitarbeiter hinzufügen</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="mt-6 md:flex md:items-center md:justify-between">
+        <div class="relative flex items-center mt-4 md:mt-0">
+      <span class="absolute">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mx-3 text-gray-400">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+      </span>
+
+            <input type="text" id="searchInput" placeholder="Suchen" class="block w-full py-1.5 pr-5 text-gray-700 bg-white border border-gray-200 rounded-lg md:w-80 placeholder-gray-400/70 pl-11 rtl:pr-11 rtl:pl-5 focus:border-green-400 focus:ring-green-300 focus:outline-none focus:ring focus:ring-opacity-40">
+        </div>
+
+        <div class="flex items-center gap-x-3">
+            <div class="relative">
+                <select id="sortSelect" class="block w-full py-2 pr-10 text-gray-700 bg-white border border-gray-200 rounded-lg placeholder-gray-400/70 pl-4 focus:border-green-400 focus:ring-green-300 focus:outline-none focus:ring focus:ring-opacity-40">
+                    <option value="name">Name</option>
+                    <option value="position">Position</option>
+                    <option value="department">Abteilung</option>
+                    <option value="hireDate">Eintrittsdatum</option>
+                </select>
+            </div>
+
+            <button id="viewToggle" class="flex items-center justify-center w-8 h-8 text-gray-700 transition-colors duration-200 bg-white rounded-lg hover:bg-gray-100">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Stacked List mit Mitarbeitern -->
+    <div class="mt-6 bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <ul id="employeesList" role="list" class="divide-y divide-gray-200">
+            {{range .employees}}
+            <li class="employee-item">
+                <div class="flex items-center px-4 py-4 sm:px-6 hover:bg-gray-50">
+                    <div class="flex min-w-0 flex-1 items-center">
+                        <div class="flex-shrink-0">
+                            <img class="h-12 w-12 rounded-full" src="{{.ProfileImage}}" alt="">
+                        </div>
+                        <div class="min-w-0 flex-1 px-4">
+                            <div>
+                                <p class="truncate text-sm font-medium text-green-600">{{.FirstName}} {{.LastName}}</p>
+                                <p class="mt-1 truncate text-sm text-gray-500">{{.Position}} · {{.Department}}</p>
+                            </div>
+                            <div class="mt-2 flex">
+                                <div class="flex items-center text-sm text-gray-500">
+                                    <svg class="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>Eingestellt am {{.HireDateFormatted}}</span>
+                                </div>
+                                <div class="ml-4 flex items-center text-sm text-gray-500">
+                                    <svg class="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-1.5 0a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>{{.Status}}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex">
+                        <a href="/employees/view/{{.ID}}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-green-600 bg-green-100 rounded-md mr-2 hover:bg-green-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            Details
+                        </a>
+                        <div class="relative" x-data="{ open: false }">
+                            <button @click="open = !open" type="button" class="p-2 text-gray-500 rounded-md hover:text-gray-700 hover:bg-gray-100">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                                </svg>
+                            </button>
+                            <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-md overflow-hidden shadow-xl z-10">
+                                <a href="/employees/edit/{{.ID}}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Bearbeiten</a>
+                                <a href="#" data-id="{{.ID}}" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 delete-employee">Löschen</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </li>
+            {{else}}
+            <li class="px-4 py-5 sm:px-6">
+                <div class="text-center text-gray-500">
+                    <p>Keine Mitarbeiter gefunden.</p>
+                    <button onclick="openModal('addEmployeeModal')" class="mt-2 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        Mitarbeiter hinzufügen
+                    </button>
+                </div>
+            </li>
+            {{end}}
+        </ul>
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-6 sm:flex sm:items-center sm:justify-between">
+        <div class="text-sm text-gray-500">
+            Zeige <span class="font-medium text-gray-700">1</span> bis <span class="font-medium text-gray-700">{{len .employees}}</span> von <span class="font-medium text-gray-700">{{.totalEmployees}}</span> Ergebnissen
+        </div>
+
+        <div class="flex items-center mt-4 gap-x-4 sm:mt-0">
+            <a href="#" class="flex items-center justify-center w-1/2 px-5 py-2 text-sm text-gray-700 capitalize transition-colors duration-200 bg-white border rounded-md sm:w-auto gap-x-2 hover:bg-gray-100 disabled:opacity-50">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 rtl:-scale-x-100">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 15.75L3 12m0 0l3.75-3.75M3 12h18" />
+                </svg>
+                <span>Zurück</span>
+            </a>
+
+            <a href="#" class="flex items-center justify-center w-1/2 px-5 py-2 text-sm text-gray-700 capitalize transition-colors duration-200 bg-white border rounded-md sm:w-auto gap-x-2 hover:bg-gray-100 disabled:opacity-50">
+                <span>Weiter</span>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 rtl:-scale-x-100">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
+                </svg>
+            </a>
+        </div>
+    </div>
+</main>
+
+<!-- Modal zum Hinzufügen eines Mitarbeiters -->
+<div id="addEmployeeModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" aria-hidden="true"></div>
+        <div class="relative bg-white rounded-lg max-w-4xl w-full mx-auto shadow-xl">
+            <div class="flex justify-between items-center px-6 py-4 border-b">
+                <h3 class="text-lg font-medium text-gray-900">Mitarbeiter hinzufügen</h3>
+                <button type="button" onclick="closeModal('addEmployeeModal')" class="text-gray-400 hover:text-gray-500">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form id="addEmployeeForm" action="/employees/add" method="POST" class="px-6 py-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Persönliche Identifikationsdaten -->
+                    <div class="col-span-2">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Persönliche Daten</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="firstName" class="block text-sm font-medium text-gray-700">Vorname*</label>
+                                <input type="text" name="firstName" id="firstName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="lastName" class="block text-sm font-medium text-gray-700">Nachname*</label>
+                                <input type="text" name="lastName" id="lastName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="birthDate" class="block text-sm font-medium text-gray-700">Geburtsdatum</label>
+                                <input type="date" name="birthDate" id="birthDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="birthPlace" class="block text-sm font-medium text-gray-700">Geburtsort</label>
+                                <input type="text" name="birthPlace" id="birthPlace" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="gender" class="block text-sm font-medium text-gray-700">Geschlecht</label>
+                                <select name="gender" id="gender" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="">Bitte wählen</option>
+                                    <option value="male">Männlich</option>
+                                    <option value="female">Weiblich</option>
+                                    <option value="diverse">Divers</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="nationality" class="block text-sm font-medium text-gray-700">Staatsangehörigkeit</label>
+                                <input type="text" name="nationality" id="nationality" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kontaktdaten -->
+                    <div class="col-span-2">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Kontaktdaten</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-gray-700">E-Mail*</label>
+                                <input type="email" name="email" id="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="phone" class="block text-sm font-medium text-gray-700">Telefon</label>
+                                <input type="tel" name="phone" id="phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="address" class="block text-sm font-medium text-gray-700">Adresse</label>
+                                <textarea name="address" id="address" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Beschäftigungsdaten -->
+                    <div class="col-span-2">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Beschäftigungsdaten</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="employeeId" class="block text-sm font-medium text-gray-700">Personalnummer*</label>
+                                <input type="text" name="employeeId" id="employeeId" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="position" class="block text-sm font-medium text-gray-700">Position*</label>
+                                <input type="text" name="position" id="position" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="department" class="block text-sm font-medium text-gray-700">Abteilung*</label>
+                                <select name="department" id="department" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="">Bitte wählen</option>
+                                    <option value="IT">IT</option>
+                                    <option value="HR">HR</option>
+                                    <option value="Finance">Finanzen</option>
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="Sales">Vertrieb</option>
+                                    <option value="Production">Produktion</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="managerId" class="block text-sm font-medium text-gray-700">Vorgesetzter</label>
+                                <select name="managerId" id="managerId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="">Bitte wählen</option>
+                                    {{range .managers}}
+                                    <option value="{{.ID}}">{{.FirstName}} {{.LastName}}</option>
+                                    {{end}}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="hireDate" class="block text-sm font-medium text-gray-700">Eintrittsdatum*</label>
+                                <input type="date" name="hireDate" id="hireDate" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="employmentStatus" class="block text-sm font-medium text-gray-700">Beschäftigungsstatus*</label>
+                                <select name="employmentStatus" id="employmentStatus" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="">Bitte wählen</option>
+                                    <option value="fulltime">Vollzeit</option>
+                                    <option value="parttime">Teilzeit</option>
+                                    <option value="contract">Werkvertrag</option>
+                                    <option value="intern">Praktikant</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vertragliche Informationen -->
+                    <div class="col-span-2">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Vertragliche Informationen</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="contractType" class="block text-sm font-medium text-gray-700">Vertragsart</label>
+                                <select name="contractType" id="contractType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="">Bitte wählen</option>
+                                    <option value="permanent">Unbefristet</option>
+                                    <option value="temporary">Befristet</option>
+                                    <option value="probation">Probezeit</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="workModel" class="block text-sm font-medium text-gray-700">Arbeitszeitmodell</label>
+                                <select name="workModel" id="workModel" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="">Bitte wählen</option>
+                                    <option value="fixed">Feste Arbeitszeit</option>
+                                    <option value="flexible">Gleitzeit</option>
+                                    <option value="remote">Remote</option>
+                                    <option value="shift">Schichtarbeit</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bankverbindung und Gehaltsdaten -->
+                    <div class="col-span-2">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Bankverbindung und Gehaltsdaten</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="iban" class="block text-sm font-medium text-gray-700">IBAN</label>
+                                <input type="text" name="iban" id="iban" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="bic" class="block text-sm font-medium text-gray-700">BIC</label>
+                                <input type="text" name="bic" id="bic" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="taxClass" class="block text-sm font-medium text-gray-700">Steuerklasse</label>
+                                <select name="taxClass" id="taxClass" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="">Bitte wählen</option>
+                                    <option value="1">Steuerklasse 1</option>
+                                    <option value="2">Steuerklasse 2</option>
+                                    <option value="3">Steuerklasse 3</option>
+                                    <option value="4">Steuerklasse 4</option>
+                                    <option value="5">Steuerklasse 5</option>
+                                    <option value="6">Steuerklasse 6</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="socialSecId" class="block text-sm font-medium text-gray-700">Sozialversicherungsnummer</label>
+                                <input type="text" name="socialSecId" id="socialSecId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="salary" class="block text-sm font-medium text-gray-700">Grundgehalt</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">€</span>
+                                    <input type="number" name="salary" id="salary" step="0.01" class="flex-1 min-w-0 block w-full rounded-none rounded-r-md border-gray-300 focus:border-green-500 focus:ring-green-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notfallkontakte -->
+                    <div class="col-span-2">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Notfallkontakte</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="emergencyName" class="block text-sm font-medium text-gray-700">Name</label>
+                                <input type="text" name="emergencyName" id="emergencyName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="emergencyRelation" class="block text-sm font-medium text-gray-700">Beziehung</label>
+                                <input type="text" name="emergencyRelation" id="emergencyRelation" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            </div>
+                            <div>
+                                <label for="emergencyPhone" class="block text-sm font-medium text-gray-700">Telefonnummer</label>
+                                <input type="tel" name="emergencyPhone" id="emergencyPhone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Zusätzliche Informationen -->
+                    <div class="col-span-2">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Zusätzliche Informationen</h4>
+                        <div>
+                            <label for="notes" class="block text-sm font-medium text-gray-700">Notizen</label>
+                            <textarea name="notes" id="notes" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end space-x-3 px-4 py-3 bg-gray-50 text-right sm:px-6 rounded-b-lg">
+                    <button type="button" onclick="closeModal('addEmployeeModal')" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        Abbrechen
+                    </button>
+                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        Speichern
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal zum Bearbeiten eines Mitarbeiters -->
+<div id="editEmployeeModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <!-- Identischer Aufbau wie das Hinzufügen-Modal, mit vorbefüllten Werten -->
+    <!-- Code würde hier platziert werden, ist aber für die Übersichtlichkeit weggelassen -->
+</div>
+
+<!-- Modal zur Bestätigung des Löschens -->
+<div id="deleteConfirmModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" aria-hidden="true"></div>
+        <div class="relative bg-white rounded-lg max-w-md w-full mx-auto shadow-xl">
+            <div class="px-6 py-4">
+                <div class="text-center">
+                    <svg class="h-12 w-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Mitarbeiter löschen</h3>
+                    <p class="text-sm text-gray-500">Sind Sie sicher, dass Sie diesen Mitarbeiter löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.</p>
+                </div>
+            </div>
+            <div class="px-6 py-3 bg-gray-50 flex justify-end space-x-3 rounded-b-lg">
+                <button type="button" onclick="closeModal('deleteConfirmModal')" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    Abbrechen
+                </button>
+                <button id="confirmDeleteBtn" type="button" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    Löschen
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+{{ template "footer" . }}
+
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<script>
+    // Modal-Funktionen
+    function openModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    // Suchfunktion
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const employeeItems = document.querySelectorAll('.employee-item');
+
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+
+                employeeItems.forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        // Sortierfunktion
+        const sortSelect = document.getElementById('sortSelect');
+        if (sortSelect) {
+            sortSelect.addEventListener('change', function() {
+                // Hier würde in einer echten Anwendung die Sortierlogik implementiert werden
+                console.log('Sortieren nach:', this.value);
+            });
+        }
+
+        // Löschen-Bestätigung
+        const deleteButtons = document.querySelectorAll('.delete-employee');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const employeeId = this.getAttribute('data-id');
+                confirmDeleteBtn.setAttribute('data-id', employeeId);
+                openModal('deleteConfirmModal');
+            });
+        });
+
+        if (confirmDeleteBtn) {
+            confirmDeleteBtn.addEventListener('click', function() {
+                const employeeId = this.getAttribute('data-id');
+                // Hier würde der AJAX-Call zum Löschen erfolgen
+                console.log('Mitarbeiter löschen:', employeeId);
+                closeModal('deleteConfirmModal');
+            });
+        }
+    });
+</script>
+</body>
+</html>

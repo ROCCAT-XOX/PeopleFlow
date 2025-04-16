@@ -150,18 +150,20 @@ func InitializeRoutes(router *gin.Engine) {
 			})
 		})
 
-		// Weitere Routen hier hinzufügen, z.B. für Mitarbeiter, Einstellungen, etc.
-		authorized.GET("/employees", func(c *gin.Context) {
-			user, _ := c.Get("user")
-			userModel := user.(*model.User)
+		employeeHandler := handler.NewEmployeeHandler()
 
-			c.HTML(http.StatusOK, "employees.html", gin.H{
-				"title":  "Mitarbeiter",
-				"active": "employees",
-				"user":   userModel.FirstName + " " + userModel.LastName,
-				"email":  userModel.Email,
-				"year":   currentYear,
-			})
-		})
+		// Mitarbeiter-Routen zum autorisierten Bereich hinzufügen
+		authorized.GET("/employees", employeeHandler.ListEmployees)
+		authorized.GET("/employees/view/:id", employeeHandler.GetEmployeeDetails)
+		authorized.POST("/employees/add", employeeHandler.AddEmployee)
+		authorized.POST("/employees/edit/:id", employeeHandler.UpdateEmployee)
+		authorized.DELETE("/employees/delete/:id", employeeHandler.DeleteEmployee)
+
+		// Optionale API-Endpoints für AJAX-Anfragen
+		api := router.Group("/api")
+		api.Use(middleware.AuthMiddleware())
+		{
+			api.DELETE("/employees/:id", employeeHandler.DeleteEmployee)
+		}
 	}
 }
