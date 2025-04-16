@@ -1,0 +1,25 @@
+# .air.toml
+root = "."
+tmp_dir = "tmp"
+
+[build]
+# Nur Hauptpaket bauen
+cmd = "go build -o ./tmp/main ."
+# Binärdatei, die ausgeführt werden soll
+bin = "tmp/main"
+# Dateien, die überwacht werden sollen
+include_ext = ["go", "html", "css", "js"]
+# Verzeichnisse, die überwacht werden sollen
+include_dir = ["backend", "frontend"]
+# Verzeichnisse, die ignoriert werden sollen
+exclude_dir = ["tmp", "vendor"]
+# Ignore specific files
+exclude_file = []
+# Anwendungsentwicklungsmodus setzen
+delay = 1000 # ms
+# Stoppen Sie den Prozess vor dem Neubau
+kill_delay = "0s"
+# Benutzen Sie Polling anstelle von Benachrichtigungen
+poll = false
+# Farben für Konsolenausgabe
+log_color = true
