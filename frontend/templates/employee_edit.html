@@ -133,6 +133,19 @@
                                 <label for="socialSecId" class="block text-sm font-medium text-gray-700">Sozialversicherungsnummer</label>
                                 <input type="text" name="socialSecId" id="socialSecId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.SocialSecID}}">
                             </div>
+                            <div>
+                                <label for="healthInsurance" class="block text-sm font-medium text-gray-700">Krankenkasse</label>
+                                <select name="healthInsurance" id="healthInsurance" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="" {{if eq .employee.HealthInsurance ""}}selected{{end}}>Bitte wählen</option>
+                                    <option value="BARMER" {{if eq .employee.HealthInsurance "BARMER"}}selected{{end}}>BARMER</option>
+                                    <option value="DAK‑Gesundheit" {{if eq .employee.HealthInsurance "DAK‑Gesundheit"}}selected{{end}}>DAK‑Gesundheit</option>
+                                    <option value="HEK" {{if eq .employee.HealthInsurance "HEK"}}selected{{end}}>HEK – Hanseatische Krankenkasse</option>
+                                    <option value="hkk" {{if eq .employee.HealthInsurance "hkk"}}selected{{end}}>Handelskrankenkasse (hkk)</option>
+                                    <option value="KKH" {{if eq .employee.HealthInsurance "KKH"}}selected{{end}}>Kaufmännische Krankenkasse (KKH)</option>
+                                    <option value="KNAPPSCHAFT" {{if eq .employee.HealthInsurance "KNAPPSCHAFT"}}selected{{end}}>KNAPPSCHAFT (Deutsche Rentenversicherung Knappschaft‑Bahn‑See)</option>
+                                    <option value="TK" {{if eq .employee.HealthInsurance "TK"}}selected{{end}}>Techniker Krankenkasse (TK)</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     {{end}}
