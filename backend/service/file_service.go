@@ -105,18 +105,18 @@ func (s *FileService) GetFilePath(fileName string) string {
 }
 
 // UploadProfileImage lädt ein Profilbild hoch und gibt den Dateipfad zurück
-// UploadProfileImage lädt ein Profilbild hoch und gibt den Dateipfad zurück
 func (s *FileService) UploadProfileImage(file *multipart.FileHeader, employeeID string) (string, error) {
 	// Generiere einen eindeutigen Dateinamen
 	originalFilename := filepath.Base(file.Filename)
 	extension := filepath.Ext(originalFilename)
 	uniqueFilename := fmt.Sprintf("profile_%s%s", employeeID, extension)
 
-	// Definiere den relativen Pfad für die Datenbank
+	// Definiere den relativen Pfad für die Datenbank (dieser wird im HTML angezeigt)
 	relativePath := fmt.Sprintf("/static/uploads/%s", uniqueFilename)
 
 	// Definiere den vollständigen Pfad, unter dem die Datei gespeichert wird
-	filePath := filepath.Join(".", relativePath)
+	// Geändert von "." zu "./frontend", um mit der router.Static Konfiguration übereinzustimmen
+	filePath := filepath.Join(".", "frontend", "static", "uploads", uniqueFilename)
 
 	// Stelle sicher, dass das Verzeichnis existiert
 	err := os.MkdirAll(filepath.Dir(filePath), 0755)
