@@ -14,14 +14,20 @@ func NewCostService() *CostService {
 }
 
 // CalculateMonthlyLaborCosts berechnet die monatlichen Personalkosten basierend auf aktiven Mitarbeitern
+// inklusive der Arbeitgeberkosten (ca. 21,5% des Bruttogehalts)
 func (s *CostService) CalculateMonthlyLaborCosts(employees []*model.Employee) float64 {
-	var total float64
+	var totalBrutto float64
 	for _, emp := range employees {
 		if emp.Status == model.EmployeeStatusActive || emp.Status == model.EmployeeStatusRemote || emp.Status == model.EmployeeStatusOnLeave {
-			total += emp.Salary
+			totalBrutto += emp.Salary
 		}
 	}
-	return total
+
+	// Arbeitgeberkosten hinzufügen (21,5% des Bruttogehalts)
+	employerContribution := totalBrutto * 0.215
+	totalCost := totalBrutto + employerContribution
+
+	return totalCost
 }
 
 // CalculateAvgCostPerEmployee berechnet die durchschnittlichen Kosten pro Mitarbeiter
