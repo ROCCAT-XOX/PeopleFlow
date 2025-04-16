@@ -52,14 +52,19 @@
     <!-- 1. Persönliche Daten -->
     <div id="personal-tab" class="tab-content bg-white shadow overflow-hidden sm:rounded-lg">
         <div class="px-4 py-5 sm:px-6 flex items-center">
-            <div class="flex-shrink-0 h-24 w-24 mr-6">
+            <div class="flex-shrink-0 h-24 w-24 mr-6 relative group">
                 {{if .employee.ProfileImage}}
-                <img class="h-24 w-24 rounded-full" src="{{.employee.ProfileImage}}" alt="{{.employee.FirstName}} {{.employee.LastName}}">
+                <img class="h-24 w-24 rounded-full object-cover" src="{{.employee.ProfileImage}}" alt="{{.employee.FirstName}} {{.employee.LastName}}">
                 {{else}}
                 <div class="h-24 w-24 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-2xl font-semibold">
                     {{slice .employee.FirstName 0 1}}{{slice .employee.LastName 0 1}}
                 </div>
                 {{end}}
+                <button type="button" onclick="openModal('uploadProfileImageModal')" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zm-2.207 2.207L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                </button>
             </div>
             <div>
                 <h2 class="text-xl font-bold text-gray-900">{{.employee.FirstName}} {{.employee.LastName}}</h2>
@@ -760,6 +765,8 @@
         </div>
     </div>
 
+
+
     <!-- Modals -->
     <!-- 1. Document Upload Modal -->
     <div id="uploadDocumentModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
@@ -1095,12 +1102,117 @@
             </div>
         </div>
     </div>
+
+    <!-- Profilbild-Upload Modal -->
+    <div id="uploadProfileImageModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" aria-hidden="true"></div>
+            <div class="relative bg-white rounded-lg max-w-md w-full mx-auto shadow-xl">
+                <div class="flex justify-between items-center px-6 py-4 border-b">
+                    <h3 class="text-lg font-medium text-gray-900">Profilbild hochladen</h3>
+                    <button type="button" onclick="closeModal('uploadProfileImageModal')" class="text-gray-400 hover:text-gray-500">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <form id="uploadProfileImageForm" action="/employees/{{.employee.ID.Hex}}/profile-image" method="POST" enctype="multipart/form-data" class="px-6 py-4">
+                    <div class="space-y-4">
+                        <div class="text-center mb-4">
+                            <div class="mb-4">
+                                {{if .employee.ProfileImage}}
+                                <img id="profileImagePreview" src="{{.employee.ProfileImage}}" alt="{{.employee.FirstName}} {{.employee.LastName}}" class="h-32 w-32 rounded-full mx-auto object-cover">
+                                {{else}}
+                                <div id="profileImagePreview" class="h-32 w-32 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-3xl font-semibold mx-auto">
+                                    {{slice .employee.FirstName 0 1}}{{slice .employee.LastName 0 1}}
+                                </div>
+                                {{end}}
+                            </div>
+                        </div>
+                        <div>
+                            <label for="profileImage" class="block text-sm font-medium text-gray-700">Profilbild auswählen</label>
+                            <input type="file" name="profileImage" id="profileImage" accept="image/*" required class="mt-1 block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-md file:border-0
+                            file:text-sm file:font-medium
+                            file:bg-green-50 file:text-green-700
+                            hover:file:bg-green-100
+                        " onchange="previewImage(this)">
+                            <p class="mt-1 text-sm text-gray-500">JPG, PNG oder GIF. Maximal 2MB.</p>
+                        </div>
+                    </div>
+                    <div class="mt-5 flex justify-end">
+                        <button type="button" onclick="closeModal('uploadProfileImageModal')" class="mr-3 inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            Abbrechen
+                        </button>
+                        <button type="submit" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            Hochladen
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </main>
 
 <!-- Footer -->
 {{ template "footer" . }}
 
 <script>
+    // Fügen Sie diese Funktion dem bestehenden JavaScript in employee_detail_advanced.html hinzu
+    function previewImage(input) {
+        const preview = document.getElementById('profileImagePreview');
+
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                if (preview.tagName.toLowerCase() === 'img') {
+                    preview.src = e.target.result;
+                } else {
+                    // Wenn es ein DIV ist (Standard-Avatar), ersetzen wir es durch ein Image
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'h-32 w-32 rounded-full mx-auto object-cover';
+                    img.id = 'profileImagePreview';
+                    preview.parentNode.replaceChild(img, preview);
+                }
+            }
+
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // Formularsubmit für Profilbild-Upload
+    document.addEventListener('DOMContentLoaded', function() {
+        const uploadProfileImageForm = document.getElementById('uploadProfileImageForm');
+        if (uploadProfileImageForm) {
+            uploadProfileImageForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Fehler beim Hochladen des Profilbilds');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        closeModal('uploadProfileImageModal');
+                        // Seite neu laden, um das aktualisierte Profilbild anzuzeigen
+                        window.location.reload();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Ein Fehler ist aufgetreten: ' + error.message);
+                    });
+            });
+        }
+    });
     // Tab functionality
     function showTab(tabId) {
         // Hide all tab contents

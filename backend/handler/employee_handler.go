@@ -3,9 +3,12 @@ package handler
 import (
 	"PeoplePilot/backend/model"
 	"PeoplePilot/backend/repository"
+	"PeoplePilot/backend/service"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -403,5 +406,63 @@ func (h *EmployeeHandler) ShowEditEmployeeForm(c *gin.Context) {
 		"employee": employee,
 		"managers": managers,
 		"userRole": c.GetString("userRole"),
+	})
+}
+
+// UploadProfileImage lädt ein Profilbild für einen Mitarbeiter hoch
+// UploadProfileImage lädt ein Profilbild hoch und gibt den Dateipfad zurück
+// UploadProfileImage lädt ein Profilbild für einen Mitarbeiter hoch
+func (h *EmployeeHandler) UploadProfileImage(c *gin.Context) {
+	// Mitarbeiter-ID aus dem URL-Parameter extrahieren
+	employeeID := c.Param("id")
+
+	// Mitarbeiter abrufen
+	employee, err := h.employeeRepo.FindByID(employeeID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden"})
+		return
+	}
+
+	// Hochgeladene Datei abrufen
+	file, err := c.FormFile("profileImage")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Keine Datei hochgeladen"})
+		return
+	}
+
+	// Überprüfen, ob es sich um ein Bild handelt
+	contentType := file.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "image/") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Die hochgeladene Datei ist kein Bild"})
+		return
+	}
+
+	// Wenn es bereits ein altes Profilbild gibt, dieses löschen
+	if employee.ProfileImage != "" && strings.HasPrefix(employee.ProfileImage, "/static/uploads/") {
+		oldPath := "." + employee.ProfileImage
+		os.Remove(oldPath) // Ignoriere Fehler, falls die Datei nicht existiert
+	}
+
+	// Profilbild hochladen
+	fileService := service.NewFileService()
+	profileImagePath, err := fileService.UploadProfileImage(file, employeeID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Hochladen des Profilbilds: " + err.Error()})
+		return
+	}
+
+	// Pfad zum Profilbild in der Datenbank aktualisieren
+	employee.ProfileImage = profileImagePath
+	err = h.employeeRepo.Update(employee)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Aktualisieren des Mitarbeiters: " + err.Error()})
+		return
+	}
+
+	// Erfolg zurückmelden
+	c.JSON(http.StatusOK, gin.H{
+		"success":      true,
+		"message":      "Profilbild erfolgreich hochgeladen",
+		"profileImage": profileImagePath,
 	})
 }

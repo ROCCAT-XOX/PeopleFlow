@@ -161,6 +161,10 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.POST("/employees/edit/:id", employeeHandler.UpdateEmployee)
 		authorized.DELETE("/employees/delete/:id", employeeHandler.DeleteEmployee)
 
+		// Profilbil hinzufügen
+		// Im router.go, innerhalb des authorized-Bereichs
+		authorized.POST("/employees/:id/profile-image", employeeHandler.UploadProfileImage)
+
 		// Dokument-Routen
 		authorized.POST("/employees/:id/documents", documentHandler.UploadDocument)
 		authorized.DELETE("/employees/:id/documents/:documentId", documentHandler.DeleteDocument)

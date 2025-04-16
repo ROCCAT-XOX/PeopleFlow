@@ -103,3 +103,45 @@ func (s *FileService) DeleteFile(filePath string) error {
 func (s *FileService) GetFilePath(fileName string) string {
 	return filepath.Join(s.uploadDir, fileName)
 }
+
+// UploadProfileImage lädt ein Profilbild hoch und gibt den Dateipfad zurück
+// UploadProfileImage lädt ein Profilbild hoch und gibt den Dateipfad zurück
+func (s *FileService) UploadProfileImage(file *multipart.FileHeader, employeeID string) (string, error) {
+	// Generiere einen eindeutigen Dateinamen
+	originalFilename := filepath.Base(file.Filename)
+	extension := filepath.Ext(originalFilename)
+	uniqueFilename := fmt.Sprintf("profile_%s%s", employeeID, extension)
+
+	// Definiere den relativen Pfad für die Datenbank
+	relativePath := fmt.Sprintf("/static/uploads/%s", uniqueFilename)
+
+	// Definiere den vollständigen Pfad, unter dem die Datei gespeichert wird
+	filePath := filepath.Join(".", relativePath)
+
+	// Stelle sicher, dass das Verzeichnis existiert
+	err := os.MkdirAll(filepath.Dir(filePath), 0755)
+	if err != nil {
+		return "", fmt.Errorf("Fehler beim Erstellen des Verzeichnisses: %v", err)
+	}
+
+	// Erstelle die Zieldatei
+	dst, err := os.Create(filePath)
+	if err != nil {
+		return "", fmt.Errorf("Fehler beim Erstellen der Zieldatei: %v", err)
+	}
+	defer dst.Close()
+
+	// Öffne die hochgeladene Datei
+	src, err := file.Open()
+	if err != nil {
+		return "", fmt.Errorf("Fehler beim Öffnen der hochgeladenen Datei: %v", err)
+	}
+	defer src.Close()
+
+	// Kopiere den Inhalt der hochgeladenen Datei in die Zieldatei
+	if _, err = io.Copy(dst, src); err != nil {
+		return "", fmt.Errorf("Fehler beim Kopieren der Datei: %v", err)
+	}
+
+	return relativePath, nil
+}
