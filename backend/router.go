@@ -5,7 +5,10 @@ import (
 	"PeoplePilot/backend/handler"
 	"PeoplePilot/backend/middleware"
 	"PeoplePilot/backend/model"
+	"PeoplePilot/backend/repository"
+	"PeoplePilot/backend/service"
 	"PeoplePilot/backend/utils"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -49,7 +52,7 @@ func InitializeRoutes(router *gin.Engine) {
 	authorized := router.Group("/")
 	authorized.Use(middleware.AuthMiddleware())
 	{
-		currentYear := time.Now().Year()
+		//currentYear := time.Now().Year()
 		// Root-Pfad zum Dashboard umleiten
 		router.GET("/", func(c *gin.Context) {
 			c.Redirect(http.StatusFound, "/dashboard")
@@ -59,6 +62,38 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.GET("/dashboard", func(c *gin.Context) {
 			user, _ := c.Get("user")
 			userModel := user.(*model.User)
+
+			// Repository für Mitarbeiterdaten
+			employeeRepo := repository.NewEmployeeRepository()
+
+			// Service für Kostenberechnungen initialisieren
+			costService := service.NewCostService()
+
+			// Alle Mitarbeiter abrufen
+			allEmployees, err := employeeRepo.FindAll()
+			if err != nil {
+				allEmployees = []*model.Employee{} // Leere Liste im Fehlerfall
+			}
+
+			totalEmployees := len(allEmployees)
+
+			// Monatliche Personalkosten berechnen
+			monthlyLaborCosts := costService.CalculateMonthlyLaborCosts(allEmployees)
+
+			// Monatliche Kostendaten für das Diagramm generieren
+			monthlyCostsData := costService.GenerateMonthlyLaborCostsTrend(monthlyLaborCosts)
+
+			// Durchschnittskosten pro Mitarbeiter berechnen
+			avgCostsPerEmployee := costService.CalculateAvgCostPerEmployee(monthlyLaborCosts, totalEmployees)
+
+			// Durchschnittliche Kosten pro Mitarbeiter über Zeit generieren
+			avgCostsPerEmployeeData := costService.GenerateMonthlyLaborCostsTrend(avgCostsPerEmployee)
+
+			// Abteilungsverteilung berechnen
+			departmentLabels, departmentData := costService.CountEmployeesByDepartment(allEmployees)
+
+			// Anstehende Bewertungen generieren
+			upcomingReviewsList := costService.GenerateExpectedReviews(allEmployees)
 
 			// Beispielhafte Daten für das Dashboard
 			recentEmployees := []gin.H{
@@ -92,24 +127,42 @@ func InitializeRoutes(router *gin.Engine) {
 				},
 			}
 
-			upcomingReviews := []gin.H{
-				{
-					"EmployeeName": "Max Mustermann",
-					"ReviewType":   "Leistungsbeurteilung",
-					"Date":         "18.04.2025",
-				},
-				{
-					"EmployeeName": "Erika Musterfrau",
-					"ReviewType":   "Beförderungsgespräch",
-					"Date":         "22.04.2025",
-				},
-				{
-					"EmployeeName": "John Doe",
-					"ReviewType":   "Einarbeitung",
-					"Date":         "25.04.2025",
-				},
+			// Wenn wir tatsächliche Mitarbeiterdaten haben, diese verwenden
+			if len(allEmployees) > 0 {
+				recentEmployees = []gin.H{}
+				maxToShow := 4
+				if len(allEmployees) < maxToShow {
+					maxToShow = len(allEmployees)
+				}
+
+				for i := 0; i < maxToShow; i++ {
+					emp := allEmployees[i]
+					status := "Aktiv"
+					switch emp.Status {
+					case model.EmployeeStatusInactive:
+						status = "Inaktiv"
+					case model.EmployeeStatusOnLeave:
+						status = "Im Urlaub"
+					case model.EmployeeStatusRemote:
+						status = "Remote"
+					}
+
+					profileImg := emp.ProfileImage
+					if profileImg == "" {
+						profileImg = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+					}
+
+					recentEmployees = append(recentEmployees, gin.H{
+						"ID":           emp.ID.Hex(),
+						"Name":         emp.FirstName + " " + emp.LastName,
+						"Position":     emp.Position,
+						"Status":       status,
+						"ProfileImage": profileImg,
+					})
+				}
 			}
 
+			// Beispielhafte Aktivitäten
 			recentActivities := []gin.H{
 				{
 					"IconBgClass": "bg-green-500",
@@ -134,19 +187,27 @@ func InitializeRoutes(router *gin.Engine) {
 				},
 			}
 
+			// Formatieren der monatlichen Personalkosten
+			formattedLaborCosts := fmt.Sprintf("%.2f", monthlyLaborCosts)
+
+			// Daten an das Template übergeben
 			c.HTML(http.StatusOK, "dashboard.html", gin.H{
-				"title":               "Dashboard",
-				"active":              "dashboard",
-				"user":                userModel.FirstName + " " + userModel.LastName,
-				"email":               userModel.Email,
-				"year":                currentYear,
-				"totalEmployees":      44,
-				"pendingRequests":     5,
-				"upcomingReviews":     3,
-				"expiredDocuments":    2,
-				"recentEmployees":     recentEmployees,
-				"upcomingReviewsList": upcomingReviews,
-				"recentActivities":    recentActivities,
+				"title":                   "Dashboard",
+				"active":                  "dashboard",
+				"user":                    userModel.FirstName + " " + userModel.LastName,
+				"email":                   userModel.Email,
+				"year":                    time.Now().Year(),
+				"totalEmployees":          totalEmployees,
+				"monthlyLaborCosts":       formattedLaborCosts,
+				"upcomingReviews":         len(upcomingReviewsList),
+				"expiredDocuments":        2,
+				"recentEmployees":         recentEmployees,
+				"upcomingReviewsList":     upcomingReviewsList,
+				"recentActivities":        recentActivities,
+				"monthlyCostsData":        monthlyCostsData,
+				"avgCostsPerEmployeeData": avgCostsPerEmployeeData,
+				"departmentLabels":        departmentLabels,
+				"departmentData":          departmentData,
 			})
 		})
 
