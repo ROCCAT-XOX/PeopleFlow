@@ -151,13 +151,37 @@ func InitializeRoutes(router *gin.Engine) {
 		})
 
 		employeeHandler := handler.NewEmployeeHandler()
+		documentHandler := handler.NewDocumentHandler()
 
 		// Mitarbeiter-Routen zum autorisierten Bereich hinzufügen
 		authorized.GET("/employees", employeeHandler.ListEmployees)
 		authorized.GET("/employees/view/:id", employeeHandler.GetEmployeeDetails)
+		authorized.GET("/employees/edit/:id", employeeHandler.ShowEditEmployeeForm)
 		authorized.POST("/employees/add", employeeHandler.AddEmployee)
 		authorized.POST("/employees/edit/:id", employeeHandler.UpdateEmployee)
 		authorized.DELETE("/employees/delete/:id", employeeHandler.DeleteEmployee)
+
+		// Dokument-Routen
+		authorized.POST("/employees/:id/documents", documentHandler.UploadDocument)
+		authorized.DELETE("/employees/:id/documents/:documentId", documentHandler.DeleteDocument)
+		authorized.GET("/employees/:id/documents/:documentId/download", documentHandler.DownloadDocument)
+
+		// Training-Routen
+		authorized.POST("/employees/:id/trainings", documentHandler.AddTraining)
+		authorized.DELETE("/employees/:id/trainings/:trainingId", documentHandler.DeleteTraining)
+
+		// Evaluation-Routen
+		authorized.POST("/employees/:id/evaluations", documentHandler.AddEvaluation)
+		authorized.DELETE("/employees/:id/evaluations/:evaluationId", documentHandler.DeleteEvaluation)
+
+		// Absence-Routen
+		authorized.POST("/employees/:id/absences", documentHandler.AddAbsence)
+		authorized.DELETE("/employees/:id/absences/:absenceId", documentHandler.DeleteAbsence)
+		authorized.POST("/employees/:id/absences/:absenceId/approve", documentHandler.ApproveAbsence)
+
+		// Development-Routen
+		authorized.POST("/employees/:id/development", documentHandler.AddDevelopmentItem)
+		authorized.DELETE("/employees/:id/development/:itemId", documentHandler.DeleteDevelopmentItem)
 
 		// Optionale API-Endpoints für AJAX-Anfragen
 		api := router.Group("/api")

@@ -3,6 +3,7 @@ package handler
 import (
 	"PeoplePilot/backend/model"
 	"PeoplePilot/backend/repository"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -205,6 +206,7 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 	// Aktuellen Benutzer aus dem Context abrufen
 	user, _ := c.Get("user")
 	userModel := user.(*model.User)
+	userRole, _ := c.Get("userRole")
 
 	// Vorgesetzten des Mitarbeiters abrufen, falls vorhanden
 	var manager *model.Employee
@@ -212,15 +214,44 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 		manager, _ = h.employeeRepo.FindByID(employee.ManagerID.Hex())
 	}
 
+	// Format Helpers als Template Funktionen
+	formatFileSize := func(size int64) string {
+		const unit = 1024
+		if size < unit {
+			return fmt.Sprintf("%d B", size)
+		}
+		div, exp := int64(unit), 0
+		for n := size / unit; n >= unit; n /= unit {
+			div *= unit
+			exp++
+		}
+		return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "KMGTPE"[exp])
+	}
+
+	iterate := func(count int) []int {
+		var i []int
+		for j := 0; j < count; j++ {
+			i = append(i, j)
+		}
+		return i
+	}
+
+	// Hilfsfunktion für das aktuelle Datum
+	now := time.Now()
+
 	// Daten an das Template übergeben
-	c.HTML(http.StatusOK, "employee_details.html", gin.H{
-		"title":    employee.FirstName + " " + employee.LastName,
-		"active":   "employees",
-		"user":     userModel.FirstName + " " + userModel.LastName,
-		"email":    userModel.Email,
-		"year":     time.Now().Year(),
-		"employee": employee,
-		"manager":  manager,
+	c.HTML(http.StatusOK, "employee_detail_advanced.html", gin.H{
+		"title":          employee.FirstName + " " + employee.LastName,
+		"active":         "employees",
+		"user":           userModel.FirstName + " " + userModel.LastName,
+		"email":          userModel.Email,
+		"year":           time.Now().Year(),
+		"employee":       employee,
+		"manager":        manager,
+		"userRole":       userRole,
+		"formatFileSize": formatFileSize,
+		"iterate":        iterate,
+		"now":            now,
 	})
 }
 
@@ -240,7 +271,72 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 	}
 
 	// Formulardaten abrufen und Mitarbeiter aktualisieren
-	// (ähnlich wie bei AddEmployee, jedoch mit einem bestehenden Objekt)
+	employee.FirstName = c.PostForm("firstName")
+	employee.LastName = c.PostForm("lastName")
+	employee.Email = c.PostForm("email")
+	employee.Phone = c.PostForm("phone")
+	employee.Address = c.PostForm("address")
+	employee.Position = c.PostForm("position")
+	employee.Department = model.Department(c.PostForm("department"))
+	employee.Notes = c.PostForm("notes")
+
+	// Status aktualisieren
+	statusStr := c.PostForm("status")
+	if statusStr != "" {
+		employee.Status = model.EmployeeStatus(statusStr)
+	}
+
+	// Manager-ID parsen, falls vorhanden
+	managerIDStr := c.PostForm("managerId")
+	if managerIDStr != "" {
+		managerID, err := primitive.ObjectIDFromHex(managerIDStr)
+		if err == nil {
+			employee.ManagerID = managerID
+		}
+	} else {
+		// Wenn kein Manager ausgewählt ist, setzen wir eine leere ID
+		employee.ManagerID = primitive.NilObjectID
+	}
+
+	// Datumsfelder parsen
+	hireDateStr := c.PostForm("hireDate")
+	if hireDateStr != "" {
+		hireDate, err := time.Parse("2006-01-02", hireDateStr)
+		if err == nil {
+			employee.HireDate = hireDate
+		}
+	}
+
+	birthDateStr := c.PostForm("birthDate")
+	if birthDateStr != "" {
+		birthDate, err := time.Parse("2006-01-02", birthDateStr)
+		if err == nil {
+			employee.DateOfBirth = birthDate
+		}
+	}
+
+	// Finanzielle Daten aktualisieren (nur für Administratoren)
+	userRole, _ := c.Get("userRole")
+	if userRole == string(model.RoleAdmin) {
+		salaryStr := c.PostForm("salary")
+		if salaryStr != "" {
+			salary, err := strconv.ParseFloat(salaryStr, 64)
+			if err == nil {
+				employee.Salary = salary
+			}
+		}
+
+		employee.BankAccount = c.PostForm("bankAccount")
+		employee.TaxID = c.PostForm("taxId")
+		employee.SocialSecID = c.PostForm("socialSecId")
+	}
+
+	// Notfallkontakt aktualisieren
+	employee.EmergencyName = c.PostForm("emergencyName")
+	employee.EmergencyPhone = c.PostForm("emergencyPhone")
+
+	// UpdatedAt aktualisieren
+	employee.UpdatedAt = time.Now()
 
 	// Mitarbeiter in der Datenbank aktualisieren
 	err = h.employeeRepo.Update(employee)
@@ -270,4 +366,42 @@ func (h *EmployeeHandler) DeleteEmployee(c *gin.Context) {
 
 	// Erfolg zurückmelden
 	c.JSON(http.StatusOK, gin.H{"message": "Mitarbeiter erfolgreich gelöscht"})
+}
+
+// ShowEditEmployeeForm zeigt das Formular zum Bearbeiten eines Mitarbeiters an
+func (h *EmployeeHandler) ShowEditEmployeeForm(c *gin.Context) {
+	id := c.Param("id")
+
+	// Mitarbeiter anhand der ID abrufen
+	employee, err := h.employeeRepo.FindByID(id)
+	if err != nil {
+		c.HTML(http.StatusNotFound, "error.html", gin.H{
+			"title":   "Fehler",
+			"message": "Mitarbeiter nicht gefunden",
+			"year":    time.Now().Year(),
+		})
+		return
+	}
+
+	// Aktuellen Benutzer aus dem Context abrufen
+	user, _ := c.Get("user")
+	userModel := user.(*model.User)
+
+	// Liste der Manager abrufen
+	managers, err := h.employeeRepo.FindManagers()
+	if err != nil {
+		managers = []*model.Employee{} // Leere Liste, falls ein Fehler auftritt
+	}
+
+	// Daten an das Template übergeben
+	c.HTML(http.StatusOK, "employee_edit.html", gin.H{
+		"title":    "Mitarbeiter bearbeiten",
+		"active":   "employees",
+		"user":     userModel.FirstName + " " + userModel.LastName,
+		"email":    userModel.Email,
+		"year":     time.Now().Year(),
+		"employee": employee,
+		"managers": managers,
+		"userRole": c.GetString("userRole"),
+	})
 }

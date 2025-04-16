@@ -1,0 +1,176 @@
+{{ template "head" . }}
+<body class="bg-gray-50 min-h-screen flex flex-col">
+<!-- Navigation -->
+{{ template "navigation" . }}
+
+<!-- Main Content -->
+<main class="container mx-auto px-4 py-6 flex-grow">
+    <div class="mb-6">
+        <div class="flex items-center">
+            <a href="/employees" class="text-gray-500 hover:text-gray-700 mr-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h1 class="text-2xl font-bold text-gray-900">Mitarbeiter bearbeiten</h1>
+        </div>
+    </div>
+
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <form action="/employees/edit/{{.employee.ID.Hex}}" method="POST">
+            <div class="p-6 bg-white border-b border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Persönliche Daten -->
+                    <div class="col-span-2">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Persönliche Daten</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="firstName" class="block text-sm font-medium text-gray-700">Vorname*</label>
+                                <input type="text" name="firstName" id="firstName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.FirstName}}">
+                            </div>
+                            <div>
+                                <label for="lastName" class="block text-sm font-medium text-gray-700">Nachname*</label>
+                                <input type="text" name="lastName" id="lastName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.LastName}}">
+                            </div>
+                            <div>
+                                <label for="birthDate" class="block text-sm font-medium text-gray-700">Geburtsdatum</label>
+                                <input type="date" name="birthDate" id="birthDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                       value="{{if not .employee.DateOfBirth.IsZero}}{{.employee.DateOfBirth.Format "2006-01-02"}}{{end}}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kontaktdaten -->
+                    <div class="col-span-2">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Kontaktdaten</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-gray-700">E-Mail*</label>
+                                <input type="email" name="email" id="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.Email}}">
+                            </div>
+                            <div>
+                                <label for="phone" class="block text-sm font-medium text-gray-700">Telefon</label>
+                                <input type="tel" name="phone" id="phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.Phone}}">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="address" class="block text-sm font-medium text-gray-700">Adresse</label>
+                                <textarea name="address" id="address" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">{{.employee.Address}}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Beschäftigungsdaten -->
+                    <div class="col-span-2">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Beschäftigungsdaten</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="position" class="block text-sm font-medium text-gray-700">Position*</label>
+                                <input type="text" name="position" id="position" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.Position}}">
+                            </div>
+                            <div>
+                                <label for="department" class="block text-sm font-medium text-gray-700">Abteilung*</label>
+                                <select name="department" id="department" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="">Bitte wählen</option>
+                                    <option value="IT" {{if eq .employee.Department "IT"}}selected{{end}}>IT</option>
+                                    <option value="HR" {{if eq .employee.Department "HR"}}selected{{end}}>HR</option>
+                                    <option value="Finance" {{if eq .employee.Department "Finance"}}selected{{end}}>Finanzen</option>
+                                    <option value="Marketing" {{if eq .employee.Department "Marketing"}}selected{{end}}>Marketing</option>
+                                    <option value="Sales" {{if eq .employee.Department "Sales"}}selected{{end}}>Vertrieb</option>
+                                    <option value="Production" {{if eq .employee.Department "Production"}}selected{{end}}>Produktion</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="managerId" class="block text-sm font-medium text-gray-700">Vorgesetzter</label>
+                                <select name="managerId" id="managerId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="">Bitte wählen</option>
+                                    {{range .managers}}
+                                    <option value="{{.ID.Hex}}" {{if eq $.employee.ManagerID.Hex .ID.Hex}}selected{{end}}>{{.FirstName}} {{.LastName}}</option>
+                                    {{end}}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="hireDate" class="block text-sm font-medium text-gray-700">Eintrittsdatum*</label>
+                                <input type="date" name="hireDate" id="hireDate" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.HireDate.Format "2006-01-02"}}">
+                            </div>
+                            <div>
+                                <label for="status" class="block text-sm font-medium text-gray-700">Status*</label>
+                                <select name="status" id="status" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="active" {{if eq .employee.Status "active"}}selected{{end}}>Aktiv</option>
+                                    <option value="inactive" {{if eq .employee.Status "inactive"}}selected{{end}}>Inaktiv</option>
+                                    <option value="onleave" {{if eq .employee.Status "onleave"}}selected{{end}}>Im Urlaub</option>
+                                    <option value="remote" {{if eq .employee.Status "remote"}}selected{{end}}>Remote</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Finanzielle Informationen (nur für Administratoren) -->
+                    {{if eq .userRole "admin"}}
+                    <div class="col-span-2">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Finanzielle Informationen</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="salary" class="block text-sm font-medium text-gray-700">Gehalt</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">€</span>
+                                    <input type="number" name="salary" id="salary" step="0.01" class="flex-1 min-w-0 block w-full rounded-none rounded-r-md border-gray-300 focus:border-green-500 focus:ring-green-500" value="{{.employee.Salary}}">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="bankAccount" class="block text-sm font-medium text-gray-700">Bankverbindung</label>
+                                <input type="text" name="bankAccount" id="bankAccount" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.BankAccount}}">
+                            </div>
+                            <div>
+                                <label for="taxId" class="block text-sm font-medium text-gray-700">Steuerklasse</label>
+                                <input type="text" name="taxId" id="taxId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.TaxID}}">
+                            </div>
+                            <div>
+                                <label for="socialSecId" class="block text-sm font-medium text-gray-700">Sozialversicherungsnummer</label>
+                                <input type="text" name="socialSecId" id="socialSecId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.SocialSecID}}">
+                            </div>
+                        </div>
+                    </div>
+                    {{end}}
+
+                    <!-- Notfallkontakt -->
+                    <div class="col-span-2">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Notfallkontakt</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="emergencyName" class="block text-sm font-medium text-gray-700">Name</label>
+                                <input type="text" name="emergencyName" id="emergencyName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.EmergencyName}}">
+                            </div>
+                            <div>
+                                <label for="emergencyPhone" class="block text-sm font-medium text-gray-700">Telefon</label>
+                                <input type="tel" name="emergencyPhone" id="emergencyPhone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.EmergencyPhone}}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notizen -->
+                    <div class="col-span-2">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Zusätzliche Informationen</h4>
+                        <div>
+                            <label for="notes" class="block text-sm font-medium text-gray-700">Notizen</label>
+                            <textarea name="notes" id="notes" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">{{.employee.Notes}}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 text-right sm:px-6">
+                <a href="/employees" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 mr-2">
+                    Abbrechen
+                </a>
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    Speichern
+                </button>
+            </div>
+        </form>
+    </div>
+</main>
+
+<!-- Footer -->
+{{ template "footer" . }}
+
+</body>
+</html>

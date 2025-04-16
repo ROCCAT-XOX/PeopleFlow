@@ -12,6 +12,7 @@ import (
 	"PeoplePilot/backend"
 	"PeoplePilot/backend/db"
 	"PeoplePilot/backend/repository"
+	"PeoplePilot/backend/utils"
 )
 
 func main() {
@@ -31,6 +32,11 @@ func main() {
 		log.Printf("Warnung: Admin-Benutzer konnte nicht erstellt werden: %v", err)
 	} else {
 		log.Println("Admin-Benutzer wurde überprüft/erstellt")
+	}
+
+	// Upload-Verzeichnis erstellen, falls es nicht existiert
+	if err := utils.EnsureUploadDirExists(); err != nil {
+		log.Printf("Warnung: Upload-Verzeichnis konnte nicht erstellt werden: %v", err)
 	}
 
 	// Initialize router
@@ -70,19 +76,21 @@ func setupRouter() *gin.Engine {
 	router.Static("/static", "./frontend/static")
 
 	// Funktion für HTML-Template-Sicherheit hinzufügen
-	router.SetFuncMap(template.FuncMap{
-		"safeHTML": func(s string) template.HTML {
-			return template.HTML(s)
-		},
-	})
+	router.SetFuncMap(utils.TemplateHelpers())
 
 	// Load HTML templates - update to include subdirectories
-	templ := template.Must(template.New("").Funcs(router.FuncMap).ParseGlob("frontend/templates/*.html"))
-	template.Must(templ.ParseGlob("frontend/templates/components/*.html"))
-	router.SetHTMLTemplate(templ)
+	router.SetHTMLTemplate(loadTemplates())
 
 	// Import routes from router.go
 	backend.InitializeRoutes(router)
 
 	return router
+}
+
+func loadTemplates() *template.Template {
+	templ := template.New("").Funcs(utils.TemplateHelpers())
+	templ = template.Must(templ.ParseGlob("frontend/templates/*.html"))
+	templ = template.Must(templ.ParseGlob("frontend/templates/components/*.html"))
+
+	return templ
 }
