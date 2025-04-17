@@ -95,6 +95,12 @@ func InitializeRoutes(router *gin.Engine) {
 			// Anstehende Bewertungen generieren
 			upcomingReviewsList := costService.GenerateExpectedReviews(allEmployees)
 
+			// Personalkostenverteilung nach Abteilung berechnen
+			deptCostsLabels, deptCostsData := costService.CalculateCostsByDepartment(allEmployees)
+
+			// Altersstruktur berechnen
+			ageGroups, ageCounts := costService.CalculateAgeDistribution(allEmployees)
+
 			// Beispielhafte Daten für das Dashboard
 			recentEmployees := []gin.H{
 				{
@@ -208,6 +214,10 @@ func InitializeRoutes(router *gin.Engine) {
 				"avgCostsPerEmployeeData": avgCostsPerEmployeeData,
 				"departmentLabels":        departmentLabels,
 				"departmentData":          departmentData,
+				"deptCostsLabels":         deptCostsLabels,
+				"deptCostsData":           deptCostsData,
+				"ageGroups":               ageGroups,
+				"ageCounts":               ageCounts,
 			})
 		})
 

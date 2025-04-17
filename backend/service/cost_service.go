@@ -86,6 +86,84 @@ func (s *CostService) CountEmployeesByDepartment(employees []*model.Employee) ([
 	return labels, data
 }
 
+// CalculateCostsByDepartment berechnet die Personalkosten pro Abteilung
+func (s *CostService) CalculateCostsByDepartment(employees []*model.Employee) ([]string, []float64) {
+	// Kosten pro Abteilung sammeln
+	departmentCosts := make(map[string]float64)
+
+	for _, emp := range employees {
+		if emp.Status == model.EmployeeStatusActive || emp.Status == model.EmployeeStatusRemote || emp.Status == model.EmployeeStatusOnLeave {
+			dept := string(emp.Department)
+			// Bruttolohn + AG-Anteil (21.5%)
+			totalCost := emp.Salary * 1.215
+			departmentCosts[dept] += totalCost
+		}
+	}
+
+	// In Arrays für das Chart umwandeln
+	var departments []string
+	var costs []float64
+
+	for dept, cost := range departmentCosts {
+		departments = append(departments, dept)
+		costs = append(costs, cost)
+	}
+
+	// Beispieldaten, falls keine echten Daten vorhanden sind
+	if len(departments) == 0 {
+		departments = []string{"IT", "Vertrieb", "HR", "Marketing", "Finanzen", "Produktion"}
+		costs = []float64{45000, 38000, 25000, 32000, 40000, 35000}
+	}
+
+	return departments, costs
+}
+
+// CalculateAgeDistribution berechnet die Altersverteilung der Mitarbeiter
+func (s *CostService) CalculateAgeDistribution(employees []*model.Employee) ([]string, []int) {
+	// Altersgruppen definieren
+	ageGroups := []string{"<25", "25-34", "35-44", "45-54", "55+"}
+	counts := make([]int, len(ageGroups))
+
+	now := time.Now()
+
+	for _, emp := range employees {
+		// Prüfen, ob Geburtsdatum vorhanden ist
+		if emp.DateOfBirth.IsZero() {
+			continue
+		}
+
+		// Alter berechnen
+		age := now.Year() - emp.DateOfBirth.Year()
+
+		// Korrigiere das Alter, wenn der Geburtstag in diesem Jahr noch nicht stattgefunden hat
+		if now.Month() < emp.DateOfBirth.Month() ||
+			(now.Month() == emp.DateOfBirth.Month() && now.Day() < emp.DateOfBirth.Day()) {
+			age--
+		}
+
+		// Altersgruppe zuordnen
+		switch {
+		case age < 25:
+			counts[0]++
+		case age < 35:
+			counts[1]++
+		case age < 45:
+			counts[2]++
+		case age < 55:
+			counts[3]++
+		default:
+			counts[4]++
+		}
+	}
+
+	// Beispieldaten, falls keine echten Daten vorhanden sind
+	if employees == nil || len(employees) == 0 {
+		counts = []int{5, 15, 12, 8, 4}
+	}
+
+	return ageGroups, counts
+}
+
 // GenerateExpectedReviews berechnet und generiert anstehende Mitarbeitergespräche
 func (s *CostService) GenerateExpectedReviews(employees []*model.Employee) []map[string]string {
 	// In einer echten Anwendung würden wir hier Daten aus einer Datenbank abfragen
