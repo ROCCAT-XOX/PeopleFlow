@@ -67,7 +67,7 @@ func TemplateHelpers() template.FuncMap {
 			return int(math.Round(num))
 		},
 		"eq": func(a, b interface{}) bool {
-			return a == b
+			return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
 		},
 		"neq": func(a, b interface{}) bool {
 			return a != b
