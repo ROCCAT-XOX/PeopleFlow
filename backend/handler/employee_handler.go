@@ -72,7 +72,7 @@ func (h *EmployeeHandler) ListEmployees(c *gin.Context) {
 		// Standard-Profilbild, falls keines definiert ist
 		profileImage := emp.ProfileImage
 		if profileImage == "" {
-			profileImage = "/static/img/default-avatar.png"
+			profileImage = "" // Leer lassen
 		}
 
 		// ViewModel erstellen

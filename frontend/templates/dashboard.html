@@ -121,7 +121,14 @@
             {{range .recentEmployees}}
             <div class="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <div class="flex items-center p-4">
-                <img class="h-12 w-12 rounded-full mr-4" src="{{.ProfileImage}}" alt="{{.Name}}">
+                {{if .ProfileImage}}
+                <img class="h-12 w-12 rounded-full object-cover" src="{{.ProfileImage}}" alt="{{.FirstName}} {{.LastName}}">
+                {{else}}
+                <div class="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-2xl font-semibold">
+                  {{slice .FirstName 0 1}}{{slice .LastName 0 1}}
+                </div>
+                {{end}}
+
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium text-gray-900 truncate">{{.Name}}</p>
                   <p class="text-sm text-gray-500 truncate">{{.Position}}</p>
