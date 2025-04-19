@@ -1,0 +1,20 @@
+# Betriebssystem-Dateien
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Node.js
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+
+# Umgebungsvariablen
+.env
+
+# Build-Ordner
+dist/
+build/
