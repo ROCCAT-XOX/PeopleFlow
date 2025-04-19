@@ -5,12 +5,11 @@ Thumbs.db
 # Logs
 *.log
 
-# Node.js
-node_modules/
+# Uploads
+uploads/
 
 # Python
-__pycache__/
-*.pyc
+tmp/
 
 # Umgebungsvariablen
 .env
