@@ -82,3 +82,90 @@ air
 Die Anwendung erstellt standardmäßig einen Admin-Benutzer:
 - E-Mail: admin@peoplepilot.com
 - Passwort: admin
+
+# Implementierungsleitfaden für rollenbasierte Benutzerverwaltung in PeoplePilot
+
+## Überblick
+
+Die Implementierung einer rollenbasierten Benutzerverwaltung für PeoplePilot ermöglicht eine differenzierte Zugriffssteuerung mit folgenden Benutzerrollen:
+
+1. **Benutzer (user)**: Kann nur die eigenen Daten sehen und verwalten
+2. **Personalverwaltung (hr)**: Kann Mitarbeiter und Dokumente verwalten
+3. **Manager (manager)**: Kann Mitarbeiter, Dokumente und Berichte verwalten
+4. **Administrator (admin)**: Hat vollen Zugriff auf alle Funktionen, einschließlich Benutzerverwaltung
+
+## Implementierte Komponenten
+
+### 1. Middleware für rollenbasierte Zugriffskontrolle
+
+Die neue Middleware `RoleMiddleware` und `SelfOrAdminMiddleware` in `backend/middleware/roleMiddleware.go` überprüft die Benutzerrollen und beschränkt den Zugriff auf bestimmte Funktionen.
+
+### 2. Benutzer-Handler
+
+Der neue `UserHandler` in `backend/handler/userHandler.go` enthält Funktionen für die Benutzerverwaltung:
+- Anzeigen aller Benutzer (nur für Admins)
+- Hinzufügen, Bearbeiten und Löschen von Benutzern
+- Benutzerprofilansicht
+- Passwortänderung
+
+### 3. Aktualisierte Aktivitätstypen
+
+Das Modell `model/activity.go` wurde um neue Aktivitätstypen für Benutzeraktionen erweitert.
+
+### 4. Neue Templates
+
+Folgende Templates wurden erstellt:
+- `users.html`: Übersicht aller Benutzer (nur für Admins)
+- `user_add.html`: Formular zum Hinzufügen eines Benutzers
+- `user_edit.html`: Formular zum Bearbeiten eines Benutzers
+- `profile.html`: Anzeige und Bearbeitung des eigenen Profils
+
+### 5. Rollenbasierte Navigation
+
+Die Navigationsleiste wurde so angepasst, dass Menüpunkte basierend auf der Benutzerrolle ein- oder ausgeblendet werden.
+
+### 6. Rollenbasiertes Dashboard
+
+Das Dashboard zeigt je nach Benutzerrolle unterschiedliche Inhalte an.
+
+## Installationsschritte
+
+1. **Dateien erstellen/aktualisieren:**
+    - Neue Middleware-Datei: `backend/middleware/roleMiddleware.go`
+    - Neuer Handler: `backend/handler/userHandler.go`
+    - Neue Templates im Verzeichnis `frontend/templates/`
+    - Aktualisierung der Navigation: `frontend/templates/components/navigation.html`
+
+2. **Router-Konfiguration aktualisieren:**
+    - `backend/router.go`: Neue Routen für die Benutzerverwaltung hinzufügen
+
+3. **Model erweitern:**
+    - `model/activity.go`: Neue Aktivitätstypen für Benutzeraktionen hinzufügen
+
+## Benutzerverwaltung für Administratoren
+
+Administratoren haben Zugriff auf eine spezielle Benutzerverwaltungsseite unter `/users`, auf der sie:
+- Eine Liste aller Benutzer einsehen können
+- Neue Benutzer hinzufügen können
+- Bestehende Benutzer bearbeiten können
+- Benutzer löschen können
+- Die Rolle eines Benutzers ändern können
+
+## Profilansicht für alle Benutzer
+
+Jeder Benutzer hat Zugriff auf sein eigenes Profil unter `/profile`, wo er:
+- Seine persönlichen Informationen einsehen kann
+- Sein Passwort ändern kann
+
+## Sicherheitsaspekte
+
+1. **Passwort-Hashing**: Alle Passwörter werden mit bcrypt gehasht, bevor sie in der Datenbank gespeichert werden
+2. **Rollenbasierte Zugriffssteuerung**: Benutzer können nur auf Funktionen zugreifen, für die sie berechtigt sind
+3. **Validierung von Eingaben**: Alle Benutzereingaben werden validiert, um Sicherheitsrisiken zu minimieren
+4. **Selbst- oder Admin-Zugriff**: Benutzer können nur ihre eigenen Daten bearbeiten, es sei denn, sie sind Administratoren
+
+## Zusätzliche Features
+
+- **Aktivitätsverfolgung**: Alle wichtigen Benutzeraktionen werden protokolliert und im Dashboard angezeigt
+- **Responsive Design**: Die Benutzeroberfläche ist für Desktop- und mobile Geräte optimiert
+- **Benutzerfreundliche Fehlermeldungen**: Verständliche Fehlermeldungen bei Problemen

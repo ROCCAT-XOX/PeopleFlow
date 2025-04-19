@@ -52,7 +52,9 @@ func InitializeRoutes(router *gin.Engine) {
 	authorized := router.Group("/")
 	authorized.Use(middleware.AuthMiddleware())
 	{
-		//currentYear := time.Now().Year()
+		// In der InitializeRoutes-Funktion nach der Deklaration der Auth-Middleware
+		userHandler := handler.NewUserHandler()
+
 		// Root-Pfad zum Dashboard umleiten
 		router.GET("/", func(c *gin.Context) {
 			c.Redirect(http.StatusFound, "/dashboard")
@@ -267,6 +269,25 @@ func InitializeRoutes(router *gin.Engine) {
 				"ageCounts":               ageCounts,
 			})
 		})
+
+		// Benutzerprofilrouten
+		authorized.GET("/profile", userHandler.ShowUserProfile)
+
+		// Benutzerverwaltungsrouten
+		// Nur Administratoren können Benutzer verwalten
+		adminRoutes := authorized.Group("/users")
+		adminRoutes.Use(middleware.RoleMiddleware(model.RoleAdmin))
+		{
+			adminRoutes.GET("/", userHandler.ListUsers)
+			adminRoutes.GET("/add", userHandler.ShowAddUserForm)
+			adminRoutes.POST("/add", userHandler.AddUser)
+			adminRoutes.GET("/edit/:id", userHandler.ShowEditUserForm)
+			adminRoutes.POST("/edit/:id", userHandler.UpdateUser)
+			adminRoutes.DELETE("/delete/:id", userHandler.DeleteUser)
+		}
+
+		// Passwortänderungsroute - ein Benutzer kann nur sein eigenes Passwort ändern
+		authorized.POST("/users/change-password", middleware.SelfOrAdminMiddleware(), userHandler.ChangePassword)
 
 		employeeHandler := handler.NewEmployeeHandler()
 		documentHandler := handler.NewDocumentHandler()
