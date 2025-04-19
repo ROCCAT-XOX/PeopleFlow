@@ -101,41 +101,78 @@ func InitializeRoutes(router *gin.Engine) {
 			// Altersstruktur berechnen
 			ageGroups, ageCounts := costService.CalculateAgeDistribution(allEmployees)
 
-			// Beispielhafte Daten für das Dashboard
-			recentEmployees := []gin.H{
-				{
-					"ID":           "1",
-					"Name":         "Max Mustermann",
-					"Position":     "Software Developer",
-					"Status":       "Aktiv",
-					"ProfileImage": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-				},
-				{
-					"ID":           "2",
-					"Name":         "Erika Musterfrau",
-					"Position":     "HR Manager",
-					"Status":       "Im Urlaub",
-					"ProfileImage": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-				},
-				{
-					"ID":           "3",
-					"Name":         "John Doe",
-					"Position":     "Marketing Specialist",
-					"Status":       "Remote",
-					"ProfileImage": "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-				},
-				{
-					"ID":           "4",
-					"Name":         "Jane Smith",
-					"Position":     "Finance Director",
-					"Status":       "Aktiv",
-					"ProfileImage": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-				},
+			// Repository für Aktivitätsdaten
+			activityRepo := repository.NewActivityRepository()
+
+			// Neueste Aktivitäten abrufen
+			recentActivitiesData, err := activityRepo.FindRecent(5)
+			if err != nil {
+				recentActivitiesData = []*model.Activity{} // Leere Liste im Fehlerfall
 			}
+
+			// Aktivitäten in ein Format konvertieren, das für die Vorlage geeignet ist
+			var recentActivities []gin.H
+			for i, activity := range recentActivitiesData {
+				isLast := i == len(recentActivitiesData)-1
+
+				// Nachricht formatieren
+				var message string
+				switch activity.Type {
+				case model.ActivityTypeEmployeeAdded:
+					message = fmt.Sprintf("<a href=\"/employees/view/%s\" class=\"font-medium text-gray-900\">%s</a> wurde als neuer Mitarbeiter hinzugefügt",
+						activity.TargetID.Hex(), activity.TargetName)
+				case model.ActivityTypeEmployeeUpdated:
+					message = fmt.Sprintf("<a href=\"/employees/view/%s\" class=\"font-medium text-gray-900\">%s</a> wurde aktualisiert",
+						activity.TargetID.Hex(), activity.TargetName)
+				case model.ActivityTypeVacationRequested:
+					message = fmt.Sprintf("<a href=\"/employees/view/%s\" class=\"font-medium text-gray-900\">%s</a> hat einen Urlaubsantrag eingereicht",
+						activity.TargetID.Hex(), activity.TargetName)
+				case model.ActivityTypeVacationApproved:
+					message = fmt.Sprintf("Urlaubsantrag von <a href=\"/employees/view/%s\" class=\"font-medium text-gray-900\">%s</a> wurde genehmigt",
+						activity.TargetID.Hex(), activity.TargetName)
+				case model.ActivityTypeDocumentUploaded:
+					message = fmt.Sprintf("<a href=\"/employees/view/%s\" class=\"font-medium text-gray-900\">%s</a> hat ein Dokument hochgeladen",
+						activity.TargetID.Hex(), activity.TargetName)
+				case model.ActivityTypeTrainingAdded:
+					message = fmt.Sprintf("Weiterbildung für <a href=\"/employees/view/%s\" class=\"font-medium text-gray-900\">%s</a> hinzugefügt",
+						activity.TargetID.Hex(), activity.TargetName)
+				case model.ActivityTypeEvaluationAdded:
+					message = fmt.Sprintf("Leistungsbeurteilung für <a href=\"/employees/view/%s\" class=\"font-medium text-gray-900\">%s</a> hinzugefügt",
+						activity.TargetID.Hex(), activity.TargetName)
+				case model.ActivityTypeEmployeeDeleted:
+					message = fmt.Sprintf("Mitarbeiter <span class=\"font-medium text-gray-900\">%s</span> wurde entfernt",
+						activity.TargetName)
+				default:
+					message = activity.Description
+				}
+
+				recentActivities = append(recentActivities, gin.H{
+					"IconBgClass": activity.GetIconClass(),
+					"IconSVG":     activity.GetIconSVG(),
+					"Message":     message,
+					"Time":        activity.FormatTimeAgo(),
+					"IsLast":      isLast,
+				})
+			}
+
+			// Falls keine Aktivitäten gefunden wurden, verwenden wir Beispieldaten
+			if len(recentActivities) == 0 {
+				recentActivities = []gin.H{
+					{
+						"IconBgClass": "bg-gray-500",
+						"IconSVG":     "<svg class=\"h-5 w-5 text-white\" viewBox=\"0 0 20 20\" fill=\"currentColor\"><path fill-rule=\"evenodd\" d=\"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z\" clip-rule=\"evenodd\" /></svg>",
+						"Message":     "Keine Aktivitäten vorhanden",
+						"Time":        "Jetzt",
+						"IsLast":      true,
+					},
+				}
+			}
+
+			// Beispielhafte Daten für das Dashboard - Mitarbeiterübersicht
+			recentEmployees := []gin.H{}
 
 			// Wenn wir tatsächliche Mitarbeiterdaten haben, diese verwenden
 			if len(allEmployees) > 0 {
-				recentEmployees = []gin.H{}
 				maxToShow := 4
 				if len(allEmployees) < maxToShow {
 					maxToShow = len(allEmployees)
@@ -155,7 +192,7 @@ func InitializeRoutes(router *gin.Engine) {
 
 					profileImg := emp.ProfileImage
 					if profileImg == "" {
-						profileImg = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+						profileImg = "/static/img/default-avatar.png"
 					}
 
 					recentEmployees = append(recentEmployees, gin.H{
@@ -166,32 +203,42 @@ func InitializeRoutes(router *gin.Engine) {
 						"ProfileImage": profileImg,
 					})
 				}
+			} else {
+				// Beispielhafte Daten, falls keine echten Daten vorhanden sind
+				recentEmployees = []gin.H{
+					{
+						"ID":           "1",
+						"Name":         "Max Mustermann",
+						"Position":     "Software Developer",
+						"Status":       "Aktiv",
+						"ProfileImage": "/static/img/default-avatar.png",
+					},
+					{
+						"ID":           "2",
+						"Name":         "Erika Musterfrau",
+						"Position":     "HR Manager",
+						"Status":       "Im Urlaub",
+						"ProfileImage": "/static/img/default-avatar.png",
+					},
+					{
+						"ID":           "3",
+						"Name":         "John Doe",
+						"Position":     "Marketing Specialist",
+						"Status":       "Remote",
+						"ProfileImage": "/static/img/default-avatar.png",
+					},
+					{
+						"ID":           "4",
+						"Name":         "Jane Smith",
+						"Position":     "Finance Director",
+						"Status":       "Aktiv",
+						"ProfileImage": "/static/img/default-avatar.png",
+					},
+				}
 			}
 
-			// Beispielhafte Aktivitäten
-			recentActivities := []gin.H{
-				{
-					"IconBgClass": "bg-green-500",
-					"IconSVG":     "<svg class=\"h-5 w-5 text-white\" viewBox=\"0 0 20 20\" fill=\"currentColor\"><path fill-rule=\"evenodd\" d=\"M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5.5a.75.75 0 001.5 0V5z\" clip-rule=\"evenodd\" /></svg>",
-					"Message":     "<a href=\"#\" class=\"font-medium text-gray-900\">Max Mustermann</a> wurde als neuer Mitarbeiter hinzugefügt",
-					"Time":        "Heute 08:30 Uhr",
-					"IsLast":      false,
-				},
-				{
-					"IconBgClass": "bg-blue-500",
-					"IconSVG":     "<svg class=\"h-5 w-5 text-white\" viewBox=\"0 0 20 20\" fill=\"currentColor\"><path fill-rule=\"evenodd\" d=\"M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z\" clip-rule=\"evenodd\" /></svg>",
-					"Message":     "<a href=\"#\" class=\"font-medium text-gray-900\">Erika Musterfrau</a> hat einen Urlaubsantrag eingereicht",
-					"Time":        "Gestern 17:45 Uhr",
-					"IsLast":      false,
-				},
-				{
-					"IconBgClass": "bg-yellow-500",
-					"IconSVG":     "<svg class=\"h-5 w-5 text-white\" viewBox=\"0 0 20 20\" fill=\"currentColor\"><path fill-rule=\"evenodd\" d=\"M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z\" clip-rule=\"evenodd\" /></svg>",
-					"Message":     "<a href=\"#\" class=\"font-medium text-gray-900\">John Doe</a> benötigt Hilfe bei der Einrichtung seines Accounts",
-					"Time":        "14.04.2025 10:23 Uhr",
-					"IsLast":      true,
-				},
-			}
+			// Anzahl abgelaufener Dokumente (in einer echten Anwendung würden wir dies berechnen)
+			expiredDocuments := 2
 
 			// Formatieren der monatlichen Personalkosten
 			formattedLaborCosts := fmt.Sprintf("%.2f", monthlyLaborCosts)
@@ -206,7 +253,7 @@ func InitializeRoutes(router *gin.Engine) {
 				"totalEmployees":          totalEmployees,
 				"monthlyLaborCosts":       formattedLaborCosts,
 				"upcomingReviews":         len(upcomingReviewsList),
-				"expiredDocuments":        2,
+				"expiredDocuments":        expiredDocuments,
 				"recentEmployees":         recentEmployees,
 				"upcomingReviewsList":     upcomingReviewsList,
 				"recentActivities":        recentActivities,

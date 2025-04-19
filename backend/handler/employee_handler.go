@@ -188,6 +188,21 @@ func (h *EmployeeHandler) AddEmployee(c *gin.Context) {
 		return
 	}
 
+	// Aktivität loggen
+	user, _ := c.Get("user")
+	userModel := user.(*model.User)
+
+	activityRepo := repository.NewActivityRepository()
+	_, _ = activityRepo.LogActivity(
+		model.ActivityTypeEmployeeAdded,
+		userModel.ID,
+		userModel.FirstName+" "+userModel.LastName,
+		employee.ID,
+		"employee",
+		employee.FirstName+" "+employee.LastName,
+		"Neuer Mitarbeiter hinzugefügt",
+	)
+
 	// Zurück zur Mitarbeiterliste mit Erfolgsmeldung
 	c.Redirect(http.StatusFound, "/employees?success=added")
 }

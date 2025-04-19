@@ -85,11 +85,33 @@
                                     </svg>
                                     <span>Eingestellt am {{.HireDateFormatted}}</span>
                                 </div>
+                                <!-- In der Mitarbeiterliste für jeden Status einen farbigen Badge anzeigen -->
                                 <div class="ml-4 flex items-center text-sm text-gray-500">
                                     <svg class="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-1.5 0a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" clip-rule="evenodd" />
                                     </svg>
-                                    <span>{{.Status}}</span>
+                                    <!-- Ersetzen Sie den einfachen Textstatus durch einen farbigen Badge -->
+                                    {{if eq .Status "Aktiv"}}
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+        {{.Status}}
+    </span>
+                                    {{else if eq .Status "Inaktiv"}}
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+        {{.Status}}
+    </span>
+                                    {{else if eq .Status "Im Urlaub"}}
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+        {{.Status}}
+    </span>
+                                    {{else if eq .Status "Remote"}}
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+        {{.Status}}
+    </span>
+                                    {{else}}
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+        {{.Status}}
+    </span>
+                                    {{end}}
                                 </div>
                             </div>
                         </div>
