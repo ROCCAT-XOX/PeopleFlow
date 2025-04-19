@@ -1,9 +1,14 @@
 package handler
 
 import (
+	"PeoplePilot/backend/db"
 	"PeoplePilot/backend/model"
 	"PeoplePilot/backend/repository"
 	"PeoplePilot/backend/service"
+	"context"
+	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -806,59 +811,59 @@ func (h *DocumentHandler) DeleteTraining(c *gin.Context) {
 
 // DeleteEvaluation löscht eine Leistungsbeurteilung eines Mitarbeiters
 func (h *DocumentHandler) DeleteEvaluation(c *gin.Context) {
-	// Mitarbeiter-ID und Evaluation-ID aus den URL-Parametern extrahieren
-	employeeID := c.Param("id")
-	evaluationID := c.Param("evaluationId")
+	// 1) Parameter extrahieren
+	empIDhex := c.Param("id")
+	evalIDhex := c.Param("evaluationId")
+	log.Printf("DeleteEvaluation aufgerufen für Mitarbeiter %s, Evaluation %s", empIDhex, evalIDhex)
 
-	// Mitarbeiter abrufen
-	employee, err := h.employeeRepo.FindByID(employeeID)
+	// 2) Objekt‑IDs parsen
+	empObjID, err := primitive.ObjectIDFromHex(empIDhex)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Mitarbeiter‑ID"})
+		return
+	}
+	evalObjID, err := primitive.ObjectIDFromHex(evalIDhex)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Evaluations‑ID"})
 		return
 	}
 
-	// Evaluation-ID in ObjectID umwandeln
-	evalObjID, err := primitive.ObjectIDFromHex(evaluationID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Evaluation-ID: " + err.Error()})
-		return
-	}
-
-	// Evaluation finden und löschen
-	var evaluationIndex int = -1
-	var evalToDelete *model.Evaluation
-
-	for i, eval := range employee.Evaluations {
-		if eval.ID == evalObjID {
-			evalToDelete = &employee.Evaluations[i]
-			evaluationIndex = i
-			break
+	// 3) Zuerst noch die zugehörigen Dokumente aus dem Dateisystem löschen,
+	//    damit sie nicht übrig bleiben.
+	if employee, err := h.employeeRepo.FindByID(empIDhex); err == nil {
+		for _, ev := range employee.Evaluations {
+			if ev.ID == evalObjID {
+				for _, doc := range ev.Documents {
+					if err := h.fileService.DeleteFile(doc.FilePath); err != nil {
+						log.Printf("Warnung: Dokument %s konnte nicht gelöscht werden: %v", doc.FilePath, err)
+					}
+				}
+				break
+			}
 		}
 	}
 
-	if evaluationIndex < 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Leistungsbeurteilung nicht gefunden"})
-		return
-	}
+	// 4) Jetzt das Array‑Element in MongoDB direkt mit $pull löschen
+	coll := db.GetCollection("employees")
+	filter := bson.M{"_id": empObjID}
+	update := bson.M{"$pull": bson.M{"evaluations": bson.M{"_id": evalObjID}}}
 
-	// Zugehörige Dokumente löschen
-	if evalToDelete != nil {
-		for _, doc := range evalToDelete.Documents {
-			h.fileService.DeleteFile(doc.FilePath)
-		}
-	}
-
-	// Evaluation aus der Liste entfernen
-	employee.Evaluations = append(employee.Evaluations[:evaluationIndex], employee.Evaluations[evaluationIndex+1:]...)
-
-	// Mitarbeiter aktualisieren
-	err = h.employeeRepo.Update(employee)
+	res, err := coll.UpdateOne(context.Background(), filter, update)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Aktualisieren des Mitarbeiters: " + err.Error()})
+		log.Printf("❌ MongoDB UpdateOne fehlgeschlagen: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB‑Fehler beim Löschen der Evaluierung"})
+		return
+	}
+	if res.MatchedCount == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden"})
+		return
+	}
+	if res.ModifiedCount == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Evaluierung nicht gefunden oder bereits gelöscht"})
 		return
 	}
 
-	// Erfolg zurückmelden
+	log.Printf("✅ Evaluierung %s erfolgreich gelöscht (ModifiedCount=%d)", evalIDhex, res.ModifiedCount)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Leistungsbeurteilung erfolgreich gelöscht",
@@ -867,6 +872,8 @@ func (h *DocumentHandler) DeleteEvaluation(c *gin.Context) {
 
 // DeleteAbsence löscht eine Abwesenheit eines Mitarbeiters
 func (h *DocumentHandler) DeleteAbsence(c *gin.Context) {
+	fmt.Println("Test Funktion")
+
 	// Mitarbeiter-ID und Absence-ID aus den URL-Parametern extrahieren
 	employeeID := c.Param("id")
 	absenceID := c.Param("absenceId")
