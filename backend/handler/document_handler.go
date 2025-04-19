@@ -6,7 +6,6 @@ import (
 	"PeoplePilot/backend/repository"
 	"PeoplePilot/backend/service"
 	"context"
-	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"log"
 	"net/http"
@@ -750,59 +749,58 @@ func (h *DocumentHandler) ApproveAbsence(c *gin.Context) {
 
 // DeleteTraining löscht ein Training eines Mitarbeiters
 func (h *DocumentHandler) DeleteTraining(c *gin.Context) {
-	// Mitarbeiter-ID und Training-ID aus den URL-Parametern extrahieren
-	employeeID := c.Param("id")
-	trainingID := c.Param("trainingId")
+	// 1) Parameter extrahieren
+	empIDhex := c.Param("id")
+	trainingIDhex := c.Param("trainingId")
+	log.Printf("DeleteTraining aufgerufen für Mitarbeiter %s, Training %s", empIDhex, trainingIDhex)
 
-	// Mitarbeiter abrufen
-	employee, err := h.employeeRepo.FindByID(employeeID)
+	// 2) Objekt‑IDs parsen
+	empObjID, err := primitive.ObjectIDFromHex(empIDhex)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Mitarbeiter‑ID"})
+		return
+	}
+	trainObjID, err := primitive.ObjectIDFromHex(trainingIDhex)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Training‑ID"})
 		return
 	}
 
-	// Training-ID in ObjectID umwandeln
-	trainObjID, err := primitive.ObjectIDFromHex(trainingID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Training-ID: " + err.Error()})
-		return
-	}
-
-	// Training finden und löschen
-	var trainingIndex int = -1
-	var trainingToDelete *model.Training
-
-	for i, training := range employee.Trainings {
-		if training.ID == trainObjID {
-			trainingToDelete = &employee.Trainings[i]
-			trainingIndex = i
-			break
+	// 3) Dokumente des Trainings aus dem Dateisystem löschen
+	if employee, err := h.employeeRepo.FindByID(empIDhex); err == nil {
+		for _, t := range employee.Trainings {
+			if t.ID == trainObjID {
+				for _, doc := range t.Documents {
+					if err := h.fileService.DeleteFile(doc.FilePath); err != nil {
+						log.Printf("Warnung: Konnte Trainings‑Dokument %s nicht löschen: %v", doc.FilePath, err)
+					}
+				}
+				break
+			}
 		}
 	}
 
-	if trainingIndex < 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Training nicht gefunden"})
-		return
-	}
+	// 4) Trainings‑Eintrag in MongoDB direkt via $pull entfernen
+	coll := db.GetCollection("employees")
+	filter := bson.M{"_id": empObjID}
+	update := bson.M{"$pull": bson.M{"trainings": bson.M{"_id": trainObjID}}}
 
-	// Zugehörige Dokumente löschen
-	if trainingToDelete != nil {
-		for _, doc := range trainingToDelete.Documents {
-			h.fileService.DeleteFile(doc.FilePath)
-		}
-	}
-
-	// Training aus der Liste entfernen
-	employee.Trainings = append(employee.Trainings[:trainingIndex], employee.Trainings[trainingIndex+1:]...)
-
-	// Mitarbeiter aktualisieren
-	err = h.employeeRepo.Update(employee)
+	res, err := coll.UpdateOne(context.Background(), filter, update)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Aktualisieren des Mitarbeiters: " + err.Error()})
+		log.Printf("❌ MongoDB UpdateOne fehlgeschlagen: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB‑Fehler beim Löschen des Trainings"})
+		return
+	}
+	if res.MatchedCount == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden"})
+		return
+	}
+	if res.ModifiedCount == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Training nicht gefunden oder bereits gelöscht"})
 		return
 	}
 
-	// Erfolg zurückmelden
+	log.Printf("✅ Training %s erfolgreich gelöscht (ModifiedCount=%d)", trainingIDhex, res.ModifiedCount)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Training erfolgreich gelöscht",
@@ -872,66 +870,62 @@ func (h *DocumentHandler) DeleteEvaluation(c *gin.Context) {
 
 // DeleteAbsence löscht eine Abwesenheit eines Mitarbeiters
 func (h *DocumentHandler) DeleteAbsence(c *gin.Context) {
-	fmt.Println("Test Funktion")
+	// 1) Parameter extrahieren
+	empIDhex := c.Param("id")
+	absIDhex := c.Param("absenceId")
+	log.Printf("DeleteAbsence aufgerufen für Mitarbeiter %s, Abwesenheit %s", empIDhex, absIDhex)
 
-	// Mitarbeiter-ID und Absence-ID aus den URL-Parametern extrahieren
-	employeeID := c.Param("id")
-	absenceID := c.Param("absenceId")
-
-	// Mitarbeiter abrufen
-	employee, err := h.employeeRepo.FindByID(employeeID)
+	// 2) Objekt‑IDs parsen
+	empObjID, err := primitive.ObjectIDFromHex(empIDhex)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Mitarbeiter‑ID"})
+		return
+	}
+	absObjID, err := primitive.ObjectIDFromHex(absIDhex)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Abwesenheits‑ID"})
 		return
 	}
 
-	// Absence-ID in ObjectID umwandeln
-	absObjID, err := primitive.ObjectIDFromHex(absenceID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Absence-ID: " + err.Error()})
-		return
-	}
-
-	// Absence finden und löschen
-	var absenceIndex int = -1
-	var absenceToDelete *model.Absence
-
-	for i, absence := range employee.Absences {
-		if absence.ID == absObjID {
-			absenceToDelete = &employee.Absences[i]
-			absenceIndex = i
-			break
+	// 3) Dokumente aus dem Dateisystem löschen (falls vorhanden)
+	if employee, err := h.employeeRepo.FindByID(empIDhex); err == nil {
+		for _, abs := range employee.Absences {
+			if abs.ID == absObjID {
+				// Urlaubstage zurückgeben, sofern genehmigt
+				if abs.Type == "vacation" && abs.Status == "approved" {
+					employee.RemainingVacation += int(abs.Days)
+				}
+				for _, doc := range abs.Documents {
+					if err := h.fileService.DeleteFile(doc.FilePath); err != nil {
+						log.Printf("Warnung: Konnte Abwesenheits‑Dokument %s nicht löschen: %v", doc.FilePath, err)
+					}
+				}
+				break
+			}
 		}
 	}
 
-	if absenceIndex < 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Abwesenheit nicht gefunden"})
-		return
-	}
+	// 4) Array‑Eintrag direkt in MongoDB entfernen
+	coll := db.GetCollection("employees")
+	filter := bson.M{"_id": empObjID}
+	update := bson.M{"$pull": bson.M{"absences": bson.M{"_id": absObjID}}}
 
-	// Urlaubstage zurückgeben, falls es sich um einen genehmigten Urlaub handelt
-	if absenceToDelete != nil && absenceToDelete.Type == "vacation" && absenceToDelete.Status == "approved" {
-		employee.RemainingVacation += int(absenceToDelete.Days)
-	}
-
-	// Zugehörige Dokumente löschen
-	if absenceToDelete != nil {
-		for _, doc := range absenceToDelete.Documents {
-			h.fileService.DeleteFile(doc.FilePath)
-		}
-	}
-
-	// Absence aus der Liste entfernen
-	employee.Absences = append(employee.Absences[:absenceIndex], employee.Absences[absenceIndex+1:]...)
-
-	// Mitarbeiter aktualisieren
-	err = h.employeeRepo.Update(employee)
+	res, err := coll.UpdateOne(context.Background(), filter, update)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Aktualisieren des Mitarbeiters: " + err.Error()})
+		log.Printf("❌ MongoDB UpdateOne fehlgeschlagen: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB‑Fehler beim Löschen der Abwesenheit"})
+		return
+	}
+	if res.MatchedCount == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden"})
+		return
+	}
+	if res.ModifiedCount == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Abwesenheit nicht gefunden oder bereits gelöscht"})
 		return
 	}
 
-	// Erfolg zurückmelden
+	log.Printf("✅ Abwesenheit %s erfolgreich gelöscht (ModifiedCount=%d)", absIDhex, res.ModifiedCount)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Abwesenheit erfolgreich gelöscht",
