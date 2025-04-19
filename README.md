@@ -169,3 +169,46 @@ Jeder Benutzer hat Zugriff auf sein eigenes Profil unter `/profile`, wo er:
 - **Aktivitätsverfolgung**: Alle wichtigen Benutzeraktionen werden protokolliert und im Dashboard angezeigt
 - **Responsive Design**: Die Benutzeroberfläche ist für Desktop- und mobile Geräte optimiert
 - **Benutzerfreundliche Fehlermeldungen**: Verständliche Fehlermeldungen bei Problemen
+
+
+#### Docker-Compose
+```
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: peoplepilot-app
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongo
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017
+    volumes:
+      - uploads:/app/uploads
+    networks:
+      - peoplepilot-network
+
+  mongo:
+    image: mongo:latest
+    container_name: peoplepilot-db
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - peoplepilot-network
+
+networks:
+  peoplepilot-network:
+    driver: bridge
+
+volumes:
+  mongodb-data:
+  uploads:
+```
