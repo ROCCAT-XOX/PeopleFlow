@@ -273,18 +273,13 @@ func InitializeRoutes(router *gin.Engine) {
 		// Benutzerprofilrouten
 		authorized.GET("/profile", userHandler.ShowUserProfile)
 
-		// Benutzerverwaltungsrouten
-		// Nur Administratoren können Benutzer verwalten
-		adminRoutes := authorized.Group("/users")
-		adminRoutes.Use(middleware.RoleMiddleware(model.RoleAdmin))
-		{
-			adminRoutes.GET("/", userHandler.ListUsers)
-			adminRoutes.GET("/add", userHandler.ShowAddUserForm)
-			adminRoutes.POST("/add", userHandler.AddUser)
-			adminRoutes.GET("/edit/:id", userHandler.ShowEditUserForm)
-			adminRoutes.POST("/edit/:id", userHandler.UpdateUser)
-			adminRoutes.DELETE("/delete/:id", userHandler.DeleteUser)
-		}
+		// Einstellungsrouten (für alle Benutzer)
+		authorized.GET("/settings", userHandler.ShowSettings)
+
+		// Benutzerverwaltungsrouten (für Administratoren)
+		authorized.POST("/users/add", middleware.RoleMiddleware(model.RoleAdmin), userHandler.AddUser)
+		authorized.POST("/users/edit/:id", middleware.RoleMiddleware(model.RoleAdmin), userHandler.UpdateUser)
+		authorized.DELETE("/users/delete/:id", middleware.RoleMiddleware(model.RoleAdmin), userHandler.DeleteUser)
 
 		// Passwortänderungsroute - ein Benutzer kann nur sein eigenes Passwort ändern
 		authorized.POST("/users/change-password", middleware.SelfOrAdminMiddleware(), userHandler.ChangePassword)

@@ -15,10 +15,6 @@
                     <a href="/employees" class="inline-flex items-center border-b-2 {{ if eq .active "employees" }}border-green-500 text-gray-900{{ else }}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{{ end }} px-1 pt-1 text-sm font-medium">Mitarbeiter</a>
                     {{ end }}
 
-                    <!-- Benutzerverwaltung nur für Administratoren -->
-                    {{ if eq .userRole "admin" }}
-                    <a href="/users" class="inline-flex items-center border-b-2 {{ if eq .active "users" }}border-green-500 text-gray-900{{ else }}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{{ end }} px-1 pt-1 text-sm font-medium">Benutzer</a>
-                    {{ end }}
                 </div>
             </div>
             <div class="hidden sm:ml-6 sm:flex sm:items-center">
@@ -40,12 +36,13 @@
                         </button>
                     </div>
 
+                    <!-- Im desktop-Dropdown-Menü den Einstellungen-Link ändern -->
                     <div class="hidden absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1" id="user-menu-dropdown">
                         <div class="block px-4 py-2 text-sm text-gray-700 border-b border-gray-100">
                             Eingeloggt als: <strong>{{.user}}</strong>
                         </div>
                         <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1" id="user-menu-item-0">Mein Profil</a>
-                        <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1" id="user-menu-item-1">Einstellungen</a>
+                        <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ if eq .active "settings" }}bg-gray-100{{ end }}" role="menuitem" tabindex="-1" id="user-menu-item-1">Einstellungen</a>
                         <a href="/logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1" id="user-menu-item-2">Abmelden</a>
                     </div>
                 </div>
@@ -76,10 +73,7 @@
             <a href="/employees" class="block border-l-4 {{ if eq .active "employees" }}border-green-500 bg-green-50 text-green-700{{ else }}border-transparent text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700{{ end }} py-2 pl-3 pr-4 text-base font-medium">Mitarbeiter</a>
             {{ end }}
 
-            <!-- Nur für Administratoren -->
-            {{ if eq .userRole "admin" }}
-            <a href="/users" class="block border-l-4 {{ if eq .active "users" }}border-green-500 bg-green-50 text-green-700{{ else }}border-transparent text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700{{ end }} py-2 pl-3 pr-4 text-base font-medium">Benutzer</a>
-            {{ end }}
+
         </div>
         <div class="border-t border-gray-200 pt-4 pb-3">
             <div class="flex items-center px-4">
@@ -98,9 +92,10 @@
                     </svg>
                 </button>
             </div>
+            <!-- Auch im mobilen Menü den Einstellungen-Link ändern -->
             <div class="mt-3 space-y-1">
                 <a href="/profile" class="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800">Mein Profil</a>
-                <a href="/settings" class="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800">Einstellungen</a>
+                <a href="/settings" class="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800 {{ if eq .active "settings" }}bg-gray-100 text-gray-800{{ end }}">Einstellungen</a>
                 <a href="/logout" class="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800">Abmelden</a>
             </div>
         </div>

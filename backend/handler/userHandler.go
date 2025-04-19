@@ -116,8 +116,8 @@ func (h *UserHandler) AddUser(c *gin.Context) {
 		"Neuer Benutzer hinzugefügt",
 	)
 
-	// Zurück zur Benutzerliste mit Erfolgsmeldung
-	c.Redirect(http.StatusFound, "/users?success=added")
+	// Hier ändert sich die Umleitung - zur Einstellungsseite statt zur Benutzerliste
+	c.Redirect(http.StatusFound, "/settings?success=added")
 }
 
 // ShowEditUserForm zeigt das Formular zum Bearbeiten eines Benutzers an
@@ -214,7 +214,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 
 	// Zurück zur Benutzerliste oder zum Profil
 	if currentUserRole == string(model.RoleAdmin) {
-		c.Redirect(http.StatusFound, "/users?success=updated")
+		c.Redirect(http.StatusFound, "/settings?success=updated")
 	} else {
 		c.Redirect(http.StatusFound, "/profile?success=updated")
 	}
@@ -351,4 +351,42 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 
 	// Zurück zum Profil mit Erfolgsmeldung
 	c.Redirect(http.StatusFound, "/profile?success=password_changed")
+}
+
+// ShowSettings zeigt die Einstellungsseite an
+func (h *UserHandler) ShowSettings(c *gin.Context) {
+	// Aktuellen Benutzer aus dem Context abrufen
+	user, _ := c.Get("user")
+	userModel := user.(*model.User)
+	userRole := c.GetString("userRole")
+
+	// Erfolgsparameter aus der URL extrahieren
+	success := c.Query("success")
+
+	// Vorbereitete Daten für die Einstellungsseite
+	data := gin.H{
+		"title":    "Einstellungen",
+		"active":   "settings",
+		"user":     userModel.FirstName + " " + userModel.LastName,
+		"email":    userModel.Email,
+		"year":     time.Now().Year(),
+		"userRole": userRole,
+	}
+
+	// Erfolgsparameter hinzufügen, wenn vorhanden
+	if success != "" {
+		data["success"] = success
+	}
+
+	// Wenn der Benutzer ein Administrator ist, fügen wir Benutzerdaten hinzu
+	if userRole == string(model.RoleAdmin) {
+		users, err := h.userRepo.FindAll()
+		if err != nil {
+			users = []*model.User{} // Leere Liste im Fehlerfall
+		}
+		data["users"] = users
+		data["totalUsers"] = len(users)
+	}
+
+	c.HTML(http.StatusOK, "settings.html", data)
 }
