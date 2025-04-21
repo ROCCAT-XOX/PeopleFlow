@@ -171,44 +171,66 @@ Jeder Benutzer hat Zugriff auf sein eigenes Profil unter `/profile`, wo er:
 - **Benutzerfreundliche Fehlermeldungen**: Verständliche Fehlermeldungen bei Problemen
 
 
-#### Docker-Compose
+## Deployment
+
+### Automatisiertes Deployment
+
+PeoplePilot kann mit dem mitgelieferten Deployment-Skript einfach auf jedem Linux-Server mit Docker installiert werden:
+
+1. Lade das Deployment-Skript herunter:
+   ```bash
+   curl -O https://raw.githubusercontent.com/yourusername/PeoplePilot/main/scripts/peoplepilot-deploy.sh
+   chmod +x peoplepilot-deploy.sh
+
+Führe das Skript aus:
+bash./peoplepilot-deploy.sh
+
+Nach erfolgreichem Deployment ist die Anwendung im Browser unter http://[Server-IP]:5000 erreichbar.
+
+Anpassung des Deployments
+Das Deployment-Skript kann durch Umgebungsvariablen angepasst werden:
+bash# Beispiel für angepasstes Deployment
+REPO_BRANCH="develop" APP_PORT=8080 MONGODB_PORT=27017 ./peoplepilot-deploy.sh
+Verfügbare Optionen:
+
+REPO_URL: URL des Git-Repositories (Standard: "https://github.com/yourusername/PeoplePilot.git")
+REPO_BRANCH: Branch für das Deployment (Standard: "main")
+MONGODB_PORT: Port für MongoDB (Standard: 27018)
+APP_PORT: Port für die Anwendung (Standard: 5000)
+IMAGE_TAG: Tag für das Docker-Image (Standard: "latest")
+PLATFORM: Docker-Build-Plattform (Standard: "linux/amd64")
+
+Manuelles Deployment
+Für ein manuelles Deployment folgen Sie diesen Schritten:
+
+Klonen Sie das Repository:
+bashgit clone https://github.com/yourusername/PeoplePilot.git
+cd PeoplePilot
+
+Bauen Sie das Docker-Image:
+bashdocker build -t peopleflow:latest .
+
+Erstellen Sie ein Docker-Netzwerk:
+bashdocker network create peopleflow-network
+
+Starten Sie MongoDB:
 ```
-version: '3.8'
+bashdocker run -d --name mongodb \
+--network peopleflow-network \
+-p 27018:27017 \
+-v mongodb_data:/data/db \
+--restart unless-stopped \
+mongo:latest
+```
 
-services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: PeopleFlow-app
-    restart: always
-    ports:
-      - "8080:8080"
-    depends_on:
-      - mongo
-    environment:
-      - MONGODB_URI=mongodb://mongo:27017
-    volumes:
-      - uploads:/app/uploads
-    networks:
-      - PeopleFlow-network
-
-  mongo:
-    image: mongo:latest
-    container_name: PeopleFlow-db
-    restart: always
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb-data:/data/db
-    networks:
-      - PeopleFlow-network
-
-networks:
-  PeopleFlow-network:
-    driver: bridge
-
-volumes:
-  mongodb-data:
-  uploads:
+Starten Sie PeoplePilot:
+```
+bashMONGO_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mongodb)
+docker run -d --name peopleflow \
+--network peopleflow-network \
+-p 5000:8080 \
+-e MONGODB_URI=mongodb://${MONGO_IP}:27017/peoplepilot \
+-v peopleflow_uploads:/app/uploads \
+--restart unless-stopped \
+peopleflow:latest
 ```

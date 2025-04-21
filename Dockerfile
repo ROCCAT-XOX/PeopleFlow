@@ -26,7 +26,7 @@ RUN go mod download
 COPY . .
 
 # Binary explizit für AMD64-Architektur bauen
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o PeoplePilot
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o PeopleFlow
 
 # ========== Final Stage ==========
 FROM alpine:latest

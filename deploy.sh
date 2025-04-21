@@ -1,0 +1,99 @@
+#!/bin/bash
+# peoplepilot-deploy.sh - Vollständiges Deployment-Skript für PeopleFlow
+# Farbcodes für schönere Ausgabe
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Konfigurierbare Variablen (können durch Umgebungsvariablen überschrieben werden)
+REPO_URL=${REPO_URL:-"https://github.com/yourusername/PeoplePilot.git"}
+REPO_BRANCH=${REPO_BRANCH:-"main"}
+MONGODB_PORT=${MONGODB_PORT:-27018}
+APP_PORT=${APP_PORT:-5000}
+IMAGE_TAG=${IMAGE_TAG:-"latest"}
+PLATFORM=${PLATFORM:-"linux/amd64"}
+
+# Hilfsfunktion für Fehlerbehandlung
+handle_error() {
+  echo -e "${RED}FEHLER: $1${NC}"
+  exit 1
+}
+
+echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║      PeoplePilot Deployment Skript     ║${NC}"
+echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
+
+# 0. Repository aktualisieren (falls vorhanden) oder klonen
+if [ -d "PeoplePilot" ]; then
+  echo -e "${YELLOW}Aktualisiere Repository...${NC}"
+  cd PeopleFlow || handle_error "Konnte nicht in das PeoplePilot-Verzeichnis wechseln"
+  git pull origin $REPO_BRANCH || handle_error "Git Pull fehlgeschlagen"
+else
+  echo -e "${YELLOW}Klone Repository...${NC}"
+  git clone -b $REPO_BRANCH $REPO_URL || handle_error "Git Clone fehlgeschlagen"
+  cd PeopleFlow || handle_error "Konnte nicht in das PeoplePilot-Verzeichnis wechseln"
+fi
+
+# 1. Docker-Image bauen
+echo -e "${YELLOW}Baue Docker-Image für $PLATFORM...${NC}"
+docker build --platform $PLATFORM -t peopleflow:$IMAGE_TAG . || handle_error "Docker Build fehlgeschlagen"
+echo -e "${GREEN}Docker-Image erfolgreich gebaut.${NC}"
+
+# 2. Alte Container stoppen und entfernen
+echo -e "${YELLOW}Stoppe alte Container...${NC}"
+docker stop peopleflow mongodb 2>/dev/null
+docker rm peopleflow mongodb 2>/dev/null
+echo -e "${GREEN}Alte Container bereinigt.${NC}"
+
+# 3. Netzwerk erstellen (falls nicht vorhanden)
+echo -e "${YELLOW}Erstelle Docker-Netzwerk...${NC}"
+docker network create peopleflow-network 2>/dev/null || true
+echo -e "${GREEN}Netzwerk bereit.${NC}"
+
+# 4. MongoDB starten
+echo -e "${YELLOW}Starte MongoDB...${NC}"
+docker run -d --name mongodb \
+  --network peopleflow-network \
+  -p $MONGODB_PORT:27017 \
+  -v mongodb_data:/data/db \
+  --restart unless-stopped \
+  mongo:latest || handle_error "MongoDB-Start fehlgeschlagen"
+
+# Warte kurz, bis MongoDB gestartet ist
+echo -e "${YELLOW}Warte auf MongoDB-Start...${NC}"
+sleep 5
+
+# 5. MongoDB-IP ermitteln
+MONGO_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mongodb)
+echo -e "${GREEN}MongoDB läuft auf IP: ${MONGO_IP}${NC}"
+
+# 6. PeopleFlow starten
+echo -e "${YELLOW}Starte PeoplePilot...${NC}"
+docker run -d --name peopleflow \
+  --network peopleflow-network \
+  -p $APP_PORT:8080 \
+  -e MONGODB_URI=mongodb://${MONGO_IP}:27017/peoplepilot \
+  -v peopleflow_uploads:/app/uploads \
+  --restart unless-stopped \
+  peopleflow:$IMAGE_TAG || handle_error "PeoplePilot-Start fehlgeschlagen"
+
+# 7. Status prüfen
+echo -e "${YELLOW}Prüfe Container-Status...${NC}"
+if [ "$(docker ps -q -f name=peopleflow)" ] && [ "$(docker ps -q -f name=mongodb)" ]; then
+  echo -e "${GREEN}PeoplePilot wurde erfolgreich gestartet!${NC}"
+  SERVER_IP=$(hostname -I | awk '{print $1}')
+  echo -e "${GREEN}Die Anwendung ist verfügbar unter: http://${SERVER_IP}:${APP_PORT}${NC}"
+  echo -e "${YELLOW}MongoDB läuft auf Port: ${MONGODB_PORT}${NC}"
+
+  # Container-Logs anzeigen
+  echo -e "\n${YELLOW}Log-Ausgabe des PeoplePilot-Containers:${NC}"
+  docker logs peopleflow --tail 10
+else
+  handle_error "Es gab ein Problem beim Starten der Container. Überprüfe die Logs mit: docker logs peopleflow"
+fi
+
+echo -e "\n${BLUE}════════════════════════════════════════${NC}"
+echo -e "${GREEN}Deployment abgeschlossen!${NC}"
+echo -e "${BLUE}════════════════════════════════════════${NC}"
