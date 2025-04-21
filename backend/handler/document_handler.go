@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"PeoplePilot/backend/db"
-	"PeoplePilot/backend/model"
-	"PeoplePilot/backend/repository"
-	"PeoplePilot/backend/service"
+	"PeopleFlow/backend/db"
+	"PeopleFlow/backend/model"
+	"PeopleFlow/backend/repository"
+	"PeopleFlow/backend/service"
 	"context"
 	"go.mongodb.org/mongo-driver/bson"
 	"log"

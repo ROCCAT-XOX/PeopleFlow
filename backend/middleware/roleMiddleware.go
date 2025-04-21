@@ -2,7 +2,7 @@
 package middleware
 
 import (
-	"PeoplePilot/backend/model"
+	"PeopleFlow/backend/model"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"

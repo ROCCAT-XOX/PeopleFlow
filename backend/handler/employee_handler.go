@@ -1,9 +1,9 @@
 package handler
 
 import (
-	"PeoplePilot/backend/model"
-	"PeoplePilot/backend/repository"
-	"PeoplePilot/backend/service"
+	"PeopleFlow/backend/model"
+	"PeopleFlow/backend/repository"
+	"PeopleFlow/backend/service"
 	"fmt"
 	"net/http"
 	"os"

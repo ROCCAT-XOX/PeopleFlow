@@ -1,7 +1,7 @@
 package service
 
 import (
-	"PeoplePilot/backend/model"
+	"PeopleFlow/backend/model"
 	"errors"
 	"fmt"
 	"io"

@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  peoplepilot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: peoplepilot
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - peoplepilot_uploads:/app/uploads
+    environment:
+      - GIN_MODE=release
+      - TZ=Europe/Berlin
+      - MONGODB_URI=mongodb://mongodb:27017/peoplepilot
+    depends_on:
+      - mongodb
+    networks:
+      - peoplepilot-network
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: unless-stopped
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - peoplepilot-network
+
+networks:
+  peoplepilot-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  peoplepilot_uploads:

@@ -1,7 +1,7 @@
-# PeoplePilot - HR Management System
+# PeopleFlow - HR Management System
 
 ```
-PeoplePilot/
+PeopleFlow/
 ├── backend/
 │   ├── db/
 │   ├── handler/
@@ -20,7 +20,7 @@ PeoplePilot/
 
 ## Übersicht
 
-PeoplePilot ist ein modulares HR-Management-System, entwickelt mit Go, Gin für das Backend und Tailwind CSS für das Frontend. Das System ermöglicht die effiziente Verwaltung von Mitarbeiterdaten, Dokumenten, Urlaub und mehr.
+PeopleFlow ist ein modulares HR-Management-System, entwickelt mit Go, Gin für das Backend und Tailwind CSS für das Frontend. Das System ermöglicht die effiziente Verwaltung von Mitarbeiterdaten, Dokumenten, Urlaub und mehr.
 
 ## Kernfunktionen
 
@@ -80,14 +80,14 @@ air
 ## Benutzeranmeldung
 
 Die Anwendung erstellt standardmäßig einen Admin-Benutzer:
-- E-Mail: admin@peoplepilot.com
+- E-Mail: admin@PeopleFlow.com
 - Passwort: admin
 
-# Implementierungsleitfaden für rollenbasierte Benutzerverwaltung in PeoplePilot
+# Implementierungsleitfaden für rollenbasierte Benutzerverwaltung in PeopleFlow
 
 ## Überblick
 
-Die Implementierung einer rollenbasierten Benutzerverwaltung für PeoplePilot ermöglicht eine differenzierte Zugriffssteuerung mit folgenden Benutzerrollen:
+Die Implementierung einer rollenbasierten Benutzerverwaltung für PeopleFlow ermöglicht eine differenzierte Zugriffssteuerung mit folgenden Benutzerrollen:
 
 1. **Benutzer (user)**: Kann nur die eigenen Daten sehen und verwalten
 2. **Personalverwaltung (hr)**: Kann Mitarbeiter und Dokumente verwalten
@@ -180,7 +180,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: peoplepilot-app
+    container_name: PeopleFlow-app
     restart: always
     ports:
       - "8080:8080"
@@ -191,21 +191,21 @@ services:
     volumes:
       - uploads:/app/uploads
     networks:
-      - peoplepilot-network
+      - PeopleFlow-network
 
   mongo:
     image: mongo:latest
-    container_name: peoplepilot-db
+    container_name: PeopleFlow-db
     restart: always
     ports:
       - "27017:27017"
     volumes:
       - mongodb-data:/data/db
     networks:
-      - peoplepilot-network
+      - PeopleFlow-network
 
 networks:
-  peoplepilot-network:
+  PeopleFlow-network:
     driver: bridge
 
 volumes:

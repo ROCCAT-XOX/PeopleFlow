@@ -23,7 +23,7 @@ func GenerateJWT(userID, role string) (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), // Token läuft nach 24 Stunden ab
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "peoplepilot",
+			Issuer:    "PeopleFlow",
 		},
 	}
 

@@ -1,45 +1,57 @@
-# Build Stage
-FROM golang:1.23-alpine AS builder
+# ========== Build Stage ==========
+FROM alpine:latest AS builder
+
+# Go 1.23.4 installieren
+RUN apk add --no-cache ca-certificates gcc git musl-dev
+
+# Download und Installation von Go 1.23.4
+ENV GOLANG_VERSION=1.23.4 \
+    GOPATH=/go \
+    PATH=/go/bin:/usr/local/go/bin:$PATH
+
+# Explizit für AMD64 bauen, unabhängig von der Architektur des Build-Hosts
+RUN wget -O go.tgz "https://dl.google.com/go/go${GOLANG_VERSION}.linux-amd64.tar.gz" && \
+    tar -C /usr/local -xzf go.tgz && \
+    rm go.tgz && \
+    mkdir -p "$GOPATH/src" "$GOPATH/bin" && \
+    chmod -R 777 "$GOPATH"
 
 WORKDIR /app
 
-# Kopieren der Go Module Dateien
+# Go-Module-Abhängigkeiten cachen
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Kopieren des Quellcodes
+# Quellcode kopieren
 COPY . .
 
-# Build der Anwendung
-RUN CGO_ENABLED=0 GOOS=linux go build -o peoplepilot
+# Binary explizit für AMD64-Architektur bauen
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o PeoplePilot
 
-# Final Stage
+# ========== Final Stage ==========
 FROM alpine:latest
 
 WORKDIR /app
 
-# Benötigte Pakete installieren
+# Laufzeit-Abhängigkeiten
 RUN apk --no-cache add ca-certificates tzdata
 
-# Zeitzone setzen
-ENV TZ=Europe/Berlin
-
-# Kopieren der kompilierten Binary aus dem Build-Stage
-COPY --from=builder /app/peoplepilot .
-
-# Kopieren der Templates und statischen Dateien
+# Binary und Assets übernehmen
+COPY --from=builder /app/PeoplePilot /app/PeoplePilot
 COPY --from=builder /app/frontend /app/frontend
 
-# Erstellen des Upload-Verzeichnisses
+# Upload-Verzeichnis anlegen und als Volume deklarieren
 RUN mkdir -p /app/uploads && chmod 777 /app/uploads
+VOLUME ["/app/uploads"]
 
-# Setzen der Umgebungsvariablen
-ENV GIN_MODE=release
-ENV PORT=8080
-ENV MONGODB_URI=mongodb://mongo:27017
+# Umgebungsvariablen
+ENV GIN_MODE=release \
+    TZ=Europe/Berlin \
+    PORT=8080 \
+    MONGODB_URI=mongodb://mongodb:27017/peoplepilot
 
-# Freigabe des Ports
+# Port freigeben
 EXPOSE 8080
 
-# Starten der Anwendung
-CMD ["./peoplepilot"]
+# Startkommando
+CMD ["/app/PeoplePilot"]

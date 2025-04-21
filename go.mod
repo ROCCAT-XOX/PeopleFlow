@@ -1,4 +1,4 @@
-module PeoplePilot
+module PeopleFlow
 
 go 1.23.4
 
