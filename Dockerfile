@@ -50,7 +50,7 @@ ENV GIN_MODE=release \
     PORT=8080 \
     MONGODB_URI=mongodb://mongodb:27017/peoplepilot
 
-# Port freigeben
+# Port freigebe
 EXPOSE 8080
 
 # Startkommando
