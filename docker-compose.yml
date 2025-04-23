@@ -1,24 +1,24 @@
 version: '3.8'
 
 services:
-  peoplepilot:
+  PeopleFlow:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: peoplepilot
+    container_name: peopleflow
     restart: unless-stopped
     ports:
       - "8080:8080"
     volumes:
-      - peoplepilot_uploads:/app/uploads
+      - peopleflow_uploads:/app/uploads
     environment:
       - GIN_MODE=release
       - TZ=Europe/Berlin
-      - MONGODB_URI=mongodb://mongodb:27017/peoplepilot
+      - MONGODB_URI=mongodb://mongodb:27017/peopleflow
     depends_on:
       - mongodb
     networks:
-      - peoplepilot-network
+      - peopleflow-network
 
   mongodb:
     image: mongo:latest
@@ -29,12 +29,12 @@ services:
     ports:
       - "27017:27017"
     networks:
-      - peoplepilot-network
+      - peopleflow-network
 
 networks:
-  peoplepilot-network:
+  PeopleFlow-network:
     driver: bridge
 
 volumes:
   mongodb_data:
-  peoplepilot_uploads:
+  PeopleFlow_uploads:

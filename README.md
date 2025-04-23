@@ -175,25 +175,25 @@ Jeder Benutzer hat Zugriff auf sein eigenes Profil unter `/profile`, wo er:
 
 ### Automatisiertes Deployment
 
-PeoplePilot kann mit dem mitgelieferten Deployment-Skript einfach auf jedem Linux-Server mit Docker installiert werden:
+PeopleFlow kann mit dem mitgelieferten Deployment-Skript einfach auf jedem Linux-Server mit Docker installiert werden:
 
 1. Lade das Deployment-Skript herunter:
    ```bash
-   curl -O https://raw.githubusercontent.com/yourusername/PeoplePilot/main/scripts/peoplepilot-deploy.sh
-   chmod +x peoplepilot-deploy.sh
+   curl -O https://raw.githubusercontent.com/yourusername/PeopleFlow/main/scripts/PeopleFlow-deploy.sh
+   chmod +x PeopleFlow-deploy.sh
 
 Führe das Skript aus:
-bash./peoplepilot-deploy.sh
+bash./PeopleFlow-deploy.sh
 
 Nach erfolgreichem Deployment ist die Anwendung im Browser unter http://[Server-IP]:5000 erreichbar.
 
 Anpassung des Deployments
 Das Deployment-Skript kann durch Umgebungsvariablen angepasst werden:
 bash# Beispiel für angepasstes Deployment
-REPO_BRANCH="develop" APP_PORT=8080 MONGODB_PORT=27017 ./peoplepilot-deploy.sh
+REPO_BRANCH="develop" APP_PORT=8080 MONGODB_PORT=27017 ./PeopleFlow-deploy.sh
 Verfügbare Optionen:
 
-REPO_URL: URL des Git-Repositories (Standard: "https://github.com/yourusername/PeoplePilot.git")
+REPO_URL: URL des Git-Repositories (Standard: "https://github.com/yourusername/PeopleFlow.git")
 REPO_BRANCH: Branch für das Deployment (Standard: "main")
 MONGODB_PORT: Port für MongoDB (Standard: 27018)
 APP_PORT: Port für die Anwendung (Standard: 5000)
@@ -204,8 +204,8 @@ Manuelles Deployment
 Für ein manuelles Deployment folgen Sie diesen Schritten:
 
 Klonen Sie das Repository:
-bashgit clone https://github.com/yourusername/PeoplePilot.git
-cd PeoplePilot
+bashgit clone https://github.com/yourusername/PeopleFlow.git
+cd PeopleFlow
 
 Bauen Sie das Docker-Image:
 bashdocker build -t peopleflow:latest .
@@ -223,13 +223,13 @@ bashdocker run -d --name mongodb \
 mongo:latest
 ```
 
-Starten Sie PeoplePilot:
+Starten Sie PeopleFlow:
 ```
 bashMONGO_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mongodb)
 docker run -d --name peopleflow \
 --network peopleflow-network \
 -p 5000:8080 \
--e MONGODB_URI=mongodb://${MONGO_IP}:27017/peoplepilot \
+-e MONGODB_URI=mongodb://${MONGO_IP}:27017/PeopleFlow \
 -v peopleflow_uploads:/app/uploads \
 --restart unless-stopped \
 peopleflow:latest

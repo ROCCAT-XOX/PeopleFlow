@@ -37,7 +37,7 @@ WORKDIR /app
 RUN apk --no-cache add ca-certificates tzdata
 
 # Binary und Assets übernehmen
-COPY --from=builder /app/PeoplePilot /app/PeoplePilot
+COPY --from=builder /app/PeopleFlow /app/PeopleFlow
 COPY --from=builder /app/frontend /app/frontend
 
 # Upload-Verzeichnis anlegen und als Volume deklarieren
@@ -48,10 +48,10 @@ VOLUME ["/app/uploads"]
 ENV GIN_MODE=release \
     TZ=Europe/Berlin \
     PORT=8080 \
-    MONGODB_URI=mongodb://mongodb:27017/peoplepilot
+    MONGODB_URI=mongodb://mongodb:27017/PeopleFlow
 
 # Port freigebe
 EXPOSE 8080
 
 # Startkommando
-CMD ["/app/PeoplePilot"]
+CMD ["/app/PeopleFlow"]

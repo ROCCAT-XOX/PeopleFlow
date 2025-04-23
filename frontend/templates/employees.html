@@ -513,9 +513,31 @@
         if (confirmDeleteBtn) {
             confirmDeleteBtn.addEventListener('click', function() {
                 const employeeId = this.getAttribute('data-id');
-                // Hier würde der AJAX-Call zum Löschen erfolgen
-                console.log('Mitarbeiter löschen:', employeeId);
-                closeModal('deleteConfirmModal');
+
+                // Tatsächlicher AJAX-Call zum Löschen des Mitarbeiters
+                fetch('/employees/delete/' + employeeId, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Fehler beim Löschen des Mitarbeiters');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Erfolgreich gelöscht
+                        closeModal('deleteConfirmModal');
+                        // Seite neu laden um die Änderung zu zeigen
+                        window.location.reload();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Fehler beim Löschen des Mitarbeiters: ' + error.message);
+                        closeModal('deleteConfirmModal');
+                    });
             });
         }
     });
