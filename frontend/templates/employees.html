@@ -136,7 +136,7 @@
                                     <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                                 </svg>
                             </button>
-                            <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-md overflow-hidden shadow-xl z-10">
+                            <div x-show="open" @click.away="open = false" class="absolute right-0 top-full mt-1 w-48 bg-white rounded-md overflow-hidden shadow-xl z-50 origin-top-right">
                                 <a href="/employees/edit/{{.ID}}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Bearbeiten</a>
                                 <a href="#" data-id="{{.ID}}" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 delete-employee">Löschen</a>
                             </div>
