@@ -357,17 +357,10 @@
                                 <input type="text" name="socialSecId" id="socialSecId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
                             </div>
                             <div>
-                                <label for="healthInsurance" class="block text-sm font-medium text-gray-700">Krankenkasse</label>
-                                <select name="healthInsurance" id="healthInsurance" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
-                                    <option value="">Bitte wählen</option>
-                                    <option value="BARMER">BARMER</option>
-                                    <option value="DAK‑Gesundheit">DAK‑Gesundheit</option>
-                                    <option value="HEK">HEK – Hanseatische Krankenkasse</option>
-                                    <option value="hkk">Handelskrankenkasse (hkk)</option>
-                                    <option value="KKH">Kaufmännische Krankenkasse (KKH)</option>
-                                    <option value="KNAPPSCHAFT">KNAPPSCHAFT (Deutsche Rentenversicherung Knappschaft‑Bahn‑See)</option>
-                                    <option value="TK">Techniker Krankenkasse (TK)</option>
-                                </select>
+                                <div>
+                                    <label for="healthInsurance" class="block text-sm font-medium text-gray-700">Krankenkasse</label>
+                                    <input type="text" name="healthInsurance" id="healthInsurance" value="{{.employee.HealthInsurance}}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                </div>
                             </div>
                             <div>
                                 <label for="salary" class="block text-sm font-medium text-gray-700">Grundgehalt</label>
