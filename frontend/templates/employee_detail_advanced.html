@@ -1226,6 +1226,8 @@
         </div>
     </div>
 
+
+
     <!-- 7. Confirmation Modal -->
     <div id="confirmationModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen p-4">
@@ -1874,18 +1876,19 @@
     // Gespräch als abgeschlossen markieren
     // Ergänzung der bestehenden Funktion zum Markieren als abgeschlossen
     function markConversationCompleted(employeeId, conversationId) {
-        fetch(`/employees/{{.employee.ID.Hex}}/conversations/${conversationId}`, {
-            method: 'PUT',
-            body: formData
+        fetch(`/employees/${employeeId}/conversations/${conversationId}/complete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Fehler beim Aktualisieren des Gesprächs');
+                    throw new Error('Fehler beim Markieren des Gesprächs als abgeschlossen');
                 }
                 return response.json();
             })
             .then(data => {
-                closeModal('editConversationModal');
                 // Seite neu laden, um die Änderungen anzuzeigen
                 window.location.reload();
             })
@@ -1899,62 +1902,66 @@
     document.addEventListener('DOMContentLoaded', function() {
         const addConversationForm = document.getElementById('addConversationForm');
         if (addConversationForm) {
-            addConversationForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const formData = new FormData(this);
-
-                fetch(this.action, {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Fehler beim Hinzufügen des Gesprächs');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        closeModal('addConversationModal');
-                        // Seite neu laden, um die Änderungen anzuzeigen
-                        window.location.reload();
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Ein Fehler ist aufgetreten: ' + error.message);
-                    });
-            });
+            addConversationForm.addEventListener('submit', addConversationHandler);
         }
     });
 
     // Funktion zum Öffnen des Bearbeitungsmodals
     function openEditConversationModal(id, title, description, date, notes) {
-        document.getElementById('editConversationId').value = id;
-        document.getElementById('editConversationTitle').value = title;
-        document.getElementById('editConversationDescription').value = description;
-        document.getElementById('editConversationNotes').value = notes || '';
-        document.getElementById('editConversationDate').value = date;
+        // Das bestehende Modal-Formular verwenden
+        const form = document.getElementById('addConversationForm');
 
-        // Aktualisiere die Action-URL des Formulars
-        const form = document.getElementById('editConversationForm');
+        // Umbennen der Form-Action
         form.action = `/employees/{{.employee.ID.Hex}}/conversations/${id}`;
         form.method = 'POST';
 
-        // Event-Listener für das Formular hinzufügen
+        // Formularfelder ausfüllen
+        const titleField = document.getElementById('conversationTitle');
+        const dateField = document.getElementById('conversationDate');
+        const descriptionField = document.getElementById('conversationDescription');
+        const notesField = document.getElementById('conversationNotes');
+
+        if (titleField) titleField.value = title;
+        if (dateField) dateField.value = date;
+        if (descriptionField) descriptionField.value = description;
+        if (notesField) notesField.value = notes || '';
+
+        // Überschrift ändern
+        const modalTitle = document.querySelector('#addConversationModal .text-lg.font-medium');
+        if (modalTitle) modalTitle.textContent = 'Gespräch bearbeiten';
+
+        // Button-Text ändern
+        const submitButton = form.querySelector('button[type="submit"]');
+        if (submitButton) submitButton.textContent = 'Speichern';
+
+        // Hidden Input für die ID hinzufügen (falls nicht vorhanden)
+        let idField = form.querySelector('input[name="id"]');
+        if (!idField) {
+            idField = document.createElement('input');
+            idField.type = 'hidden';
+            idField.name = 'id';
+            form.appendChild(idField);
+        }
+        idField.value = id;
+
+        // Event-Listener hinzufügen (vorhandene entfernen)
+        form.removeEventListener('submit', addConversationHandler);
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             updateConversation(id);
         });
 
-        openModal('editConversationModal');
+        // Modal öffnen
+        openModal('addConversationModal');
     }
 
     // Funktion zum Aktualisieren eines Gesprächs
     function updateConversation(conversationId) {
-        const form = document.getElementById('editConversationForm');
+        const form = document.getElementById('addConversationForm');
         const formData = new FormData(form);
 
         // AJAX-Request für das Update
-        fetch(`/employees/{{.employee.ID}}/conversations/${conversationId}`, {
+        fetch(`/employees/{{.employee.ID.Hex}}/conversations/${conversationId}`, {
             method: 'PUT',
             body: formData
         })
@@ -1965,7 +1972,47 @@
                 return response.json();
             })
             .then(data => {
-                closeModal('editConversationModal');
+                // Formular zurücksetzen
+                form.reset();
+
+                // Modal-Titel und Button-Text zurücksetzen
+                const modalTitle = document.querySelector('#addConversationModal .text-lg.font-medium');
+                if (modalTitle) modalTitle.textContent = 'Gespräch hinzufügen';
+
+                const submitButton = form.querySelector('button[type="submit"]');
+                if (submitButton) submitButton.textContent = 'Hinzufügen';
+
+                // Event-Listener für das Hinzufügen wiederherstellen
+                form.removeEventListener('submit', updateConversation);
+                form.addEventListener('submit', addConversationHandler);
+
+                // Modal schließen
+                closeModal('addConversationModal');
+
+                // Seite neu laden
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ein Fehler ist aufgetreten: ' + error.message);
+            });
+    }
+    function addConversationHandler(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+
+        fetch(this.action, {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Fehler beim Hinzufügen des Gesprächs');
+                }
+                return response.json();
+            })
+            .then(data => {
+                closeModal('addConversationModal');
                 // Seite neu laden, um die Änderungen anzuzeigen
                 window.location.reload();
             })
