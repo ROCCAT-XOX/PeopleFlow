@@ -191,33 +191,8 @@ func (s *CostService) GenerateExpectedReviews(employees []*model.Employee) []map
 		}
 	}
 
-	// Wenn keine Gespräche gefunden wurden, beispielhafte Daten erstellen
-	if len(reviews) == 0 {
-		reviews = []map[string]string{
-			{
-				"EmployeeName": "Max Mustermann",
-				"ReviewType":   "Leistungsbeurteilung",
-				"Date":         time.Now().AddDate(0, 0, 5).Format("02.01.2006"),
-			},
-			{
-				"EmployeeName": "Erika Musterfrau",
-				"ReviewType":   "Beförderungsgespräch",
-				"Date":         time.Now().AddDate(0, 0, 9).Format("02.01.2006"),
-			},
-			{
-				"EmployeeName": "John Doe",
-				"ReviewType":   "Einarbeitung",
-				"Date":         time.Now().AddDate(0, 0, 12).Format("02.01.2006"),
-			},
-		}
-
-		// Wenn wir echte Mitarbeiterdaten haben, könnten wir Namen verwenden
-		if len(employees) >= 3 {
-			reviews[0]["EmployeeName"] = employees[0].FirstName + " " + employees[0].LastName
-			reviews[1]["EmployeeName"] = employees[1].FirstName + " " + employees[1].LastName
-			reviews[2]["EmployeeName"] = employees[2].FirstName + " " + employees[2].LastName
-		}
-	} else {
+	// Wenn es Gespräche gibt, sortieren wir sie nach Datum (die nächsten zuerst)
+	if len(reviews) > 0 {
 		// Sortieren nach Datum (die nächsten zuerst)
 		sort.Slice(reviews, func(i, j int) bool {
 			date1, _ := time.Parse("02.01.2006", reviews[i]["Date"])
@@ -230,6 +205,9 @@ func (s *CostService) GenerateExpectedReviews(employees []*model.Employee) []map
 			reviews = reviews[:5]
 		}
 	}
+
+	// Keine Beispieldaten mehr erzeugen, wenn keine Gespräche vorhanden sind
+	// Das Template hat einen {{else}}-Block, der "Keine anstehenden Gespräche" anzeigt
 
 	return reviews
 }
