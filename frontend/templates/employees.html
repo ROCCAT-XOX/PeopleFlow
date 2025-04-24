@@ -541,6 +541,176 @@
             });
         }
     });
+
+    // Filterfunktion für Mitarbeiter
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterBtn = document.getElementById('filterBtn');
+        const employeeItems = document.querySelectorAll('.employee-item');
+
+        if (filterBtn) {
+            // Filtermenü erstellen
+            const filterMenu = document.createElement('div');
+            filterMenu.id = 'filterMenu';
+            filterMenu.className = 'hidden absolute mt-2 right-0 w-60 bg-white rounded-md shadow-lg z-50 py-2';
+            filterMenu.innerHTML = `
+            <div class="px-4 py-2 border-b border-gray-200">
+                <h3 class="text-sm font-medium text-gray-700">Nach Status filtern</h3>
+            </div>
+            <div class="px-4 py-2">
+                <label class="flex items-center mb-2">
+                    <input type="checkbox" class="status-filter form-checkbox h-4 w-4 text-green-600 transition duration-150 ease-in-out" value="all" checked>
+                    <span class="ml-2 text-sm text-gray-700">Alle anzeigen</span>
+                </label>
+                <label class="flex items-center mb-2">
+                    <input type="checkbox" class="status-filter form-checkbox h-4 w-4 text-green-600 transition duration-150 ease-in-out" value="Aktiv">
+                    <span class="ml-2 text-sm text-gray-700">Aktiv</span>
+                </label>
+                <label class="flex items-center mb-2">
+                    <input type="checkbox" class="status-filter form-checkbox h-4 w-4 text-green-600 transition duration-150 ease-in-out" value="Im Urlaub">
+                    <span class="ml-2 text-sm text-gray-700">Im Urlaub</span>
+                </label>
+                <label class="flex items-center mb-2">
+                    <input type="checkbox" class="status-filter form-checkbox h-4 w-4 text-green-600 transition duration-150 ease-in-out" value="Remote">
+                    <span class="ml-2 text-sm text-gray-700">Remote</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" class="status-filter form-checkbox h-4 w-4 text-green-600 transition duration-150 ease-in-out" value="Inaktiv">
+                    <span class="ml-2 text-sm text-gray-700">Inaktiv</span>
+                </label>
+            </div>
+            <div class="px-4 py-2 border-t border-gray-200">
+                <h3 class="text-sm font-medium text-gray-700">Nach Abteilung filtern</h3>
+            </div>
+            <div class="px-4 py-2">
+                <label class="flex items-center mb-2">
+                    <input type="checkbox" class="dept-filter form-checkbox h-4 w-4 text-green-600 transition duration-150 ease-in-out" value="all" checked>
+                    <span class="ml-2 text-sm text-gray-700">Alle anzeigen</span>
+                </label>
+                <label class="flex items-center mb-2">
+                    <input type="checkbox" class="dept-filter form-checkbox h-4 w-4 text-green-600 transition duration-150 ease-in-out" value="IT">
+                    <span class="ml-2 text-sm text-gray-700">IT</span>
+                </label>
+                <label class="flex items-center mb-2">
+                    <input type="checkbox" class="dept-filter form-checkbox h-4 w-4 text-green-600 transition duration-150 ease-in-out" value="HR">
+                    <span class="ml-2 text-sm text-gray-700">HR</span>
+                </label>
+                <label class="flex items-center mb-2">
+                    <input type="checkbox" class="dept-filter form-checkbox h-4 w-4 text-green-600 transition duration-150 ease-in-out" value="Finance">
+                    <span class="ml-2 text-sm text-gray-700">Finanzen</span>
+                </label>
+                <label class="flex items-center mb-2">
+                    <input type="checkbox" class="dept-filter form-checkbox h-4 w-4 text-green-600 transition duration-150 ease-in-out" value="Marketing">
+                    <span class="ml-2 text-sm text-gray-700">Marketing</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" class="dept-filter form-checkbox h-4 w-4 text-green-600 transition duration-150 ease-in-out" value="Sales">
+                    <span class="ml-2 text-sm text-gray-700">Vertrieb</span>
+                </label>
+            </div>
+            <div class="px-4 py-2 border-t border-gray-200 flex justify-end">
+                <button id="applyFilter" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
+                    Filter anwenden
+                </button>
+            </div>
+        `;
+
+            // Filtermenü zur Seite hinzufügen
+            document.body.appendChild(filterMenu);
+
+            // Toggle Filter-Menü
+            filterBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const rect = filterBtn.getBoundingClientRect();
+                filterMenu.style.top = `${rect.bottom + window.scrollY}px`;
+                filterMenu.style.right = `${window.innerWidth - rect.right}px`;
+                filterMenu.classList.toggle('hidden');
+            });
+
+            // Klick außerhalb des Menüs schließt es
+            document.addEventListener('click', function(e) {
+                if (!filterMenu.contains(e.target) && e.target !== filterBtn) {
+                    filterMenu.classList.add('hidden');
+                }
+            });
+
+            // "Alle anzeigen" Checkbox-Logik
+            document.querySelector('.status-filter[value="all"]').addEventListener('change', function() {
+                const statusFilters = document.querySelectorAll('.status-filter:not([value="all"])');
+                statusFilters.forEach(checkbox => {
+                    checkbox.checked = false;
+                    checkbox.disabled = this.checked;
+                });
+            });
+
+            document.querySelector('.dept-filter[value="all"]').addEventListener('change', function() {
+                const deptFilters = document.querySelectorAll('.dept-filter:not([value="all"])');
+                deptFilters.forEach(checkbox => {
+                    checkbox.checked = false;
+                    checkbox.disabled = this.checked;
+                });
+            });
+
+            // Einzelne Checkboxen deaktivieren "Alle anzeigen"
+            document.querySelectorAll('.status-filter:not([value="all"])').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        document.querySelector('.status-filter[value="all"]').checked = false;
+                    }
+                });
+            });
+
+            document.querySelectorAll('.dept-filter:not([value="all"])').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        document.querySelector('.dept-filter[value="all"]').checked = false;
+                    }
+                });
+            });
+
+            // Filter anwenden
+            document.getElementById('applyFilter').addEventListener('click', function() {
+                const statusAll = document.querySelector('.status-filter[value="all"]').checked;
+                const deptAll = document.querySelector('.dept-filter[value="all"]').checked;
+
+                const selectedStatuses = [];
+                const selectedDepts = [];
+
+                if (!statusAll) {
+                    document.querySelectorAll('.status-filter:checked').forEach(checkbox => {
+                        selectedStatuses.push(checkbox.value);
+                    });
+                }
+
+                if (!deptAll) {
+                    document.querySelectorAll('.dept-filter:checked').forEach(checkbox => {
+                        selectedDepts.push(checkbox.value);
+                    });
+                }
+
+                // Filtern der Mitarbeiter
+                employeeItems.forEach(item => {
+                    const statusElement = item.querySelector('.text-xs.leading-5.font-semibold.rounded-full');
+                    const status = statusElement ? statusElement.textContent.trim() : '';
+
+                    const deptElement = item.querySelector('.mt-1.truncate.text-sm.text-gray-500');
+                    const deptText = deptElement ? deptElement.textContent.trim() : '';
+                    const dept = deptText.split(' · ')[1]; // Abteilung nach dem Punkt extrahieren
+
+                    const statusMatch = statusAll || selectedStatuses.includes(status);
+                    const deptMatch = deptAll || selectedDepts.includes(dept);
+
+                    if (statusMatch && deptMatch) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+
+                // Menü schließen
+                filterMenu.classList.add('hidden');
+            });
+        }
+    });
 </script>
 </body>
 </html>
