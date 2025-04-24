@@ -1,26 +1,25 @@
 #!/bin/bash
-# PeopleFlow-deploy.sh - Vollständiges Deployment-Skript für PeopleFlow
-# Farbcodes für schönere Ausgabe
+# PeopleFlow-deploy.sh - Deployment-Skript für PeopleFlow mit Update-Logik
+# Farbcodes für Ausgabe
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Konfigurierbare Variablen
-MONGODB_PORT=${MONGODB_PORT:-27017}  # Jetzt Standard-Port
+# Variablen
+MONGODB_PORT=${MONGODB_PORT:-27017}
 APP_PORT=${APP_PORT:-5000}
 IMAGE_TAG=${IMAGE_TAG:-"latest"}
 PLATFORM=${PLATFORM:-"linux/amd64"}
 
-# Hilfsfunktion für Fehlerbehandlung
 handle_error() {
   echo -e "${RED}FEHLER: $1${NC}"
   exit 1
 }
 
 echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║      PeopleFlow Deployment Skript     ║${NC}"
+echo -e "${BLUE}║     PeopleFlow Smart Deployment       ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
 
 # 1. Docker-Image bauen
@@ -28,36 +27,43 @@ echo -e "${YELLOW}Baue Docker-Image für $PLATFORM...${NC}"
 docker build --platform $PLATFORM -t peopleflow:$IMAGE_TAG . || handle_error "Docker Build fehlgeschlagen"
 echo -e "${GREEN}Docker-Image erfolgreich gebaut.${NC}"
 
-# 2. Alte Container stoppen und entfernen
-echo -e "${YELLOW}Stoppe alte Container...${NC}"
-docker stop peopleflow mongodb 2>/dev/null
-docker rm peopleflow mongodb 2>/dev/null
-echo -e "${GREEN}Alte Container bereinigt.${NC}"
-
-# 3. Netzwerk erstellen (falls nicht vorhanden)
-echo -e "${YELLOW}Erstelle Docker-Netzwerk...${NC}"
+# 2. Docker-Netzwerk sicherstellen
+echo -e "${YELLOW}Stelle sicher, dass das Netzwerk existiert...${NC}"
 docker network create peopleflow-network 2>/dev/null || true
-echo -e "${GREEN}Netzwerk bereit.${NC}"
 
-# 4. MongoDB 4.4.18 starten
-echo -e "${YELLOW}Starte MongoDB 4.4.18...${NC}"
-docker run -d --name mongodb \
-  --network peopleflow-network \
-  -p $MONGODB_PORT:27017 \
-  -v mongodb_data:/data/db \
-  --restart unless-stopped \
-  mongo:4.4.18 || handle_error "MongoDB-Start fehlgeschlagen"
+# 3. MongoDB prüfen
+if docker ps -q -f name=mongodb >/dev/null; then
+  echo -e "${GREEN}MongoDB läuft bereits. Kein Neustart erforderlich.${NC}"
+else
+  if docker ps -a -q -f name=mongodb >/dev/null; then
+    echo -e "${YELLOW}Starte vorhandenen MongoDB-Container...${NC}"
+    docker start mongodb || handle_error "MongoDB konnte nicht gestartet werden"
+  else
+    echo -e "${YELLOW}Starte neuen MongoDB 4.4.18-Container...${NC}"
+    docker run -d --name mongodb \
+      --network peopleflow-network \
+      -p $MONGODB_PORT:27017 \
+      -v mongodb_data:/data/db \
+      --restart unless-stopped \
+      mongo:4.4.18 || handle_error "MongoDB-Start fehlgeschlagen"
+  fi
+fi
 
-# Warte kurz, bis MongoDB gestartet ist
-echo -e "${YELLOW}Warte auf MongoDB-Start...${NC}"
-sleep 5
-
-# 5. MongoDB-IP ermitteln
+# Warte auf MongoDB, wenn sie gerade neu gestartet wurde
+sleep 3
 MONGO_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mongodb)
 echo -e "${GREEN}MongoDB läuft auf IP: ${MONGO_IP}${NC}"
 
-# 6. PeopleFlow starten
-echo -e "${YELLOW}Starte PeopleFlow...${NC}"
+# 4. PeopleFlow neu starten
+if docker ps -q -f name=peopleflow >/dev/null; then
+  echo -e "${YELLOW}Stoppe und entferne alten PeopleFlow-Container...${NC}"
+  docker stop peopleflow && docker rm peopleflow
+elif docker ps -a -q -f name=peopleflow >/dev/null; then
+  echo -e "${YELLOW}Entferne alten, gestoppten PeopleFlow-Container...${NC}"
+  docker rm peopleflow
+fi
+
+echo -e "${YELLOW}Starte neuen PeopleFlow-Container...${NC}"
 docker run -d --name peopleflow \
   --network peopleflow-network \
   -p $APP_PORT:8080 \
@@ -66,20 +72,14 @@ docker run -d --name peopleflow \
   --restart unless-stopped \
   peopleflow:$IMAGE_TAG || handle_error "PeopleFlow-Start fehlgeschlagen"
 
-# 7. Status prüfen
-echo -e "${YELLOW}Prüfe Container-Status...${NC}"
-if [ "$(docker ps -q -f name=peopleflow)" ] && [ "$(docker ps -q -f name=mongodb)" ]; then
-  echo -e "${GREEN}PeopleFlow wurde erfolgreich gestartet!${NC}"
-  SERVER_IP=$(hostname -I | awk '{print $1}')
-  echo -e "${GREEN}Die Anwendung ist verfügbar unter: http://${SERVER_IP}:${APP_PORT}${NC}"
-  echo -e "${YELLOW}MongoDB läuft auf Port: ${MONGODB_PORT}${NC}"
+# 5. Finaler Status
+echo -e "${GREEN}PeopleFlow erfolgreich (re)deployt!${NC}"
+SERVER_IP=$(hostname -I | awk '{print $1}')
+echo -e "${GREEN}Die Anwendung ist erreichbar unter: http://${SERVER_IP}:${APP_PORT}${NC}"
+echo -e "${YELLOW}MongoDB läuft auf Port: ${MONGODB_PORT}${NC}"
 
-  # Container-Logs anzeigen
-  echo -e "\n${YELLOW}Log-Ausgabe des PeopleFlow-Containers:${NC}"
-  docker logs peopleflow --tail 10
-else
-  handle_error "Es gab ein Problem beim Starten der Container. Überprüfe die Logs mit: docker logs peopleflow"
-fi
+echo -e "\n${YELLOW}Log-Ausgabe (letzte 10 Zeilen):${NC}"
+docker logs peopleflow --tail 10
 
 echo -e "\n${BLUE}════════════════════════════════════════${NC}"
 echo -e "${GREEN}Deployment abgeschlossen!${NC}"
