@@ -71,16 +71,19 @@
                                 <label for="department" class="block text-sm font-medium text-gray-700">Abteilung*</label>
                                 <select name="department" id="department" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
                                     <option value="">Bitte wählen</option>
-                                    <option value="IT" {{if eq .employee.Department "IT"}}selected{{end}}>IT</option>
-                                    <option value="HR" {{if eq .employee.Department "HR"}}selected{{end}}>HR</option>
-                                    <option value="Finance" {{if eq .employee.Department "Finance"}}selected{{end}}>Finanzen</option>
-                                    <option value="Marketing" {{if eq .employee.Department "Marketing"}}selected{{end}}>Marketing</option>
-                                    <option value="Sales" {{if eq .employee.Department "Sales"}}selected{{end}}>Vertrieb</option>
-                                    <option value="Production" {{if eq .employee.Department "Production"}}selected{{end}}>Produktion</option>
+                                    <option value="Einkauf" {{if eq .employee.Department "Einkauf"}}selected{{end}}>Einkauf</option>
+                                    <option value="Finanzen" {{if eq .employee.Department "Finance"}}selected{{end}}>Finanzen</option>
                                     <option value="Geschäftsführung" {{if eq .employee.Department "Geschäftsführung"}}selected{{end}}>Geschäftsführung</option>
-                                    <option value="Techniker" {{if eq .employee.Department "Techniker"}}selected{{end}}>Techniker</option>
+                                    <option value="Gesellschafter" {{if eq .employee.Department "Gesellschafter"}}selected{{end}}>Gesellschafter</option>
+                                    <option value="HR" {{if eq .employee.Department "HR"}}selected{{end}}>HR</option>
+                                    <option value="IT" {{if eq .employee.Department "IT"}}selected{{end}}>IT</option>
+                                    <option value="Marketing" {{if eq .employee.Department "Marketing"}}selected{{end}}>Marketing</option>
                                     <option value="Monteur" {{if eq .employee.Department "Monteur"}}selected{{end}}>Monteur</option>
                                     <option value="Praktikant" {{if eq .employee.Department "Praktikant"}}selected{{end}}>Praktikant</option>
+                                    <option value="Produktion" {{if eq .employee.Department "Production"}}selected{{end}}>Produktion</option>
+                                    <option value="Sales" {{if eq .employee.Department "Sales"}}selected{{end}}>Vertrieb</option>
+                                    <option value="Vertrieb" {{if eq .employee.Department "Vertrieb"}}selected{{end}}>Vertrieb</option>
+                                    <option value="Techniker" {{if eq .employee.Department "Techniker"}}selected{{end}}>Technik</option>
 
                                 </select>
                             </div>
@@ -134,17 +137,10 @@
                                 <input type="text" name="socialSecId" id="socialSecId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.SocialSecID}}">
                             </div>
                             <div>
-                                <label for="healthInsurance" class="block text-sm font-medium text-gray-700">Krankenkasse</label>
-                                <select name="healthInsurance" id="healthInsurance" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
-                                    <option value="" {{if eq .employee.HealthInsurance ""}}selected{{end}}>Bitte wählen</option>
-                                    <option value="BARMER" {{if eq .employee.HealthInsurance "BARMER"}}selected{{end}}>BARMER</option>
-                                    <option value="DAK‑Gesundheit" {{if eq .employee.HealthInsurance "DAK‑Gesundheit"}}selected{{end}}>DAK‑Gesundheit</option>
-                                    <option value="HEK" {{if eq .employee.HealthInsurance "HEK"}}selected{{end}}>HEK – Hanseatische Krankenkasse</option>
-                                    <option value="hkk" {{if eq .employee.HealthInsurance "hkk"}}selected{{end}}>Handelskrankenkasse (hkk)</option>
-                                    <option value="KKH" {{if eq .employee.HealthInsurance "KKH"}}selected{{end}}>Kaufmännische Krankenkasse (KKH)</option>
-                                    <option value="KNAPPSCHAFT" {{if eq .employee.HealthInsurance "KNAPPSCHAFT"}}selected{{end}}>KNAPPSCHAFT (Deutsche Rentenversicherung Knappschaft‑Bahn‑See)</option>
-                                    <option value="TK" {{if eq .employee.HealthInsurance "TK"}}selected{{end}}>Techniker Krankenkasse (TK)</option>
-                                </select>
+                                <div>
+                                    <label for="healthInsurance" class="block text-sm font-medium text-gray-700">Krankenkasse</label>
+                                    <input type="text" name="healthInsurance" id="healthInsurance" value="{{.employee.HealthInsurance}}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                </div>
                             </div>
                         </div>
                     </div>
