@@ -121,23 +121,31 @@
             {{range .recentEmployees}}
             <div class="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <div class="flex items-center p-4">
-                {{if .ProfileImage}}
-                <img class="h-12 w-12 rounded-full object-cover" src="{{.ProfileImage}}" alt="{{.Name}}">
-                {{else}}
-                <div class="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-sm font-medium">
-                  {{ getInitials .Name }}
+                <div class="flex-shrink-0">
+                  {{if .ProfileImage}}
+                  <img class="h-12 w-12 rounded-full object-cover" src="{{.ProfileImage}}" alt="{{.Name}}">
+                  {{else}}
+                  <div class="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-sm font-medium">
+                    {{ getInitials .Name }}
+                  </div>
+                  {{end}}
                 </div>
-                {{end}}
 
-                <div class="flex-1 min-w-0">
+                <div class="flex-1 min-w-0 ml-4">
                   <p class="text-sm font-medium text-gray-900 truncate">{{.Name}}</p>
                   <p class="text-sm text-gray-500 truncate">{{.Position}}</p>
                   <div class="flex items-center mt-1">
-                    <span class="flex h-2 w-2 rounded-full bg-green-500 mr-1.5"></span>
+          <span class="flex h-2 w-2 rounded-full
+            {{if eq .Status "Aktiv"}}bg-green-500
+                    {{else if eq .Status "Im Urlaub"}}bg-yellow-500
+                    {{else if eq .Status "Remote"}}bg-blue-500
+                    {{else}}bg-red-500{{end}}
+                    mr-1.5"></span>
                     <span class="text-xs text-gray-500">{{.Status}}</span>
                   </div>
                 </div>
-                <a href="/employees/view/{{.ID}}" class="inline-flex items-center text-xs font-medium text-green-600 hover:text-green-800">
+
+                <a href="/employees/view/{{.ID}}" class="inline-flex items-center text-xs font-medium text-green-600 hover:text-green-800 ml-2">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
                     <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
