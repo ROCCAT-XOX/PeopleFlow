@@ -8,7 +8,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Konfigurierbare Variablen
-MONGODB_PORT=${MONGODB_PORT:-27018}
+MONGODB_PORT=${MONGODB_PORT:-27017}  # Jetzt Standard-Port
 APP_PORT=${APP_PORT:-5000}
 IMAGE_TAG=${IMAGE_TAG:-"latest"}
 PLATFORM=${PLATFORM:-"linux/amd64"}
@@ -39,14 +39,14 @@ echo -e "${YELLOW}Erstelle Docker-Netzwerk...${NC}"
 docker network create peopleflow-network 2>/dev/null || true
 echo -e "${GREEN}Netzwerk bereit.${NC}"
 
-# 4. MongoDB starten
-echo -e "${YELLOW}Starte MongoDB...${NC}"
+# 4. MongoDB 4.4.18 starten
+echo -e "${YELLOW}Starte MongoDB 4.4.18...${NC}"
 docker run -d --name mongodb \
   --network peopleflow-network \
   -p $MONGODB_PORT:27017 \
   -v mongodb_data:/data/db \
   --restart unless-stopped \
-  mongo:latest || handle_error "MongoDB-Start fehlgeschlagen"
+  mongo:4.4.18 || handle_error "MongoDB-Start fehlgeschlagen"
 
 # Warte kurz, bis MongoDB gestartet ist
 echo -e "${YELLOW}Warte auf MongoDB-Start...${NC}"
