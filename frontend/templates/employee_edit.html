@@ -130,7 +130,15 @@
                             </div>
                             <div>
                                 <label for="taxId" class="block text-sm font-medium text-gray-700">Steuerklasse</label>
-                                <input type="text" name="taxId" id="taxId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.TaxID}}">
+                                <select name="taxId" id="taxId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="">Bitte wählen</option>
+                                    <option value="1" {{if eq .employee.TaxID "1"}}selected{{end}}>Steuerklasse 1</option>
+                                    <option value="2" {{if eq .employee.TaxID "2"}}selected{{end}}>Steuerklasse 2</option>
+                                    <option value="3" {{if eq .employee.TaxID "3"}}selected{{end}}>Steuerklasse 3</option>
+                                    <option value="4" {{if eq .employee.TaxID "4"}}selected{{end}}>Steuerklasse 4</option>
+                                    <option value="5" {{if eq .employee.TaxID "5"}}selected{{end}}>Steuerklasse 5</option>
+                                    <option value="6" {{if eq .employee.TaxID "6"}}selected{{end}}>Steuerklasse 6</option>
+                                </select>
                             </div>
                             <div>
                                 <label for="socialSecId" class="block text-sm font-medium text-gray-700">Sozialversicherungsnummer</label>
