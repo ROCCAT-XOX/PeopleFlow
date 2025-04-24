@@ -42,6 +42,9 @@
             <button class="tab-btn px-3 py-2 text-sm font-medium rounded-md" data-tab="absence" onclick="showTab('absence')">
                 Abwesenheiten
             </button>
+            <button class="tab-btn px-3 py-2 text-sm font-medium rounded-md" data-tab="conversations" onclick="showTab('conversations')">
+                Gespräche
+            </button>
             <button class="tab-btn px-3 py-2 text-sm font-medium rounded-md" data-tab="development" onclick="showTab('development')">
                 Entwicklungsplan
             </button>
@@ -660,8 +663,80 @@
             </div>
         </div>
     </div>
+    <!-- 6. Gespräche -->
+    <div id="conversations-tab" class="tab-content hidden">
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                <h2 class="text-lg font-medium text-gray-900">Mitarbeitergespräche</h2>
+                <button type="button" onclick="openModal('addConversationModal')" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                    </svg>
+                    Gespräch hinzufügen
+                </button>
+            </div>
 
-    <!-- 6. Entwicklungsplan -->
+            <div class="px-4 py-5 sm:px-6 divide-y divide-gray-200">
+                {{range .employee.Conversations}}
+                <div class="py-4 space-y-4">
+                    <div class="flex justify-between">
+                        <div>
+                            <h3 class="text-md font-medium text-gray-900">{{.Title}}</h3>
+                            <p class="text-sm text-gray-500">{{.Date.Format "02.01.2006"}}</p>
+                        </div>
+                        <div class="flex items-start space-x-2">
+                            <button type="button" onclick="confirmDeleteConversation('{{$.employee.ID.Hex}}', '{{.ID.Hex}}')" class="text-sm text-red-600 hover:text-red-900">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            {{if eq .Status "planned"}}
+                            <button type="button" onclick="markConversationCompleted('{{$.employee.ID.Hex}}', '{{.ID.Hex}}')" class="text-sm text-green-600 hover:text-green-900">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            {{end}}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4">
+                        <div>
+                            <span class="block text-gray-500 text-sm">Beschreibung</span>
+                            <p class="text-sm text-gray-900">{{.Description}}</p>
+                        </div>
+
+                        <div>
+                            <span class="block text-gray-500 text-sm">Status</span>
+                            <span class="mt-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                            {{if eq .Status "planned"}}
+                            bg-blue-100 text-blue-800
+                            {{else if eq .Status "completed"}}
+                            bg-green-100 text-green-800
+                            {{else}}
+                            bg-gray-100 text-gray-800
+                            {{end}}">
+                            {{if eq .Status "planned"}}Geplant{{else if eq .Status "completed"}}Abgeschlossen{{else}}{{.Status}}{{end}}
+                            </span>
+                        </div>
+
+                        {{if .Notes}}
+                        <div>
+                            <span class="block text-gray-500 text-sm">Notizen</span>
+                            <p class="text-sm text-gray-900">{{.Notes}}</p>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+                {{else}}
+                <div class="py-4 text-center text-gray-500">
+                    Keine Gespräche vorhanden
+                </div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+    <!-- 7. Entwicklungsplan -->
     <div id="development-tab" class="tab-content hidden">
         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
             <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
@@ -1083,7 +1158,52 @@
         </div>
     </div>
 
-    <!-- 6. Confirmation Modal -->
+    <!-- 6. Gesprächs -->
+    <div id="addConversationModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" aria-hidden="true"></div>
+            <div class="relative bg-white rounded-lg max-w-md w-full mx-auto shadow-xl">
+                <div class="flex justify-between items-center px-6 py-4 border-b">
+                    <h3 class="text-lg font-medium text-gray-900">Gespräch hinzufügen</h3>
+                    <button type="button" onclick="closeModal('addConversationModal')" class="text-gray-400 hover:text-gray-500">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <form id="addConversationForm" action="/employees/{{.employee.ID.Hex}}/conversations" method="POST" class="px-6 py-4">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="conversationTitle" class="block text-sm font-medium text-gray-700">Titel*</label>
+                            <input type="text" name="title" id="conversationTitle" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                        </div>
+                        <div>
+                            <label for="conversationDate" class="block text-sm font-medium text-gray-700">Datum*</label>
+                            <input type="date" name="date" id="conversationDate" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{now.Format "2006-01-02"}}">
+                        </div>
+                        <div>
+                            <label for="conversationDescription" class="block text-sm font-medium text-gray-700">Beschreibung*</label>
+                            <textarea name="description" id="conversationDescription" rows="3" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"></textarea>
+                        </div>
+                        <div>
+                            <label for="conversationNotes" class="block text-sm font-medium text-gray-700">Notizen</label>
+                            <textarea name="notes" id="conversationNotes" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-5 flex justify-end">
+                        <button type="button" onclick="closeModal('addConversationModal')" class="mr-3 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            Abbrechen
+                        </button>
+                        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            Hinzufügen
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. Confirmation Modal -->
     <div id="confirmationModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen p-4">
             <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" aria-hidden="true"></div>
@@ -1675,6 +1795,104 @@
                     .then(data => {
                         closeModal('addDevelopmentItemModal');
                         // Reload the page to show the updated data
+                        window.location.reload();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Ein Fehler ist aufgetreten: ' + error.message);
+                    });
+            });
+        }
+    });
+
+    // Löschen-Bestätigung für ein Gespräch
+    function confirmDeleteConversation(employeeId, conversationId) {
+        const title = document.getElementById('confirmationTitle');
+        const message = document.getElementById('confirmationMessage');
+        const confirmBtn = document.getElementById('confirmActionBtn');
+
+        if (title) title.textContent = 'Gespräch löschen';
+        if (message) message.textContent = 'Sind Sie sicher, dass Sie dieses Gespräch löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.';
+
+        if (confirmBtn) {
+            confirmBtn.onclick = function() {
+                deleteConversation(employeeId, conversationId);
+            };
+        }
+
+        openModal('confirmationModal');
+    }
+
+    // Gespräch löschen
+    function deleteConversation(employeeId, conversationId) {
+        fetch(`/employees/${employeeId}/conversations/${conversationId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Fehler beim Löschen des Gesprächs');
+                }
+                return response.json();
+            })
+            .then(data => {
+                closeModal('confirmationModal');
+                // Seite neu laden, um die Änderungen anzuzeigen
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ein Fehler ist aufgetreten: ' + error.message);
+            });
+    }
+
+    // Gespräch als abgeschlossen markieren
+    function markConversationCompleted(employeeId, conversationId) {
+        fetch(`/employees/${employeeId}/conversations/${conversationId}/complete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Fehler beim Aktualisieren des Gesprächsstatus');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Seite neu laden, um die Änderungen anzuzeigen
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ein Fehler ist aufgetreten: ' + error.message);
+            });
+    }
+
+    // Formular-Handling für das Hinzufügen von Gesprächen
+    document.addEventListener('DOMContentLoaded', function() {
+        const addConversationForm = document.getElementById('addConversationForm');
+        if (addConversationForm) {
+            addConversationForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Fehler beim Hinzufügen des Gesprächs');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        closeModal('addConversationModal');
+                        // Seite neu laden, um die Änderungen anzuzeigen
                         window.location.reload();
                     })
                     .catch(error => {

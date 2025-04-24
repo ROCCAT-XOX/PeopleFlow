@@ -51,6 +51,7 @@ type Employee struct {
 	EmergencyPhone  string             `bson:"emergencyPhone" json:"emergencyPhone"`
 	ProfileImage    string             `bson:"profileImage" json:"profileImage"`
 	Notes           string             `bson:"notes" json:"notes"`
+	Conversations   []Conversation     `bson:"conversations,omitempty" json:"conversations,omitempty"`
 
 	// Neue Felder für erweiterte Mitarbeiterinformationen
 
@@ -100,6 +101,17 @@ type Training struct {
 	Status      string             `bson:"status" json:"status"` // planned, ongoing, completed
 	Notes       string             `bson:"notes" json:"notes"`
 	Documents   []Document         `bson:"documents,omitempty" json:"documents,omitempty"`
+}
+
+// Conversation repräsentiert ein Mitarbeitergespräch
+type Conversation struct {
+	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Date        time.Time          `bson:"date" json:"date"`
+	Title       string             `bson:"title" json:"title"`
+	Description string             `bson:"description" json:"description"`
+	Status      string             `bson:"status" json:"status"` // planned, completed
+	Notes       string             `bson:"notes" json:"notes"`
+	CreatedAt   time.Time          `bson:"createdAt" json:"createdAt"`
 }
 
 // DevelopmentItem repräsentiert einen Eintrag im Entwicklungsplan eines Mitarbeiters

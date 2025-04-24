@@ -10,18 +10,20 @@ import (
 type ActivityType string
 
 const (
-	ActivityTypeEmployeeAdded     ActivityType = "employee_added"
-	ActivityTypeEmployeeUpdated   ActivityType = "employee_updated"
-	ActivityTypeEmployeeDeleted   ActivityType = "employee_deleted"
-	ActivityTypeVacationRequested ActivityType = "vacation_requested"
-	ActivityTypeVacationApproved  ActivityType = "vacation_approved"
-	ActivityTypeVacationRejected  ActivityType = "vacation_rejected"
-	ActivityTypeDocumentUploaded  ActivityType = "document_uploaded"
-	ActivityTypeTrainingAdded     ActivityType = "training_added"
-	ActivityTypeEvaluationAdded   ActivityType = "evaluation_added"
-	ActivityTypeUserAdded         ActivityType = "user_added"
-	ActivityTypeUserUpdated       ActivityType = "user_updated"
-	ActivityTypeUserDeleted       ActivityType = "user_deleted"
+	ActivityTypeEmployeeAdded         ActivityType = "employee_added"
+	ActivityTypeEmployeeUpdated       ActivityType = "employee_updated"
+	ActivityTypeEmployeeDeleted       ActivityType = "employee_deleted"
+	ActivityTypeVacationRequested     ActivityType = "vacation_requested"
+	ActivityTypeVacationApproved      ActivityType = "vacation_approved"
+	ActivityTypeVacationRejected      ActivityType = "vacation_rejected"
+	ActivityTypeDocumentUploaded      ActivityType = "document_uploaded"
+	ActivityTypeTrainingAdded         ActivityType = "training_added"
+	ActivityTypeEvaluationAdded       ActivityType = "evaluation_added"
+	ActivityTypeUserAdded             ActivityType = "user_added"
+	ActivityTypeUserUpdated           ActivityType = "user_updated"
+	ActivityTypeUserDeleted           ActivityType = "user_deleted"
+	ActivityTypeConversationAdded     ActivityType = "conversation_added"
+	ActivityTypeConversationCompleted ActivityType = "conversation_completed"
 )
 
 // Activity repräsentiert eine Aktivität im System
@@ -48,6 +50,10 @@ func (a *Activity) GetIconClass() string {
 		return "bg-yellow-500"
 	case ActivityTypeEmployeeDeleted, ActivityTypeVacationRejected:
 		return "bg-red-500"
+	case ActivityTypeConversationAdded:
+		return "bg-purple-500"
+	case ActivityTypeConversationCompleted:
+		return "bg-green-500"
 	default:
 		return "bg-gray-500"
 	}
@@ -70,6 +76,10 @@ func (a *Activity) GetIconSVG() string {
 		return "<svg class=\"h-5 w-5 text-white\" viewBox=\"0 0 20 20\" fill=\"currentColor\"><path d=\"M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z\" /></svg>"
 	case ActivityTypeUserUpdated:
 		return "<svg class=\"h-5 w-5 text-white\" viewBox=\"0 0 20 20\" fill=\"currentColor\"><path d=\"M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z\" /></svg>"
+	case ActivityTypeConversationAdded:
+		return "<svg class=\"h-5 w-5 text-white\" viewBox=\"0 0 20 20\" fill=\"currentColor\"><path fill-rule=\"evenodd\" d=\"M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z\" clip-rule=\"evenodd\" /></svg>"
+	case ActivityTypeConversationCompleted:
+		return "<svg class=\"h-5 w-5 text-white\" viewBox=\"0 0 20 20\" fill=\"currentColor\"><path fill-rule=\"evenodd\" d=\"M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z\" clip-rule=\"evenodd\" /></svg>"
 	default:
 		return "<svg class=\"h-5 w-5 text-white\" viewBox=\"0 0 20 20\" fill=\"currentColor\"><path fill-rule=\"evenodd\" d=\"M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z\" clip-rule=\"evenodd\" /></svg>"
 	}

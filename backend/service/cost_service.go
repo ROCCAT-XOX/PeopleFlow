@@ -2,6 +2,7 @@ package service
 
 import (
 	"PeopleFlow/backend/model"
+	"sort"
 	"time"
 )
 
@@ -166,32 +167,68 @@ func (s *CostService) CalculateAgeDistribution(employees []*model.Employee) ([]s
 
 // GenerateExpectedReviews berechnet und generiert anstehende Mitarbeitergespräche
 func (s *CostService) GenerateExpectedReviews(employees []*model.Employee) []map[string]string {
-	// In einer echten Anwendung würden wir hier Daten aus einer Datenbank abfragen
-	// Für dieses Beispiel erstellen wir simulierte Daten
+	// Liste für die anstehenden Gespräche
+	var reviews []map[string]string
 
-	reviews := []map[string]string{
-		{
-			"EmployeeName": "Max Mustermann",
-			"ReviewType":   "Leistungsbeurteilung",
-			"Date":         time.Now().AddDate(0, 0, 5).Format("02.01.2006"),
-		},
-		{
-			"EmployeeName": "Erika Musterfrau",
-			"ReviewType":   "Beförderungsgespräch",
-			"Date":         time.Now().AddDate(0, 0, 9).Format("02.01.2006"),
-		},
-		{
-			"EmployeeName": "John Doe",
-			"ReviewType":   "Einarbeitung",
-			"Date":         time.Now().AddDate(0, 0, 12).Format("02.01.2006"),
-		},
+	// Aktuelle Zeit für den Vergleich
+	now := time.Now()
+
+	// Alle Mitarbeiter durchgehen und geplante Gespräche in der Zukunft sammeln
+	for _, emp := range employees {
+		for _, conv := range emp.Conversations {
+			// Nur geplante Gespräche und nur solche, die in der Zukunft liegen, anzeigen
+			if conv.Status == "planned" && conv.Date.After(now) {
+				// Gespräche, die innerhalb der nächsten 14 Tage stattfinden
+				if conv.Date.Before(now.AddDate(0, 0, 14)) {
+					review := map[string]string{
+						"EmployeeName": emp.FirstName + " " + emp.LastName,
+						"ReviewType":   conv.Title,
+						"Date":         conv.Date.Format("02.01.2006"),
+					}
+					reviews = append(reviews, review)
+				}
+			}
+		}
 	}
 
-	// Wenn wir echte Mitarbeiterdaten haben, könnten wir Namen verwenden
-	if len(employees) >= 3 {
-		reviews[0]["EmployeeName"] = employees[0].FirstName + " " + employees[0].LastName
-		reviews[1]["EmployeeName"] = employees[1].FirstName + " " + employees[1].LastName
-		reviews[2]["EmployeeName"] = employees[2].FirstName + " " + employees[2].LastName
+	// Wenn keine Gespräche gefunden wurden, beispielhafte Daten erstellen
+	if len(reviews) == 0 {
+		reviews = []map[string]string{
+			{
+				"EmployeeName": "Max Mustermann",
+				"ReviewType":   "Leistungsbeurteilung",
+				"Date":         time.Now().AddDate(0, 0, 5).Format("02.01.2006"),
+			},
+			{
+				"EmployeeName": "Erika Musterfrau",
+				"ReviewType":   "Beförderungsgespräch",
+				"Date":         time.Now().AddDate(0, 0, 9).Format("02.01.2006"),
+			},
+			{
+				"EmployeeName": "John Doe",
+				"ReviewType":   "Einarbeitung",
+				"Date":         time.Now().AddDate(0, 0, 12).Format("02.01.2006"),
+			},
+		}
+
+		// Wenn wir echte Mitarbeiterdaten haben, könnten wir Namen verwenden
+		if len(employees) >= 3 {
+			reviews[0]["EmployeeName"] = employees[0].FirstName + " " + employees[0].LastName
+			reviews[1]["EmployeeName"] = employees[1].FirstName + " " + employees[1].LastName
+			reviews[2]["EmployeeName"] = employees[2].FirstName + " " + employees[2].LastName
+		}
+	} else {
+		// Sortieren nach Datum (die nächsten zuerst)
+		sort.Slice(reviews, func(i, j int) bool {
+			date1, _ := time.Parse("02.01.2006", reviews[i]["Date"])
+			date2, _ := time.Parse("02.01.2006", reviews[j]["Date"])
+			return date1.Before(date2)
+		})
+
+		// Begrenze auf maximal 5 Einträge
+		if len(reviews) > 5 {
+			reviews = reviews[:5]
+		}
 	}
 
 	return reviews

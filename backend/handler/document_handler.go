@@ -983,3 +983,214 @@ func (h *DocumentHandler) DeleteDevelopmentItem(c *gin.Context) {
 		"message": "Entwicklungspunkt erfolgreich gelöscht",
 	})
 }
+
+// AddConversation fügt ein neues Gespräch für einen Mitarbeiter hinzu
+func (h *DocumentHandler) AddConversation(c *gin.Context) {
+	// Mitarbeiter-ID aus dem URL-Parameter extrahieren
+	employeeID := c.Param("id")
+
+	// Mitarbeiter abrufen
+	employee, err := h.employeeRepo.FindByID(employeeID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden: " + err.Error()})
+		return
+	}
+
+	// Aktuellen Benutzer aus dem Context abrufen
+	user, _ := c.Get("user")
+	userModel := user.(*model.User)
+
+	// Formulardaten abrufen
+	title := c.PostForm("title")
+	dateStr := c.PostForm("date")
+	description := c.PostForm("description")
+	notes := c.PostForm("notes")
+
+	// Datum parsen
+	var date time.Time
+	if dateStr != "" {
+		date, _ = time.Parse("2006-01-02", dateStr)
+	} else {
+		date = time.Now()
+	}
+
+	// Neues Gespräch erstellen
+	conversation := model.Conversation{
+		ID:          primitive.NewObjectID(),
+		Date:        date,
+		Title:       title,
+		Description: description,
+		Status:      "planned", // Standardmäßig geplant
+		Notes:       notes,
+		CreatedAt:   time.Now(),
+	}
+
+	// Gespräch zum Mitarbeiter hinzufügen
+	employee.Conversations = append(employee.Conversations, conversation)
+
+	// Mitarbeiter aktualisieren
+	err = h.employeeRepo.Update(employee)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Aktualisieren des Mitarbeiters: " + err.Error()})
+		return
+	}
+
+	// Aktivität loggen
+	activityRepo := repository.NewActivityRepository()
+	_, _ = activityRepo.LogActivity(
+		model.ActivityTypeConversationAdded,
+		userModel.ID,
+		userModel.FirstName+" "+userModel.LastName,
+		employee.ID,
+		"employee",
+		employee.FirstName+" "+employee.LastName,
+		"Gespräch '"+title+"' für Mitarbeiter hinzugefügt",
+	)
+
+	// Erfolg zurückmelden
+	c.JSON(http.StatusOK, gin.H{
+		"success":      true,
+		"message":      "Gespräch erfolgreich hinzugefügt",
+		"conversation": conversation,
+	})
+}
+
+// DeleteConversation löscht ein Gespräch eines Mitarbeiters
+func (h *DocumentHandler) DeleteConversation(c *gin.Context) {
+	// Mitarbeiter-ID und Gesprächs-ID aus den URL-Parametern extrahieren
+	employeeID := c.Param("id")
+	conversationID := c.Param("conversationId")
+
+	// Mitarbeiter abrufen
+	employee, err := h.employeeRepo.FindByID(employeeID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden: " + err.Error()})
+		return
+	}
+
+	// Aktuellen Benutzer aus dem Context abrufen für die Aktivitätsprotokollierung
+	user, _ := c.Get("user")
+	userModel := user.(*model.User)
+
+	// Gesprächs-ID in ObjectID umwandeln
+	convObjID, err := primitive.ObjectIDFromHex(conversationID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Gesprächs-ID: " + err.Error()})
+		return
+	}
+
+	// Gespräch finden und löschen
+	var conversationIndex int = -1
+	var conversationTitle string = ""
+
+	for i, conv := range employee.Conversations {
+		if conv.ID == convObjID {
+			conversationIndex = i
+			conversationTitle = conv.Title
+			break
+		}
+	}
+
+	if conversationIndex < 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Gespräch nicht gefunden"})
+		return
+	}
+
+	// Gespräch aus der Liste entfernen
+	employee.Conversations = append(employee.Conversations[:conversationIndex], employee.Conversations[conversationIndex+1:]...)
+
+	// Mitarbeiter aktualisieren
+	err = h.employeeRepo.Update(employee)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Aktualisieren des Mitarbeiters: " + err.Error()})
+		return
+	}
+
+	// Aktivität loggen
+	if conversationTitle != "" {
+		activityRepo := repository.NewActivityRepository()
+		_, _ = activityRepo.LogActivity(
+			model.ActivityTypeConversationCompleted, // Wir können hier den gleichen Typ verwenden oder einen neuen für Löschungen definieren
+			userModel.ID,
+			userModel.FirstName+" "+userModel.LastName,
+			employee.ID,
+			"employee",
+			employee.FirstName+" "+employee.LastName,
+			"Gespräch '"+conversationTitle+"' wurde gelöscht",
+		)
+	}
+
+	// Erfolg zurückmelden
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Gespräch erfolgreich gelöscht",
+	})
+}
+
+// CompleteConversation markiert ein Gespräch als abgeschlossen
+func (h *DocumentHandler) CompleteConversation(c *gin.Context) {
+	// Mitarbeiter-ID und Gesprächs-ID aus den URL-Parametern extrahieren
+	employeeID := c.Param("id")
+	conversationID := c.Param("conversationId")
+
+	// Mitarbeiter abrufen
+	employee, err := h.employeeRepo.FindByID(employeeID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden: " + err.Error()})
+		return
+	}
+
+	// Aktuellen Benutzer aus dem Context abrufen
+	user, _ := c.Get("user")
+	userModel := user.(*model.User)
+
+	// Gesprächs-ID in ObjectID umwandeln
+	convObjID, err := primitive.ObjectIDFromHex(conversationID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Gesprächs-ID: " + err.Error()})
+		return
+	}
+
+	// Gespräch finden und aktualisieren
+	var conversationFound bool
+	var conversationTitle string
+
+	for i, conv := range employee.Conversations {
+		if conv.ID == convObjID {
+			employee.Conversations[i].Status = "completed"
+			conversationFound = true
+			conversationTitle = conv.Title
+			break
+		}
+	}
+
+	if !conversationFound {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Gespräch nicht gefunden"})
+		return
+	}
+
+	// Mitarbeiter aktualisieren
+	err = h.employeeRepo.Update(employee)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Aktualisieren des Mitarbeiters: " + err.Error()})
+		return
+	}
+
+	// Aktivität loggen
+	activityRepo := repository.NewActivityRepository()
+	_, _ = activityRepo.LogActivity(
+		model.ActivityTypeConversationCompleted,
+		userModel.ID,
+		userModel.FirstName+" "+userModel.LastName,
+		employee.ID,
+		"employee",
+		employee.FirstName+" "+employee.LastName,
+		"Gespräch '"+conversationTitle+"' als abgeschlossen markiert",
+	)
+
+	// Erfolg zurückmelden
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Gespräch als abgeschlossen markiert",
+	})
+}
