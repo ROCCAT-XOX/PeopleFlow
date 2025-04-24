@@ -7,9 +7,7 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Konfigurierbare Variablen (können durch Umgebungsvariablen überschrieben werden)
-REPO_URL=${REPO_URL:-"https://github.com/yourusername/PeopleFlow.git"}
-REPO_BRANCH=${REPO_BRANCH:-"main"}
+# Konfigurierbare Variablen
 MONGODB_PORT=${MONGODB_PORT:-27018}
 APP_PORT=${APP_PORT:-5000}
 IMAGE_TAG=${IMAGE_TAG:-"latest"}
@@ -24,17 +22,6 @@ handle_error() {
 echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║      PeopleFlow Deployment Skript     ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
-
-# 0. Repository aktualisieren (falls vorhanden) oder klonen
-if [ -d "PeopleFlow" ]; then
-  echo -e "${YELLOW}Aktualisiere Repository...${NC}"
-  cd PeopleFlow || handle_error "Konnte nicht in das PeopleFlow-Verzeichnis wechseln"
-  git pull origin $REPO_BRANCH || handle_error "Git Pull fehlgeschlagen"
-else
-  echo -e "${YELLOW}Klone Repository...${NC}"
-  git clone -b $REPO_BRANCH $REPO_URL || handle_error "Git Clone fehlgeschlagen"
-  cd PeopleFlow || handle_error "Konnte nicht in das PeopleFlow-Verzeichnis wechseln"
-fi
 
 # 1. Docker-Image bauen
 echo -e "${YELLOW}Baue Docker-Image für $PLATFORM...${NC}"
