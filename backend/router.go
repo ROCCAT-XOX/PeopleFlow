@@ -192,9 +192,10 @@ func InitializeRoutes(router *gin.Engine) {
 						status = "Remote"
 					}
 
+					// Hier ist das Problem: Wenn ProfileImage leer ist, wird ein Default-Pfad verwendet
 					profileImg := emp.ProfileImage
 					if profileImg == "" {
-						profileImg = "/static/img/default-avatar.png"
+						profileImg = "" // Leer lassen, damit Platzhalter mit Initialen angezeigt wird
 					}
 
 					recentEmployees = append(recentEmployees, gin.H{
