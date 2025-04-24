@@ -112,6 +112,7 @@ type Conversation struct {
 	Status      string             `bson:"status" json:"status"` // planned, completed
 	Notes       string             `bson:"notes" json:"notes"`
 	CreatedAt   time.Time          `bson:"createdAt" json:"createdAt"`
+	UpdatedAt   time.Time          `bson:"updatedAt" json:"updatedAt"`
 }
 
 // DevelopmentItem repräsentiert einen Eintrag im Entwicklungsplan eines Mitarbeiters
