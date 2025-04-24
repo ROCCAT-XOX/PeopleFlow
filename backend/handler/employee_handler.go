@@ -502,9 +502,6 @@ func (h *EmployeeHandler) ListUpcomingConversations(c *gin.Context) {
 		return
 	}
 
-	// Service für Terminberechnung initialisieren
-	costService := service.NewCostService()
-
 	// Liste für Mitarbeiter mit anstehenden Gesprächen
 	var employeesWithUpcomingConversations []*model.Employee
 	var upcomingReviewsList []map[string]string
