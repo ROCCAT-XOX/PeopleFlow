@@ -1,8 +1,10 @@
 // backend/middleware/roleMiddleware.go
+
 package middleware
 
 import (
 	"PeopleFlow/backend/model"
+	"PeopleFlow/backend/repository"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
@@ -36,6 +38,58 @@ func RoleMiddleware(allowedRoles ...model.UserRole) gin.HandlerFunc {
 			})
 			c.Abort()
 			return
+		}
+
+		c.Next()
+	}
+}
+
+// HRMiddleware prüft, ob der Benutzer ein HR-Mitarbeiter ist, aber keine höheren Rollen bearbeiten darf
+func HRMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Aktuelle Benutzerrolle
+		userRole, _ := c.Get("userRole")
+
+		// Ziel-Benutzer ID aus dem Parameter
+		targetID := c.Param("id")
+
+		// Wenn kein Target-ID vorhanden ist (z.B. bei einer Liste), einfach durchlassen
+		if targetID == "" {
+			c.Next()
+			return
+		}
+
+		// Wenn HR-Rolle, dann prüfen, ob der Zielbenutzer kein Admin oder Manager ist
+		if userRole == string(model.RoleHR) {
+			userRepo := repository.NewUserRepository()
+			targetUser, err := userRepo.FindByID(targetID)
+
+			// Wenn der Zielbenutzer existiert und ein Admin oder Manager ist
+			if err == nil && (targetUser.Role == model.RoleAdmin || targetUser.Role == model.RoleManager) {
+				c.HTML(http.StatusForbidden, "error.html", gin.H{
+					"title":   "Zugriff verweigert",
+					"message": "Sie haben keine Berechtigung, Administratoren oder Manager zu bearbeiten.",
+					"year":    time.Now().Year(),
+				})
+				c.Abort()
+				return
+			}
+		}
+
+		c.Next()
+	}
+}
+
+// SalaryViewMiddleware beschränkt den Zugriff auf Gehaltsdaten
+func SalaryViewMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userRole, _ := c.Get("userRole")
+
+		// Nur Admin und Manager dürfen Gehaltsdaten sehen
+		if userRole != string(model.RoleAdmin) && userRole != string(model.RoleManager) {
+			c.Set("hideSalary", true)
+		} else {
+			c.Set("hideSalary", false) // Explizit auf false setzen
 		}
 
 		c.Next()

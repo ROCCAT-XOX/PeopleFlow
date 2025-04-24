@@ -36,6 +36,9 @@ func (h *EmployeeHandler) ListEmployees(c *gin.Context) {
 	user, _ := c.Get("user")
 	userModel := user.(*model.User)
 
+	// Benutzerrolle aus dem Context abrufen
+	userRole, _ := c.Get("userRole")
+
 	// Alle Mitarbeiter abrufen
 	employees, err := h.employeeRepo.FindAll()
 	if err != nil {
@@ -100,6 +103,7 @@ func (h *EmployeeHandler) ListEmployees(c *gin.Context) {
 		"employees":      employeeViewModels,
 		"totalEmployees": len(employees),
 		"managers":       managers,
+		"userRole":       userRole, // Hier wird die userRole hinzugefügt
 	})
 }
 
@@ -212,13 +216,19 @@ func (h *EmployeeHandler) AddEmployee(c *gin.Context) {
 func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 	id := c.Param("id")
 
+	hideSalary, exists := c.Get("hideSalary")
+	if !exists {
+		hideSalary = false
+	}
+
 	// Mitarbeiter anhand der ID abrufen
 	employee, err := h.employeeRepo.FindByID(id)
 	if err != nil {
 		c.HTML(http.StatusNotFound, "error.html", gin.H{
-			"title":   "Fehler",
-			"message": "Mitarbeiter nicht gefunden",
-			"year":    time.Now().Year(),
+			"title":      "Fehler",
+			"message":    "Mitarbeiter nicht gefunden",
+			"year":       time.Now().Year(),
+			"hideSalary": hideSalary,
 		})
 		return
 	}
@@ -335,9 +345,10 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 		}
 	}
 
-	// Finanzielle Daten aktualisieren (nur für Administratoren)
-	userRole, _ := c.Get("userRole")
-	if userRole == string(model.RoleAdmin) {
+	// Finanzielle Daten aktualisieren (abhängig von den Berechtigungen)
+	hideSalary, _ := c.Get("hideSalary")
+
+	if hideSalary == nil || hideSalary == false {
 		salaryStr := c.PostForm("salary")
 		if salaryStr != "" {
 			salary, err := strconv.ParseFloat(salaryStr, 64)
@@ -348,7 +359,6 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 
 		employee.BankAccount = c.PostForm("bankAccount")
 		employee.TaxID = c.PostForm("taxId")
-		employee.SocialSecID = c.PostForm("socialSecId")
 		employee.SocialSecID = c.PostForm("socialSecId")
 		employee.HealthInsurance = c.PostForm("healthInsurance")
 	}
@@ -370,6 +380,21 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 		})
 		return
 	}
+
+	// Aktivität loggen
+	currentUser, _ := c.Get("user")
+	currentUserModel := currentUser.(*model.User)
+
+	activityRepo := repository.NewActivityRepository()
+	_, _ = activityRepo.LogActivity(
+		model.ActivityTypeEmployeeUpdated,
+		currentUserModel.ID,
+		currentUserModel.FirstName+" "+currentUserModel.LastName,
+		employee.ID,
+		"employee",
+		employee.FirstName+" "+employee.LastName,
+		"Mitarbeiter aktualisiert",
+	)
 
 	// Zurück zur Mitarbeiterliste mit Erfolgsmeldung
 	c.Redirect(http.StatusFound, "/employees?success=updated")
@@ -394,13 +419,19 @@ func (h *EmployeeHandler) DeleteEmployee(c *gin.Context) {
 func (h *EmployeeHandler) ShowEditEmployeeForm(c *gin.Context) {
 	id := c.Param("id")
 
+	hideSalary, exists := c.Get("hideSalary")
+	if !exists {
+		hideSalary = false
+	}
+
 	// Mitarbeiter anhand der ID abrufen
 	employee, err := h.employeeRepo.FindByID(id)
 	if err != nil {
 		c.HTML(http.StatusNotFound, "error.html", gin.H{
-			"title":   "Fehler",
-			"message": "Mitarbeiter nicht gefunden",
-			"year":    time.Now().Year(),
+			"title":      "Fehler",
+			"message":    "Mitarbeiter nicht gefunden",
+			"year":       time.Now().Year(),
+			"hideSalary": hideSalary,
 		})
 		return
 	}

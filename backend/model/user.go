@@ -16,9 +16,9 @@ type UserStatus string
 const (
 	// Benutzerrollen
 	RoleAdmin   UserRole = "admin"
-	RoleHR      UserRole = "hr"
-	RoleUser    UserRole = "user"
 	RoleManager UserRole = "manager"
+	RoleHR      UserRole = "hr" // Personalverwaltung
+	RoleUser    UserRole = "user"
 
 	// Benutzerstatus
 	StatusActive   UserStatus = "active"

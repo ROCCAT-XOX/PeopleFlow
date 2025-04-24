@@ -11,7 +11,7 @@
                     <a href="/dashboard" class="inline-flex items-center border-b-2 {{ if eq .active "dashboard" }}border-green-500 text-gray-900{{ else }}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{{ end }} px-1 pt-1 text-sm font-medium">Dashboard</a>
 
                     <!-- Zeige Mitarbeiter-Tab für alle Rollen außer einfachen Benutzern -->
-                    {{ if ne .userRole "user" }}
+                    {{if or (eq .userRole "admin") (eq .userRole "manager")}}
                     <a href="/employees" class="inline-flex items-center border-b-2 {{ if eq .active "employees" }}border-green-500 text-gray-900{{ else }}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{{ end }} px-1 pt-1 text-sm font-medium">Mitarbeiter</a>
                     {{ end }}
 
@@ -116,6 +116,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        console.log("{{.userRole}}")
         // Toggle Mobile Menu
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const mobileMenu = document.getElementById('mobile-menu');

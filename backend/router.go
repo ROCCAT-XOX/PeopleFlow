@@ -64,6 +64,7 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.GET("/dashboard", func(c *gin.Context) {
 			user, _ := c.Get("user")
 			userModel := user.(*model.User)
+			userRole, _ := c.Get("userRole")
 
 			// Repository für Mitarbeiterdaten
 			employeeRepo := repository.NewEmployeeRepository()
@@ -210,32 +211,10 @@ func InitializeRoutes(router *gin.Engine) {
 				// Beispielhafte Daten, falls keine echten Daten vorhanden sind
 				recentEmployees = []gin.H{
 					{
-						"ID":           "1",
-						"Name":         "Max Mustermann",
-						"Position":     "Software Developer",
-						"Status":       "Aktiv",
-						"ProfileImage": "/static/img/default-avatar.png",
-					},
-					{
-						"ID":           "2",
-						"Name":         "Erika Musterfrau",
-						"Position":     "HR Manager",
-						"Status":       "Im Urlaub",
-						"ProfileImage": "/static/img/default-avatar.png",
-					},
-					{
-						"ID":           "3",
-						"Name":         "John Doe",
-						"Position":     "Marketing Specialist",
-						"Status":       "Remote",
-						"ProfileImage": "/static/img/default-avatar.png",
-					},
-					{
-						"ID":           "4",
-						"Name":         "Jane Smith",
-						"Position":     "Finance Director",
-						"Status":       "Aktiv",
-						"ProfileImage": "/static/img/default-avatar.png",
+						"ID":       "",
+						"Name":     "Keine Mitarbeiter",
+						"Position": "",
+						"Status":   "",
 					},
 				}
 			}
@@ -252,6 +231,7 @@ func InitializeRoutes(router *gin.Engine) {
 				"active":                  "dashboard",
 				"user":                    userModel.FirstName + " " + userModel.LastName,
 				"email":                   userModel.Email,
+				"userRole":                userRole, // Hier wird die userRole mitgegeben
 				"year":                    time.Now().Year(),
 				"totalEmployees":          totalEmployees,
 				"monthlyLaborCosts":       formattedLaborCosts,
@@ -277,10 +257,13 @@ func InitializeRoutes(router *gin.Engine) {
 		// Einstellungsrouten (für alle Benutzer)
 		authorized.GET("/settings", userHandler.ShowSettings)
 
-		// Benutzerverwaltungsrouten (für Administratoren)
+		// Benutzerverwaltungsrouten (mit rollenbasierter Zugriffssteuerung)
+		authorized.GET("/users", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), userHandler.ListUsers)
+		authorized.GET("/users/add", middleware.RoleMiddleware(model.RoleAdmin), userHandler.ShowAddUserForm)
 		authorized.POST("/users/add", middleware.RoleMiddleware(model.RoleAdmin), userHandler.AddUser)
-		authorized.POST("/users/edit/:id", middleware.RoleMiddleware(model.RoleAdmin), userHandler.UpdateUser)
-		authorized.DELETE("/users/delete/:id", middleware.RoleMiddleware(model.RoleAdmin), userHandler.DeleteUser)
+		authorized.GET("/users/edit/:id", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), middleware.HRMiddleware(), userHandler.ShowEditUserForm)
+		authorized.POST("/users/edit/:id", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), middleware.HRMiddleware(), userHandler.UpdateUser)
+		authorized.DELETE("/users/delete/:id", middleware.RoleMiddleware(model.RoleAdmin), middleware.HRMiddleware(), userHandler.DeleteUser)
 
 		// Passwortänderungsroute - ein Benutzer kann nur sein eigenes Passwort ändern
 		authorized.POST("/users/change-password", middleware.SelfOrAdminMiddleware(), userHandler.ChangePassword)
@@ -288,16 +271,15 @@ func InitializeRoutes(router *gin.Engine) {
 		employeeHandler := handler.NewEmployeeHandler()
 		documentHandler := handler.NewDocumentHandler()
 
-		// Mitarbeiter-Routen zum autorisierten Bereich hinzufügen
-		authorized.GET("/employees", employeeHandler.ListEmployees)
-		authorized.GET("/employees/view/:id", employeeHandler.GetEmployeeDetails)
-		authorized.GET("/employees/edit/:id", employeeHandler.ShowEditEmployeeForm)
-		authorized.POST("/employees/add", employeeHandler.AddEmployee)
-		authorized.POST("/employees/edit/:id", employeeHandler.UpdateEmployee)
-		authorized.DELETE("/employees/delete/:id", employeeHandler.DeleteEmployee)
+		// Mitarbeiter-Routen zum autorisierten Bereich hinzufügen mit rollenbasierter Zugriffssteuerung
+		authorized.GET("/employees", middleware.SalaryViewMiddleware(), employeeHandler.ListEmployees)
+		authorized.GET("/employees/view/:id", middleware.SalaryViewMiddleware(), employeeHandler.GetEmployeeDetails)
+		authorized.GET("/employees/edit/:id", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.ShowEditEmployeeForm)
+		authorized.POST("/employees/add", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.AddEmployee)
+		authorized.POST("/employees/edit/:id", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.UpdateEmployee)
+		authorized.DELETE("/employees/delete/:id", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.DeleteEmployee)
 
 		// Profilbil hinzufügen
-		// Im router.go, innerhalb des authorized-Bereichs
 		authorized.POST("/employees/:id/profile-image", employeeHandler.UploadProfileImage)
 
 		// Dokument-Routen
