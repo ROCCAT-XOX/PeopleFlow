@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -482,5 +483,114 @@ func (h *EmployeeHandler) UploadProfileImage(c *gin.Context) {
 		"success":      true,
 		"message":      "Profilbild erfolgreich hochgeladen",
 		"profileImage": profileImagePath,
+	})
+}
+
+func (h *EmployeeHandler) ListUpcomingConversations(c *gin.Context) {
+	// Aktuellen Benutzer aus dem Context abrufen
+	user, _ := c.Get("user")
+	userModel := user.(*model.User)
+
+	// Alle Mitarbeiter abrufen
+	employees, err := h.employeeRepo.FindAll()
+	if err != nil {
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+			"title":   "Fehler",
+			"message": "Fehler beim Abrufen der Mitarbeiter: " + err.Error(),
+			"year":    time.Now().Year(),
+		})
+		return
+	}
+
+	// Service für Terminberechnung initialisieren
+	costService := service.NewCostService()
+
+	// Liste für Mitarbeiter mit anstehenden Gesprächen
+	var employeesWithUpcomingConversations []*model.Employee
+	var upcomingReviewsList []map[string]string
+
+	// Aktuelle Zeit für den Vergleich
+	now := time.Now()
+
+	// Alle Mitarbeiter durchgehen und nach geplanten Gesprächen in der Zukunft suchen
+	for _, emp := range employees {
+		hasUpcomingConversation := false
+		for _, conv := range emp.Conversations {
+			// Nur geplante Gespräche und nur solche, die in der Zukunft liegen
+			if conv.Status == "planned" && conv.Date.After(now) {
+				// Gespräche, die innerhalb der nächsten 14 Tage stattfinden
+				if conv.Date.Before(now.AddDate(0, 0, 14)) {
+					hasUpcomingConversation = true
+					upcomingReviewsList = append(upcomingReviewsList, map[string]string{
+						"EmployeeID":   emp.ID.Hex(),
+						"EmployeeName": emp.FirstName + " " + emp.LastName,
+						"ReviewType":   conv.Title,
+						"Date":         conv.Date.Format("02.01.2006"),
+						"Description":  conv.Description,
+					})
+				}
+			}
+		}
+		if hasUpcomingConversation {
+			employeesWithUpcomingConversations = append(employeesWithUpcomingConversations, emp)
+		}
+	}
+
+	// Sortieren nach Datum (die nächsten zuerst)
+	if len(upcomingReviewsList) > 0 {
+		sort.Slice(upcomingReviewsList, func(i, j int) bool {
+			date1, _ := time.Parse("02.01.2006", upcomingReviewsList[i]["Date"])
+			date2, _ := time.Parse("02.01.2006", upcomingReviewsList[j]["Date"])
+			return date1.Before(date2)
+		})
+	}
+
+	// Wir erstellen hier EmployeeViewModel-Strukturen, die für die Anzeige optimiert sind
+	var employeeViewModels []gin.H
+	for _, emp := range employeesWithUpcomingConversations {
+		// Formatiertes Einstellungsdatum
+		hireDateFormatted := emp.HireDate.Format("02.01.2006")
+
+		// Status menschenlesbar machen
+		status := "Aktiv"
+		switch emp.Status {
+		case model.EmployeeStatusInactive:
+			status = "Inaktiv"
+		case model.EmployeeStatusOnLeave:
+			status = "Im Urlaub"
+		case model.EmployeeStatusRemote:
+			status = "Remote"
+		}
+
+		// Standard-Profilbild, falls keines definiert ist
+		profileImage := emp.ProfileImage
+		if profileImage == "" {
+			profileImage = "" // Leer lassen
+		}
+
+		// ViewModel erstellen
+		employeeViewModels = append(employeeViewModels, gin.H{
+			"ID":                emp.ID.Hex(),
+			"FirstName":         emp.FirstName,
+			"LastName":          emp.LastName,
+			"Email":             emp.Email,
+			"Position":          emp.Position,
+			"Department":        emp.Department,
+			"HireDateFormatted": hireDateFormatted,
+			"Status":            status,
+			"ProfileImage":      profileImage,
+		})
+	}
+
+	// Daten an das Template übergeben
+	c.HTML(http.StatusOK, "upcoming_conversations.html", gin.H{
+		"title":           "Anstehende Gespräche",
+		"active":          "employees",
+		"user":            userModel.FirstName + " " + userModel.LastName,
+		"email":           userModel.Email,
+		"year":            time.Now().Year(),
+		"employees":       employeeViewModels,
+		"totalEmployees":  len(employeesWithUpcomingConversations),
+		"upcomingReviews": upcomingReviewsList,
 	})
 }

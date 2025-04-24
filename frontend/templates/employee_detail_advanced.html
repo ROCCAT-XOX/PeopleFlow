@@ -2022,6 +2022,27 @@
             });
     }
 
+    document.addEventListener('DOMContentLoaded', function() {
+        // Prüfen, ob ein Hashtag in der URL ist
+        if (window.location.hash) {
+            // Extrahieren des Tab-Namens aus dem Hash
+            const tabName = window.location.hash.substring(1); // Entfernt das # vom Anfang
+
+            // Wenn der Hash dem Tab "conversations" entspricht, diesen Tab anzeigen
+            if (tabName === 'conversations') {
+                showTab('conversations');
+
+                // Scrolle ein bisschen nach unten, damit der Tab in der Mitte der Seite ist
+                setTimeout(function() {
+                    window.scrollBy({
+                        top: 200,
+                        behavior: 'smooth'
+                    });
+                }, 100);
+            }
+        }
+    });
+
 
 </script>
 </body>

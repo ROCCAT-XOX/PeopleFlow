@@ -1,0 +1,192 @@
+{{ template "head" . }}
+<body class="bg-gray-50 min-h-screen flex flex-col">
+<!-- Navigation -->
+{{ template "navigation" . }}
+
+<!-- Main Content -->
+<main class="container mx-auto px-4 py-6 flex-grow">
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <div>
+            <h2 class="text-xl font-medium text-gray-900">Anstehende Gespräche</h2>
+            <p class="mt-1 text-sm text-gray-500">Mitarbeiter mit geplanten Gesprächen in den nächsten 14 Tagen.</p>
+        </div>
+    </div>
+
+    <div class="mt-6 md:flex md:items-center md:justify-between">
+        <div class="relative flex items-center mt-4 md:mt-0">
+            <span class="absolute">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mx-3 text-gray-400">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+            </span>
+
+            <input type="text" id="searchInput" placeholder="Suchen" class="block w-full py-1.5 pr-5 text-gray-700 bg-white border border-gray-200 rounded-lg md:w-80 placeholder-gray-400/70 pl-11 rtl:pr-11 rtl:pl-5 focus:border-green-400 focus:ring-green-300 focus:outline-none focus:ring focus:ring-opacity-40">
+        </div>
+    </div>
+
+    <!-- Anstehende Gespräche -->
+    <div class="mt-6 bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="text-lg font-medium text-gray-900">Geplante Termine ({{len .upcomingReviews}})</h3>
+            <a href="/dashboard" class="text-sm text-green-600 hover:underline">Zurück zum Dashboard</a>
+        </div>
+        <div class="p-4">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mitarbeiter</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gesprächstyp</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Datum</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beschreibung</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
+                    </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                    {{range .upcomingReviews}}
+                    <tr class="employee-item">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <a href="/employees/view/{{.EmployeeID}}" class="text-green-600 hover:text-green-900 font-medium">
+                                {{.EmployeeName}}
+                            </a>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.ReviewType}}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    {{.Date}}
+                                </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500">
+                            {{if .Description}}
+                            {{.Description}}
+                            {{else}}
+                            -
+                            {{end}}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <a href="/employees/view/{{.EmployeeID}}#conversations" class="text-green-600 hover:text-green-900">
+                                Details
+                            </a>
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                            Keine anstehenden Gespräche gefunden
+                        </td>
+                    </tr>
+                    {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste mit Mitarbeitern -->
+    <div class="mt-6 bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">Mitarbeiter mit anstehenden Gesprächen ({{len .employees}})</h3>
+        </div>
+        <ul id="employeesList" role="list" class="divide-y divide-gray-200">
+            {{range .employees}}
+            <li class="employee-item">
+                <div class="flex items-center px-4 py-4 sm:px-6 hover:bg-gray-50">
+                    <div class="flex min-w-0 flex-1 items-center">
+                        <div class="flex-shrink-0">
+                            {{if .ProfileImage}}
+                            <img class="h-12 w-12 rounded-full object-cover" src="{{.ProfileImage}}" alt="{{.FirstName}} {{.LastName}}">
+                            {{else}}
+                            <div class="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-2xl font-semibold">
+                                {{slice .FirstName 0 1}}{{slice .LastName 0 1}}
+                            </div>
+                            {{end}}
+                        </div>
+                        <div class="min-w-0 flex-1 px-4">
+                            <div>
+                                <p class="truncate text-sm font-medium text-green-600">{{.FirstName}} {{.LastName}}</p>
+                                <p class="mt-1 truncate text-sm text-gray-500">{{.Position}} · {{.Department}}</p>
+                            </div>
+                            <div class="mt-2 flex">
+                                <div class="flex items-center text-sm text-gray-500">
+                                    <svg class="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>Eingestellt am {{.HireDateFormatted}}</span>
+                                </div>
+                                <div class="ml-4 flex items-center text-sm text-gray-500">
+                                    <svg class="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-1.5 0a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" clip-rule="evenodd" />
+                                    </svg>
+                                    {{if eq .Status "Aktiv"}}
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        {{.Status}}
+                                    </span>
+                                    {{else if eq .Status "Inaktiv"}}
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                        {{.Status}}
+                                    </span>
+                                    {{else if eq .Status "Im Urlaub"}}
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                        {{.Status}}
+                                    </span>
+                                    {{else if eq .Status "Remote"}}
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        {{.Status}}
+                                    </span>
+                                    {{else}}
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                        {{.Status}}
+                                    </span>
+                                    {{end}}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex">
+                        <a href="/employees/view/{{.ID}}#conversations" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-green-600 bg-green-100 rounded-md mr-2 hover:bg-green-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                            </svg>
+                            Gespräche
+                        </a>
+                    </div>
+                </div>
+            </li>
+            {{else}}
+            <li class="px-4 py-5 sm:px-6">
+                <div class="text-center text-gray-500">
+                    <p>Keine Mitarbeiter mit anstehenden Gesprächen gefunden.</p>
+                </div>
+            </li>
+            {{end}}
+        </ul>
+    </div>
+</main>
+
+<!-- Footer -->
+{{ template "footer" . }}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Suchfunktion
+        const searchInput = document.getElementById('searchInput');
+        const employeeItems = document.querySelectorAll('.employee-item');
+
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+
+                employeeItems.forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        }
+    });
+</script>
+</body>
+</html>
