@@ -23,6 +23,7 @@ const (
 	ActivityTypeUserUpdated           ActivityType = "user_updated"
 	ActivityTypeUserDeleted           ActivityType = "user_deleted"
 	ActivityTypeConversationAdded     ActivityType = "conversation_added"
+	ActivityTypeConversationUpdated   ActivityType = "conversation_updated"
 	ActivityTypeConversationCompleted ActivityType = "conversation_completed"
 )
 

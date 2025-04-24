@@ -1194,3 +1194,94 @@ func (h *DocumentHandler) CompleteConversation(c *gin.Context) {
 		"message": "Gespräch als abgeschlossen markiert",
 	})
 }
+
+// UpdateConversation aktualisiert ein Gespräch
+func (h *DocumentHandler) UpdateConversation(c *gin.Context) {
+	// Mitarbeiter-ID und Gesprächs-ID aus den URL-Parametern extrahieren
+	employeeID := c.Param("id")
+	conversationID := c.Param("conversationId")
+
+	// Mitarbeiter abrufen
+	employee, err := h.employeeRepo.FindByID(employeeID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden: " + err.Error()})
+		return
+	}
+
+	// Aktuellen Benutzer aus dem Context abrufen für die Aktivitätsprotokollierung
+	user, _ := c.Get("user")
+	userModel := user.(*model.User)
+
+	// Gesprächs-ID in ObjectID umwandeln
+	convObjID, err := primitive.ObjectIDFromHex(conversationID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Gesprächs-ID: " + err.Error()})
+		return
+	}
+
+	// Formulardaten abrufen
+	title := c.PostForm("title")
+	dateStr := c.PostForm("date")
+	description := c.PostForm("description")
+	notes := c.PostForm("notes")
+
+	// Datum parsen
+	var date time.Time
+	if dateStr != "" {
+		date, err = time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültiges Datumsformat: " + err.Error()})
+			return
+		}
+	} else {
+		date = time.Now()
+	}
+
+	// Gespräch finden und aktualisieren
+	var conversationFound bool
+	var oldTitle string
+
+	for i, conv := range employee.Conversations {
+		if conv.ID == convObjID {
+			oldTitle = conv.Title
+			// Werte aktualisieren
+			employee.Conversations[i].Title = title
+			employee.Conversations[i].Date = date
+			employee.Conversations[i].Description = description
+			employee.Conversations[i].Notes = notes
+			employee.Conversations[i].UpdatedAt = time.Now() // Aktualisierungszeitstempel
+			conversationFound = true
+			break
+		}
+	}
+
+	if !conversationFound {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Gespräch nicht gefunden"})
+		return
+	}
+
+	// Mitarbeiter aktualisieren
+	err = h.employeeRepo.Update(employee)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Aktualisieren des Mitarbeiters: " + err.Error()})
+		return
+	}
+
+	// Aktivität loggen
+	activityRepo := repository.NewActivityRepository()
+	_, _ = activityRepo.LogActivity(
+		model.ActivityTypeConversationUpdated, // Neuer Aktivitätstyp, der in model/activity.go definiert werden muss
+		userModel.ID,
+		userModel.FirstName+" "+userModel.LastName,
+		employee.ID,
+		"employee",
+		employee.FirstName+" "+employee.LastName,
+		"Gespräch '"+oldTitle+"' wurde zu '"+title+"' aktualisiert",
+	)
+
+	// Erfolg zurückmelden
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Gespräch erfolgreich aktualisiert",
+	})
+}

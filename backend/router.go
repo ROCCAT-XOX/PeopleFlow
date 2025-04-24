@@ -326,6 +326,7 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.POST("/employees/:id/conversations", documentHandler.AddConversation)
 		authorized.DELETE("/employees/:id/conversations/:conversationId", documentHandler.DeleteConversation)
 		authorized.POST("/employees/:id/conversations/:conversationId/complete", documentHandler.CompleteConversation)
+		authorized.PUT("/employees/:id/conversations/:conversationId", documentHandler.UpdateConversation)
 
 		// Optionale API-Endpoints für AJAX-Anfragen
 		api := router.Group("/api")
