@@ -282,6 +282,7 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 		"formatFileSize": formatFileSize,
 		"iterate":        iterate,
 		"now":            now,
+		"hideSalary":     hideSalary,
 	})
 }
 
@@ -419,6 +420,8 @@ func (h *EmployeeHandler) DeleteEmployee(c *gin.Context) {
 func (h *EmployeeHandler) ShowEditEmployeeForm(c *gin.Context) {
 	id := c.Param("id")
 
+	// Benutzerrolle und Sichtbarkeit des Gehalts aus dem Context abrufen
+	userRole, _ := c.Get("userRole")
 	hideSalary, exists := c.Get("hideSalary")
 	if !exists {
 		hideSalary = false
@@ -446,16 +449,19 @@ func (h *EmployeeHandler) ShowEditEmployeeForm(c *gin.Context) {
 		managers = []*model.Employee{} // Leere Liste, falls ein Fehler auftritt
 	}
 
+	fmt.Printf("Before template: hideSalary=%v\n", hideSalary)
+
 	// Daten an das Template übergeben
 	c.HTML(http.StatusOK, "employee_edit.html", gin.H{
-		"title":    "Mitarbeiter bearbeiten",
-		"active":   "employees",
-		"user":     userModel.FirstName + " " + userModel.LastName,
-		"email":    userModel.Email,
-		"year":     time.Now().Year(),
-		"employee": employee,
-		"managers": managers,
-		"userRole": c.GetString("userRole"),
+		"title":      "Mitarbeiter bearbeiten",
+		"active":     "employees",
+		"user":       userModel.FirstName + " " + userModel.LastName,
+		"email":      userModel.Email,
+		"year":       time.Now().Year(),
+		"employee":   employee,
+		"managers":   managers,
+		"userRole":   userRole,
+		"hideSalary": hideSalary,
 	})
 }
 

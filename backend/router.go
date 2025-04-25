@@ -273,8 +273,8 @@ func InitializeRoutes(router *gin.Engine) {
 
 		// Mitarbeiter-Routen zum autorisierten Bereich hinzufügen mit rollenbasierter Zugriffssteuerung
 		authorized.GET("/employees", middleware.SalaryViewMiddleware(), employeeHandler.ListEmployees)
-		authorized.GET("/employees/view/:id", middleware.SalaryViewMiddleware(), employeeHandler.GetEmployeeDetails)
-		authorized.GET("/employees/edit/:id", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.ShowEditEmployeeForm)
+		authorized.GET("/employees/view/:id", middleware.SalaryViewMiddleware(), middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.GetEmployeeDetails)
+		authorized.GET("/employees/edit/:id", middleware.SalaryViewMiddleware(), middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.ShowEditEmployeeForm)
 		authorized.POST("/employees/add", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.AddEmployee)
 		authorized.POST("/employees/edit/:id", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.UpdateEmployee)
 		authorized.DELETE("/employees/delete/:id", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.DeleteEmployee)
