@@ -7,14 +7,6 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Variablen
-REPO_URL=${REPO_URL:-"https://github.com/yourusername/PeopleFlow.git"}
-REPO_BRANCH=${REPO_BRANCH:-"main"}
-REPO_DIR=${REPO_DIR:-"./PeopleFlow"}
-MONGODB_PORT=${MONGODB_PORT:-27017}
-APP_PORT=${APP_PORT:-5000}
-IMAGE_TAG=${IMAGE_TAG:-"latest"}
-PLATFORM=${PLATFORM:-"linux/amd64"}
 
 handle_error() {
   echo -e "${RED}FEHLER: $1${NC}"
