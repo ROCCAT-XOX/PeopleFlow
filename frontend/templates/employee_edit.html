@@ -52,6 +52,14 @@
                                 <label for="phone" class="block text-sm font-medium text-gray-700">Telefon</label>
                                 <input type="tel" name="phone" id="phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.Phone}}">
                             </div>
+                            <div>
+                                <label for="internalPhone" class="block text-sm font-medium text-gray-700">Interne Rufnummer</label>
+                                <input type="tel" name="internalPhone" id="internalPhone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.InternalPhone}}">
+                            </div>
+                            <div>
+                                <label for="internalExtension" class="block text-sm font-medium text-gray-700">Kurzwahl intern</label>
+                                <input type="tel" name="internalExtension" id="internalExtension" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.InternalExtension}}">
+                            </div>
                             <div class="md:col-span-2">
                                 <label for="address" class="block text-sm font-medium text-gray-700">Adresse</label>
                                 <textarea name="address" id="address" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">{{.employee.Address}}</textarea>

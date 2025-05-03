@@ -159,27 +159,29 @@ func (h *EmployeeHandler) AddEmployee(c *gin.Context) {
 
 	// Neues Employee-Objekt erstellen
 	employee := &model.Employee{
-		FirstName:       firstName,
-		LastName:        lastName,
-		Email:           email,
-		Phone:           c.PostForm("phone"),
-		Address:         c.PostForm("address"),
-		DateOfBirth:     birthDate,
-		HireDate:        hireDate,
-		Position:        position,
-		Department:      model.Department(department),
-		ManagerID:       managerID,
-		Status:          model.EmployeeStatusActive, // Standardmäßig aktiv
-		Salary:          salary,
-		BankAccount:     c.PostForm("iban"),
-		TaxID:           c.PostForm("taxClass"),
-		SocialSecID:     c.PostForm("socialSecId"),
-		HealthInsurance: c.PostForm("healthInsurance"),
-		EmergencyName:   c.PostForm("emergencyName"),
-		EmergencyPhone:  c.PostForm("emergencyPhone"),
-		Notes:           c.PostForm("notes"),
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
+		FirstName:         firstName,
+		LastName:          lastName,
+		Email:             email,
+		Phone:             c.PostForm("phone"),
+		InternalPhone:     c.PostForm("internalPhone"),
+		InternalExtension: c.PostForm("internalExtension"),
+		Address:           c.PostForm("address"),
+		DateOfBirth:       birthDate,
+		HireDate:          hireDate,
+		Position:          position,
+		Department:        model.Department(department),
+		ManagerID:         managerID,
+		Status:            model.EmployeeStatusActive, // Standardmäßig aktiv
+		Salary:            salary,
+		BankAccount:       c.PostForm("iban"),
+		TaxID:             c.PostForm("taxClass"),
+		SocialSecID:       c.PostForm("socialSecId"),
+		HealthInsurance:   c.PostForm("healthInsurance"),
+		EmergencyName:     c.PostForm("emergencyName"),
+		EmergencyPhone:    c.PostForm("emergencyPhone"),
+		Notes:             c.PostForm("notes"),
+		CreatedAt:         time.Now(),
+		UpdatedAt:         time.Now(),
 	}
 
 	// Mitarbeiter in der Datenbank speichern
@@ -306,6 +308,8 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 	employee.LastName = c.PostForm("lastName")
 	employee.Email = c.PostForm("email")
 	employee.Phone = c.PostForm("phone")
+	employee.InternalPhone = c.PostForm("internalPhone")
+	employee.InternalExtension = c.PostForm("internalExtension")
 	employee.Address = c.PostForm("address")
 	employee.Position = c.PostForm("position")
 	employee.Department = model.Department(c.PostForm("department"))

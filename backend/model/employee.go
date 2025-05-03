@@ -30,28 +30,30 @@ const (
 
 // Employee repräsentiert einen Mitarbeiter im System
 type Employee struct {
-	ID              primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	FirstName       string             `bson:"firstName" json:"firstName"`
-	LastName        string             `bson:"lastName" json:"lastName"`
-	Email           string             `bson:"email" json:"email"`
-	Phone           string             `bson:"phone" json:"phone"`
-	Address         string             `bson:"address" json:"address"`
-	DateOfBirth     time.Time          `bson:"dateOfBirth" json:"dateOfBirth"`
-	HireDate        time.Time          `bson:"hireDate" json:"hireDate"`
-	Position        string             `bson:"position" json:"position"`
-	Department      Department         `bson:"department" json:"department"`
-	ManagerID       primitive.ObjectID `bson:"managerId,omitempty" json:"managerId"`
-	Status          EmployeeStatus     `bson:"status" json:"status"`
-	Salary          float64            `bson:"salary" json:"salary"`
-	BankAccount     string             `bson:"bankAccount" json:"bankAccount"`
-	TaxID           string             `bson:"taxId" json:"taxId"`
-	SocialSecID     string             `bson:"socialSecId" json:"socialSecId"`
-	HealthInsurance string             `bson:"healthInsurance" json:"healthInsurance"`
-	EmergencyName   string             `bson:"emergencyName" json:"emergencyName"`
-	EmergencyPhone  string             `bson:"emergencyPhone" json:"emergencyPhone"`
-	ProfileImage    string             `bson:"profileImage" json:"profileImage"`
-	Notes           string             `bson:"notes" json:"notes"`
-	Conversations   []Conversation     `bson:"conversations,omitempty" json:"conversations,omitempty"`
+	ID                primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	FirstName         string             `bson:"firstName" json:"firstName"`
+	LastName          string             `bson:"lastName" json:"lastName"`
+	Email             string             `bson:"email" json:"email"`
+	Phone             string             `bson:"phone" json:"phone"`
+	InternalPhone     string             `bson:"internalPhone" json:"internalPhone"`
+	InternalExtension string             `bson:"internalExtension" json:"internalExtension"`
+	Address           string             `bson:"address" json:"address"`
+	DateOfBirth       time.Time          `bson:"dateOfBirth" json:"dateOfBirth"`
+	HireDate          time.Time          `bson:"hireDate" json:"hireDate"`
+	Position          string             `bson:"position" json:"position"`
+	Department        Department         `bson:"department" json:"department"`
+	ManagerID         primitive.ObjectID `bson:"managerId,omitempty" json:"managerId"`
+	Status            EmployeeStatus     `bson:"status" json:"status"`
+	Salary            float64            `bson:"salary" json:"salary"`
+	BankAccount       string             `bson:"bankAccount" json:"bankAccount"`
+	TaxID             string             `bson:"taxId" json:"taxId"`
+	SocialSecID       string             `bson:"socialSecId" json:"socialSecId"`
+	HealthInsurance   string             `bson:"healthInsurance" json:"healthInsurance"`
+	EmergencyName     string             `bson:"emergencyName" json:"emergencyName"`
+	EmergencyPhone    string             `bson:"emergencyPhone" json:"emergencyPhone"`
+	ProfileImage      string             `bson:"profileImage" json:"profileImage"`
+	Notes             string             `bson:"notes" json:"notes"`
+	Conversations     []Conversation     `bson:"conversations,omitempty" json:"conversations,omitempty"`
 
 	// Neue Felder für erweiterte Mitarbeiterinformationen
 
