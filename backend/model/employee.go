@@ -52,6 +52,7 @@ type Employee struct {
 	EmergencyName     string             `bson:"emergencyName" json:"emergencyName"`
 	EmergencyPhone    string             `bson:"emergencyPhone" json:"emergencyPhone"`
 	ProfileImage      string             `bson:"profileImage" json:"profileImage"`
+	ProfileImageData  primitive.Binary   `bson:"profileImageData,omitempty" json:"-"`
 	Notes             string             `bson:"notes" json:"notes"`
 	Conversations     []Conversation     `bson:"conversations,omitempty" json:"conversations,omitempty"`
 

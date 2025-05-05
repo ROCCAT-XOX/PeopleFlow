@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"PeopleFlow/backend/db"
@@ -56,17 +58,20 @@ func (r *EmployeeRepository) Create(employee *model.Employee) error {
 	return nil
 }
 
-// FindByID findet einen Mitarbeiter anhand seiner ID
+// FindByID finds an employee by their ID
 func (r *EmployeeRepository) FindByID(id string) (*model.Employee, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	var employee model.Employee
+
+	// Ensure the ID is valid
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid ID format: %v", err)
 	}
 
+	// Find the employee by ID
 	err = r.collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&employee)
 	if err != nil {
 		return nil, err
@@ -151,36 +156,31 @@ func (r *EmployeeRepository) FindManagers() ([]*model.Employee, error) {
 	return managers, nil
 }
 
-// Update aktualisiert einen Mitarbeiter
+// Update updates an employee
 func (r *EmployeeRepository) Update(employee *model.Employee) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// UpdatedAt-Zeitstempel aktualisieren
+	// Update timestamp
 	employee.UpdatedAt = time.Now()
 
-	// Prüfen, ob bereits ein anderer Mitarbeiter mit dieser E-Mail existiert
-	var existingEmployee model.Employee
-	err := r.collection.FindOne(ctx, bson.M{
-		"email": employee.Email,
-		"_id":   bson.M{"$ne": employee.ID},
-	}).Decode(&existingEmployee)
-
-	// Wenn ein Dokument gefunden wurde, bedeutet das, dass die E-Mail bereits verwendet wird
-	if err == nil {
-		return mongo.ErrNoDocuments
-	}
-	// Wenn der Fehler nicht "nicht gefunden" ist, ist es ein anderer Fehler
-	if err != mongo.ErrNoDocuments {
-		return err
-	}
-
-	_, err = r.collection.UpdateOne(
+	// Update the employee
+	result, err := r.collection.UpdateOne(
 		ctx,
 		bson.M{"_id": employee.ID},
 		bson.M{"$set": employee},
 	)
-	return err
+
+	if err != nil {
+		return err
+	}
+
+	// Check if any document was matched
+	if result.MatchedCount == 0 {
+		return errors.New("no document found to update")
+	}
+
+	return nil
 }
 
 // Delete löscht einen Mitarbeiter

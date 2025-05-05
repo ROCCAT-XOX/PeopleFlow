@@ -3,10 +3,9 @@ package handler
 import (
 	"PeopleFlow/backend/model"
 	"PeopleFlow/backend/repository"
-	"PeopleFlow/backend/service"
 	"fmt"
+	"io"
 	"net/http"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -469,61 +468,61 @@ func (h *EmployeeHandler) ShowEditEmployeeForm(c *gin.Context) {
 	})
 }
 
-// UploadProfileImage lädt ein Profilbild für einen Mitarbeiter hoch
-// UploadProfileImage lädt ein Profilbild hoch und gibt den Dateipfad zurück
-// UploadProfileImage lädt ein Profilbild für einen Mitarbeiter hoch
+// UploadProfileImage handles profile image uploads for employees
 func (h *EmployeeHandler) UploadProfileImage(c *gin.Context) {
-	// Mitarbeiter-ID aus dem URL-Parameter extrahieren
+	// Get employee ID from URL parameter
 	employeeID := c.Param("id")
 
-	// Mitarbeiter abrufen
+	// Retrieve employee from database
 	employee, err := h.employeeRepo.FindByID(employeeID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden: " + err.Error()})
 		return
 	}
 
-	// Hochgeladene Datei abrufen
+	// Get uploaded file
 	file, err := c.FormFile("profileImage")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Keine Datei hochgeladen"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Keine Datei hochgeladen: " + err.Error()})
 		return
 	}
 
-	// Überprüfen, ob es sich um ein Bild handelt
+	// Check file type
 	contentType := file.Header.Get("Content-Type")
 	if !strings.HasPrefix(contentType, "image/") {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Die hochgeladene Datei ist kein Bild"})
 		return
 	}
 
-	// Wenn es bereits ein altes Profilbild gibt, dieses löschen
-	if employee.ProfileImage != "" && strings.HasPrefix(employee.ProfileImage, "/static/uploads/") {
-		oldPath := "." + employee.ProfileImage
-		os.Remove(oldPath) // Ignoriere Fehler, falls die Datei nicht existiert
-	}
-
-	// Profilbild hochladen
-	fileService := service.NewFileService()
-	profileImagePath, err := fileService.UploadProfileImage(file, employeeID)
+	// Open the file
+	src, err := file.Open()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Hochladen des Profilbilds: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Öffnen der hochgeladenen Datei: " + err.Error()})
+		return
+	}
+	defer src.Close()
+
+	// Read file contents
+	fileData, err := io.ReadAll(src)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Lesen der Datei: " + err.Error()})
 		return
 	}
 
-	// Pfad zum Profilbild in der Datenbank aktualisieren
-	employee.ProfileImage = profileImagePath
-	err = h.employeeRepo.Update(employee)
-	if err != nil {
+	// Store the image data in the employee object
+	employee.ProfileImage = contentType // Store the mime type
+	employee.ProfileImageData = primitive.Binary{Data: fileData}
+
+	// Update employee in database
+	if err := h.employeeRepo.Update(employee); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Aktualisieren des Mitarbeiters: " + err.Error()})
 		return
 	}
 
-	// Erfolg zurückmelden
+	// Return success response
 	c.JSON(http.StatusOK, gin.H{
-		"success":      true,
-		"message":      "Profilbild erfolgreich hochgeladen",
-		"profileImage": profileImagePath,
+		"success": true,
+		"message": "Profilbild erfolgreich hochgeladen",
 	})
 }
 
@@ -631,4 +630,38 @@ func (h *EmployeeHandler) ListUpcomingConversations(c *gin.Context) {
 		"totalEmployees":  len(employeesWithUpcomingConversations),
 		"upcomingReviews": upcomingReviewsList,
 	})
+}
+
+// Add this to your employee_handler.go if it's not already there
+func (h *EmployeeHandler) GetProfileImage(c *gin.Context) {
+	employeeID := c.Param("id")
+
+	// Add debug logging
+	fmt.Printf("GetProfileImage called for ID: %s\n", employeeID)
+
+	// Retrieve employee from database
+	employee, err := h.employeeRepo.FindByID(employeeID)
+	if err != nil {
+		fmt.Printf("Error finding employee: %v\n", err)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden"})
+		return
+	}
+
+	// Check if profile image exists
+	if len(employee.ProfileImageData.Data) == 0 {
+		fmt.Printf("No profile image data found for employee: %s\n", employeeID)
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	// Log that we're serving the image
+	fmt.Printf("Serving profile image for employee: %s, content type: %s, data length: %d bytes\n",
+		employeeID, employee.ProfileImage, len(employee.ProfileImageData.Data))
+
+	// Set appropriate content type
+	c.Header("Content-Type", employee.ProfileImage)
+	c.Header("Cache-Control", "no-cache")
+
+	// Serve the image data
+	c.Data(http.StatusOK, employee.ProfileImage, employee.ProfileImageData.Data)
 }

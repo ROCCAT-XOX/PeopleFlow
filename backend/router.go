@@ -278,6 +278,7 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.POST("/employees/add", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.AddEmployee)
 		authorized.POST("/employees/edit/:id", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.UpdateEmployee)
 		authorized.DELETE("/employees/delete/:id", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.DeleteEmployee)
+		authorized.GET("/employees/:id/profile-image", employeeHandler.GetProfileImage)
 
 		// Profilbil hinzufügen
 		authorized.POST("/employees/:id/profile-image", employeeHandler.UploadProfileImage)

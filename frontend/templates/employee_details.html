@@ -28,11 +28,11 @@
         <div class="px-4 py-5 sm:px-6">
             <div class="flex items-center">
                 <div class="flex-shrink-0 h-24 w-24">
-                    {{if .employee.ProfileImage}}
-                    <img class="h-24 w-24 rounded-full" src="{{.employee.ProfileImage}}" alt="{{.employee.FirstName}} {{.employee.LastName}}">
+                    {{if .employee.ProfileImageData.Data}}
+                    <img class="h-24 w-24 rounded-full object-cover" src="/employees/{{.employee.ID.Hex}}/profile-image" alt="{{.employee.FirstName}} {{.employee.LastName}}">
                     {{else}}
                     <div class="h-24 w-24 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-2xl font-semibold">
-                        {{ getInitials .Name }}
+                        {{ getInitials (printf "%s %s" .employee.FirstName .employee.LastName) }}
                     </div>
                     {{end}}
                 </div>
