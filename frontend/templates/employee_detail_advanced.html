@@ -1279,8 +1279,8 @@
                     <div class="space-y-4">
                         <div class="text-center mb-4">
                             <div class="mb-4">
-                                {{if .employee.ProfileImage}}
-                                <img id="profileImagePreview" src="{{.employee.ProfileImage}}" alt="{{.employee.FirstName}} {{.employee.LastName}}" class="h-32 w-32 rounded-full mx-auto object-cover">
+                                {{if .employee.ProfileImageData.Data}}
+                                <img id="profileImagePreview" src="/employees/{{.employee.ID.Hex}}/profile-image" alt="{{.employee.FirstName}} {{.employee.LastName}}" class="h-32 w-32 rounded-full mx-auto object-cover">
                                 {{else}}
                                 <div id="profileImagePreview" class="h-32 w-32 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-3xl font-semibold mx-auto">
                                     {{slice .employee.FirstName 0 1}}{{slice .employee.LastName 0 1}}
@@ -1291,12 +1291,12 @@
                         <div>
                             <label for="profileImage" class="block text-sm font-medium text-gray-700">Profilbild auswählen</label>
                             <input type="file" name="profileImage" id="profileImage" accept="image/*" required class="mt-1 block w-full text-sm text-gray-500
-                            file:mr-4 file:py-2 file:px-4
-                            file:rounded-md file:border-0
-                            file:text-sm file:font-medium
-                            file:bg-green-50 file:text-green-700
-                            hover:file:bg-green-100
-                        " onchange="previewImage(this)">
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-md file:border-0
+                        file:text-sm file:font-medium
+                        file:bg-green-50 file:text-green-700
+                        hover:file:bg-green-100
+                    " onchange="previewImage(this)">
                             <p class="mt-1 text-sm text-gray-500">JPG, PNG oder GIF. Maximal 2MB.</p>
                         </div>
                     </div>
