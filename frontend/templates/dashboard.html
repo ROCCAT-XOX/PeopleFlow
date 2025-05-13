@@ -1,10 +1,11 @@
 {{ template "head" . }}
-<body class="bg-gray-50 min-h-screen flex flex-col">
-<!-- Navigation -->
+<body class="h-full bg-gray-50">
+<!-- Navigation einfügen -->
 {{ template "navigation" . }}
 
-<!-- Main Content -->
-<main class="container mx-auto px-4 py-6 flex-grow">
+<!-- Hauptinhalt -->
+<main class="py-10">
+  <div class="px-4 sm:px-6 lg:px-8">
   {{if eq .userRole "user"}}
   <!-- Eingeschränktes Dashboard für einfache Benutzer -->
   <div class="bg-white shadow rounded-lg p-6 mb-6">
@@ -293,6 +294,34 @@
 
 <!-- Footer -->
 {{ template "footer" . }}
+<script>
+  // JavaScript für die Navigation
+  document.getElementById('open-sidebar-button').addEventListener('click', function() {
+    document.getElementById('mobile-menu').style.display = 'block';
+  });
+
+  document.getElementById('close-sidebar-button').addEventListener('click', function() {
+    document.getElementById('mobile-menu').style.display = 'none';
+  });
+
+  // Benutzermenü-Dropdown
+  const userMenuButton = document.getElementById('user-menu-button');
+  const userMenuDropdown = document.getElementById('user-menu-dropdown');
+
+  userMenuButton.addEventListener('click', function() {
+    userMenuDropdown.classList.toggle('hidden');
+    const expanded = this.getAttribute('aria-expanded') === 'true';
+    this.setAttribute('aria-expanded', !expanded);
+  });
+
+  // Schließe Benutzermenü, wenn außerhalb geklickt wird
+  document.addEventListener('click', function(event) {
+    if (!userMenuButton.contains(event.target) && !userMenuDropdown.contains(event.target)) {
+      userMenuDropdown.classList.add('hidden');
+      userMenuButton.setAttribute('aria-expanded', 'false');
+    }
+  });
+</script>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
