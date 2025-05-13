@@ -225,6 +225,8 @@ func InitializeRoutes(router *gin.Engine) {
 			// Formatieren der monatlichen Personalkosten
 			formattedLaborCosts := fmt.Sprintf("%.2f", monthlyLaborCosts)
 
+			currentDate := time.Now().Format("Monday, 02. January 2006")
+
 			// Daten an das Template übergeben
 			c.HTML(http.StatusOK, "dashboard.html", gin.H{
 				"title":                   "Dashboard",
@@ -233,6 +235,7 @@ func InitializeRoutes(router *gin.Engine) {
 				"email":                   userModel.Email,
 				"userRole":                userRole, // Hier wird die userRole mitgegeben
 				"year":                    time.Now().Year(),
+				"currentDate":             currentDate,
 				"totalEmployees":          totalEmployees,
 				"monthlyLaborCosts":       formattedLaborCosts,
 				"upcomingReviews":         len(upcomingReviewsList),

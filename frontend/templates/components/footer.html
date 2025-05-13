@@ -1,4 +1,32 @@
 {{ define "footer" }}
+<script>
+    // JavaScript für die Navigation
+    document.getElementById('open-sidebar-button').addEventListener('click', function() {
+        document.getElementById('mobile-menu').style.display = 'block';
+    });
+
+    document.getElementById('close-sidebar-button').addEventListener('click', function() {
+        document.getElementById('mobile-menu').style.display = 'none';
+    });
+
+    // Benutzermenü-Dropdown
+    const userMenuButton = document.getElementById('user-menu-button');
+    const userMenuDropdown = document.getElementById('user-menu-dropdown');
+
+    userMenuButton.addEventListener('click', function() {
+        userMenuDropdown.classList.toggle('hidden');
+        const expanded = this.getAttribute('aria-expanded') === 'true';
+        this.setAttribute('aria-expanded', !expanded);
+    });
+
+    // Schließe Benutzermenü, wenn außerhalb geklickt wird
+    document.addEventListener('click', function(event) {
+        if (!userMenuButton.contains(event.target) && !userMenuDropdown.contains(event.target)) {
+            userMenuDropdown.classList.add('hidden');
+            userMenuButton.setAttribute('aria-expanded', 'false');
+        }
+    });
+</script>
 <footer class="bg-white py-4 mt-auto border-t border-gray-200">
     <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
         <p>&copy; {{ .year }} PeopleFlow - HR Management System</p>
