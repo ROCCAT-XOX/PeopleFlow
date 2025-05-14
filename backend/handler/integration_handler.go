@@ -4,6 +4,7 @@ package handler
 import (
 	"PeopleFlow/backend/model"
 	"PeopleFlow/backend/service"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -99,5 +100,64 @@ func (h *IntegrationHandler) GetIntegrationSettings(c *gin.Context) {
 		"year":                time.Now().Year(),
 		"userRole":            userRole,
 		"timebutlerConnected": timebutlerConnected,
+	})
+}
+
+// SyncTimebutlerUsers synchronisiert Timebutler-Benutzer mit PeopleFlow-Mitarbeitern
+func (h *IntegrationHandler) SyncTimebutlerUsers(c *gin.Context) {
+	// Prüfen, ob Timebutler verbunden ist
+	if !h.timebutlerService.IsConnected() {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "Timebutler ist nicht verbunden",
+		})
+		return
+	}
+
+	// Synchronisierung durchführen
+	updatedCount, err := h.timebutlerService.SyncTimebutlerUsers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Fehler bei der Synchronisierung: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":      true,
+		"message":      fmt.Sprintf("%d Mitarbeiter wurden synchronisiert", updatedCount),
+		"updatedCount": updatedCount,
+	})
+}
+
+// SyncTimebutlerAbsences synchronisiert Timebutler-Abwesenheiten mit PeopleFlow-Mitarbeitern
+func (h *IntegrationHandler) SyncTimebutlerAbsences(c *gin.Context) {
+	// Prüfen, ob Timebutler verbunden ist
+	if !h.timebutlerService.IsConnected() {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "Timebutler ist nicht verbunden",
+		})
+		return
+	}
+
+	// Jahr aus der Anfrage holen oder aktuelles Jahr verwenden
+	year := c.DefaultQuery("year", fmt.Sprintf("%d", time.Now().Year()))
+
+	// Synchronisierung durchführen
+	updatedCount, err := h.timebutlerService.SyncTimebutlerAbsences(year)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Fehler bei der Synchronisierung: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":      true,
+		"message":      fmt.Sprintf("%d Mitarbeiter mit Abwesenheiten wurden synchronisiert", updatedCount),
+		"updatedCount": updatedCount,
 	})
 }

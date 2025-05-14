@@ -322,6 +322,9 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.POST("/api/integrations/timebutler/save", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.SaveTimebutlerApiKey)
 		authorized.GET("/api/integrations/status", integrationHandler.GetIntegrationStatus)
 		authorized.GET("/api/integrations/timebutler/test", integrationHandler.TestTimebutlerConnection)
+		// API-Endpunkte für die Synchronisierung hinzufügen
+		authorized.POST("/api/integrations/timebutler/sync/users", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncTimebutlerUsers)
+		authorized.POST("/api/integrations/timebutler/sync/absences", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncTimebutlerAbsences)
 
 		// Optionale API-Endpoints für AJAX-Anfragen
 		api := router.Group("/api")
