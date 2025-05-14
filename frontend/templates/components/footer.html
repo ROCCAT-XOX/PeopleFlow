@@ -48,26 +48,15 @@
                     text.style.display = 'none';
                 });
 
-                // Toggle-Button anpassen
-                if (toggleButton) {
-                    toggleButton.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L14.586 10l-4.293-4.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                        </svg>
-                    `;
-                }
-
-                // Expand-Button in der oberen Leiste anzeigen
-                if (expandButton) {
-                    expandButton.classList.remove('hidden');
-                    expandButton.classList.add('lg:block');
-                }
+                // Toggle-Button-Icons umschalten
+                document.getElementById('collapse-icon').classList.add('hidden');
+                document.getElementById('expand-icon').classList.remove('hidden');
 
                 localStorage.setItem('sidebarCollapsed', 'true');
             }
         }
 
-        // Funktion zum Ausklappen der Sidebar
+// Funktion zum Ausklappen der Sidebar
         function expandSidebar() {
             if (sidebar && mainContent) {
                 sidebar.style.width = '16rem';
@@ -82,20 +71,9 @@
                     text.style.display = 'inline';
                 });
 
-                // Toggle-Button anpassen
-                if (toggleButton) {
-                    toggleButton.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M15.707 15.707a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414l5-5a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
-                        </svg>
-                    `;
-                }
-
-                // Expand-Button in der oberen Leiste ausblenden
-                if (expandButton) {
-                    expandButton.classList.add('hidden');
-                    expandButton.classList.remove('lg:block');
-                }
+                // Toggle-Button-Icons umschalten
+                document.getElementById('expand-icon').classList.add('hidden');
+                document.getElementById('collapse-icon').classList.remove('hidden');
 
                 localStorage.setItem('sidebarCollapsed', 'false');
             }
