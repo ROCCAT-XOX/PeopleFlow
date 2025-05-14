@@ -48,12 +48,22 @@
             </button>
             {{ end }}
 
-            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="appearance">
-                Erscheinungsbild
+            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="integrations">
+                Integrationen
             </button>
 
-            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="notifications">
+            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400 flex items-center cursor-not-allowed" data-tab="appearance">
+                Erscheinungsbild
+                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                Coming Soon
+            </span>
+            </button>
+
+            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400 flex items-center cursor-not-allowed" data-tab="notifications">
                 Benachrichtigungen
+                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                Coming Soon
+            </span>
             </button>
         </nav>
     </div>
@@ -194,6 +204,216 @@
         </div>
     </div>
     {{ end }}
+
+    <!-- Integrations Tab Content -->
+    <div id="integrations-tab" class="tab-content hidden">
+        <div class="bg-white shadow sm:rounded-lg mb-6">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Aktive Integrationen</h3>
+                <div class="mt-2 max-w-xl text-sm text-gray-500">
+                    <p>Verbinden Sie PeopleFlow mit anderen Anwendungen und Services, um Ihre Workflows zu verbessern.</p>
+                </div>
+
+                <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <!-- Timebutler Integration -->
+                    <div class="relative rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                        <div class="flex items-center mb-4">
+                            <div class="flex-shrink-0">
+                                <img src="/static/images/integrations/timebutler-logo.png" alt="Timebutler" class="h-12 w-12 object-contain rounded">
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-medium text-gray-900">Timebutler</h3>
+                                <p class="text-sm text-gray-500">Zeiterfassung und Projektmanagement</p>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <label for="timebutler-api" class="block text-sm font-medium text-gray-700">API-Schlüssel</label>
+                            <div class="mt-1 flex rounded-md shadow-sm">
+                                <input type="text" name="timebutler-api" id="timebutler-api" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="Timebutler API-Schlüssel eingeben">
+                                <button type="button" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                    Speichern
+                                </button>
+                            </div>
+                            <p class="mt-2 text-xs text-gray-500">Den API-Schlüssel finden Sie in Ihren Timebutler-Kontoeinstellungen.</p>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            Nicht verbunden
+                        </span>
+                            <button type="button" class="text-sm text-red-600 hover:text-red-900" disabled>
+                                Entfernen
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- AWork Integration -->
+                    <div class="relative rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                        <div class="flex items-center mb-4">
+                            <div class="flex-shrink-0">
+                                <img src="/static/images/integrations/awork-logo.png" alt="AWork" class="h-12 w-12 object-contain rounded">
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-medium text-gray-900">AWork</h3>
+                                <p class="text-sm text-gray-500">Projektmanagement und Teamkoordination</p>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <label for="awork-api" class="block text-sm font-medium text-gray-700">API-Schlüssel</label>
+                            <div class="mt-1 flex rounded-md shadow-sm">
+                                <input type="text" name="awork-api" id="awork-api" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" placeholder="AWork API-Schlüssel eingeben">
+                                <button type="button" class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                    Speichern
+                                </button>
+                            </div>
+                            <p class="mt-2 text-xs text-gray-500">Den API-Schlüssel finden Sie in Ihren AWork-Entwicklereinstellungen.</p>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            Nicht verbunden
+                        </span>
+                            <button type="button" class="text-sm text-red-600 hover:text-red-900" disabled>
+                                Entfernen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kommende Integrationen -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Kommende Integrationen</h3>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    Coming Soon
+                </span>
+                </div>
+                <div class="mt-2 max-w-xl text-sm text-gray-500">
+                    <p>Diese Integrationen sind in Entwicklung und werden bald verfügbar sein.</p>
+                </div>
+
+                <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    <!-- ChatGPT Integration -->
+                    <div class="relative rounded-lg border border-gray-200 bg-gray-50 p-4 opacity-75">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <img src="/static/images/integrations/chatgpt-logo.png" alt="ChatGPT" class="h-10 w-10 object-contain">
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-md font-medium text-gray-900">ChatGPT</h3>
+                                <p class="text-xs text-gray-500">KI-gestützte Unterstützung für HR-Aufgaben</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gemini Integration -->
+                    <div class="relative rounded-lg border border-gray-200 bg-gray-50 p-4 opacity-75">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <img src="/static/images/integrations/gemini-logo.png" alt="Gemini" class="h-10 w-10 object-contain">
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-md font-medium text-gray-900">Gemini</h3>
+                                <p class="text-xs text-gray-500">KI für Mitarbeiterentwicklung und -analyse</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grok Integration -->
+                    <div class="relative rounded-lg border border-gray-200 bg-gray-50 p-4 opacity-75">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <img src="/static/images/integrations/grok-logo.png" alt="Grok" class="h-10 w-10 object-contain">
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-md font-medium text-gray-900">Grok</h3>
+                                <p class="text-xs text-gray-500">Innovative KI-Lösungen für HR-Prozesse</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 123erfasst Integration -->
+                    <div class="relative rounded-lg border border-gray-200 bg-gray-50 p-4 opacity-75">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <img src="/static/images/integrations/123erfasst-logo.webp" alt="123erfasst" class="h-10 w-10 object-contain rounded">
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-md font-medium text-gray-900">123erfasst</h3>
+                                <p class="text-xs text-gray-500">Digitale Zeiterfassung und Baustellendokumentation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interessiert an weiteren Integrationen -->
+                <div class="mt-6 bg-gray-50 p-4 rounded-md border border-gray-200">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3 flex-1 md:flex md:justify-between">
+                            <p class="text-sm text-gray-700">Sie vermissen eine Integration? Teilen Sie uns mit, welche Dienste Sie gerne anbinden würden.</p>
+                            <p class="mt-3 text-sm md:mt-0 md:ml-6">
+                                <button type="button" class="whitespace-nowrap font-medium text-green-600 hover:text-green-500">Integration vorschlagen <span aria-hidden="true">&rarr;</span></button>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Allgemeine Integrations-Einstellungen bleiben unverändert -->
+        <div class="mt-6 bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Einstellungen für Integrationen</h3>
+                <div class="mt-2 max-w-xl text-sm text-gray-500">
+                    <p>Konfigurieren Sie, wie Integrationen mit PeopleFlow interagieren dürfen.</p>
+                </div>
+
+                <div class="mt-5 space-y-6">
+                    <div class="relative flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="auto-sync" name="auto-sync" type="checkbox" class="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300 rounded" checked>
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="auto-sync" class="font-medium text-gray-700">Automatische Synchronisierung</label>
+                            <p class="text-gray-500">Daten automatisch zwischen PeopleFlow und verbundenen Diensten synchronisieren.</p>
+                        </div>
+                    </div>
+
+                    <div class="relative flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="notify-changes" name="notify-changes" type="checkbox" class="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300 rounded" checked>
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="notify-changes" class="font-medium text-gray-700">Benachrichtigungen bei Änderungen</label>
+                            <p class="text-gray-500">Bei Änderungen durch Integrationen benachrichtigt werden.</p>
+                        </div>
+                    </div>
+
+                    <div class="relative flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="data-sharing" name="data-sharing" type="checkbox" class="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300 rounded">
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="data-sharing" class="font-medium text-gray-700">Erweiterter Datenaustausch</label>
+                            <p class="text-gray-500">Erweiterte Mitarbeiterdaten mit Integrationen teilen (für verbesserte Analysen).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <button type="button" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        Einstellungen speichern
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- 3. Appearance Settings -->
     <div id="appearance-tab" class="tab-content hidden">
@@ -495,19 +715,26 @@
 {{ template "footer" . }}
 
 <script>
-    // Tab-Wechsel Funktionalität
+    // Tab-Wechsel Funktionalität - angepasst für ausgegraute Tabs
     document.addEventListener('DOMContentLoaded', function() {
         const tabBtns = document.querySelectorAll('.tab-btn');
         const tabContents = document.querySelectorAll('.tab-content');
 
         tabBtns.forEach(btn => {
             btn.addEventListener('click', function() {
+                // Prüfen, ob der Tab deaktiviert ist (durch cursor-not-allowed Klasse)
+                if (this.classList.contains('cursor-not-allowed')) {
+                    return; // Wenn deaktiviert, keine Aktion ausführen
+                }
+
                 const tab = this.getAttribute('data-tab');
 
                 // Aktiven Button-Zustand ändern
                 tabBtns.forEach(button => {
-                    button.classList.remove('border-green-500', 'text-green-600');
-                    button.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                    if (!button.classList.contains('cursor-not-allowed')) {
+                        button.classList.remove('border-green-500', 'text-green-600');
+                        button.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                    }
                 });
 
                 this.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
