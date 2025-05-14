@@ -1,0 +1,176 @@
+<!-- frontend/templates/calender.html -->
+{{ template "head" . }}
+<body class="bg-gray-50 min-h-screen flex flex-col">
+<!-- Navigation -->
+{{ template "navigation" . }}
+
+<!-- Main Content -->
+<main class="container mx-auto px-4 py-6 flex-grow">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Abwesenheitskalender</h1>
+        <p class="mt-1 text-sm text-gray-500">Übersicht aller Mitarbeiterabwesenheiten und Urlaubstage.</p>
+    </div>
+
+    <!-- Kalender Steuerung -->
+    <div class="flex justify-between items-center mb-6">
+        <div class="flex space-x-2">
+            <a href="/calendar?year={{.prevMonth.Year}}&month={{printf "%02d" .prevMonth.Month}}" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            <svg class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Vorheriger Monat
+            </a>
+            <span class="inline-flex items-center px-4 py-2 text-lg font-semibold">
+                {{.currentMonthName}} {{.currentYear}}
+            </span>
+            <a href="/calendar?year={{.nextMonth.Year}}&month={{printf "%02d" .nextMonth.Month}}" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            Nächster Monat
+            <svg class="h-5 w-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            </a>
+        </div>
+        <a href="/calendar?year={{.today.Year}}&month={{printf "%02d" .today.Month}}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+        <svg class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        Heute
+        </a>
+    </div>
+
+    <!-- Kalenderansicht -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <!-- Wochentage -->
+        <div class="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
+            <div class="py-2 text-sm font-semibold text-center border-r border-gray-200">Mo</div>
+            <div class="py-2 text-sm font-semibold text-center border-r border-gray-200">Di</div>
+            <div class="py-2 text-sm font-semibold text-center border-r border-gray-200">Mi</div>
+            <div class="py-2 text-sm font-semibold text-center border-r border-gray-200">Do</div>
+            <div class="py-2 text-sm font-semibold text-center border-r border-gray-200">Fr</div>
+            <div class="py-2 text-sm font-semibold text-center border-r border-gray-200">Sa</div>
+            <div class="py-2 text-sm font-semibold text-center">So</div>
+        </div>
+
+        <!-- Kalenderwochen -->
+        {{ range $weekIndex, $week := .calendarWeeks }}
+        <div class="grid grid-cols-7 {{ if lt $weekIndex (len $.calendarWeeks | subtract 1) }}border-b border-gray-200{{ end }}">
+            {{ range $dayIndex, $day := $week }}
+            <div class="min-h-[120px] p-2 border-r border-gray-200 {{ if eq $dayIndex 6 }}border-r-0{{ end }} {{ if ne (printf "%d" $day.Month) (printf "%d" $.currentMonth) }}bg-gray-50{{ end }}">
+                <!-- Datum -->
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-sm font-medium {{ if eq $day.Day $.today.Day }}{{ if eq $day.Month $.today.Month }}{{ if eq $day.Year $.today.Year }}bg-green-100 text-green-800 rounded-full w-6 h-6 flex items-center justify-center{{ end }}{{ end }}{{ end }} {{ if ne $day.Month $.currentMonth.Month }}text-gray-400{{ end }}">
+                        {{ $day.Day }}
+                    </span>
+                    <!-- KW anzeigen (nur am Anfang der Woche) -->
+                    {{ if eq $dayIndex 0 }}
+                    <span class="text-xs text-gray-500">KW {{ isoWeek $day }}</span>
+                    {{ end }}
+                </div>
+
+                <!-- Abwesenheiten für diesen Tag -->
+                <div class="space-y-1">
+                    {{ range $absence := $.absences }}
+                    {{ if and (le $absence.StartDate.Unix $day.Unix) (ge $absence.EndDate.Unix $day.Unix) }}
+                    {{ if eq $absence.Status "approved" }}
+                    <div class="text-xs truncate rounded px-1.5 py-0.5 {{ $absence.TypeColor }} text-white" title="{{ $absence.EmployeeName }}: {{ $absence.TypeDisplay }} ({{ $absence.Days }} Tage)">
+                        {{ $absence.EmployeeName }}
+                    </div>
+                    {{ end }}
+                    {{ end }}
+                    {{ end }}
+                </div>
+            </div>
+            {{ end }}
+        </div>
+        {{ end }}
+    </div>
+
+    <!-- Abwesenheitsliste -->
+    <div class="mt-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Kommende Abwesenheiten</h2>
+
+        <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <ul role="list" class="divide-y divide-gray-200">
+                {{ $now := .today }}
+                {{ $count := 0 }}
+                {{ range $absence := .absences }}
+                {{ if ge $absence.EndDate.Unix $now.Unix }}
+                {{ if lt $count 10 }}
+                {{ $count = add $count 1 }}
+                <li>
+                    <div class="px-4 py-4 sm:px-6">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-2 h-2 rounded-full {{ $absence.TypeColor }} mr-2"></div>
+                                <p class="text-sm font-medium text-green-600 truncate">{{ $absence.EmployeeName }}</p>
+                            </div>
+                            <div class="ml-2 flex-shrink-0 flex">
+                                <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ if eq $absence.Status "approved" }}bg-green-100 text-green-800{{ else if eq $absence.Status "requested" }}bg-yellow-100 text-yellow-800{{ else if eq $absence.Status "rejected" }}bg-red-100 text-red-800{{ else }}bg-gray-100 text-gray-800{{ end }}">
+                                {{ $absence.StatusDisplay }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="mt-2 sm:flex sm:justify-between">
+                            <div class="sm:flex">
+                                <p class="flex items-center text-sm text-gray-500">
+                                    <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                                    </svg>
+                                    {{ $absence.TypeDisplay }}
+                                </p>
+                            </div>
+                            <div class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                                <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                                </svg>
+                                <p>
+                                    {{ $absence.StartDate.Format "02.01.2006" }} - {{ $absence.EndDate.Format "02.01.2006" }}
+                                    <span class="font-medium">({{ $absence.Days }} Tage)</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+                {{ end }}
+                {{ end }}
+                {{ end }}
+                {{ if eq $count 0 }}
+                <li class="px-4 py-6 text-center text-gray-500">
+                    Keine kommenden Abwesenheiten gefunden.
+                </li>
+                {{ end }}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Legende -->
+    <div class="mt-6">
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Legende:</h3>
+        <div class="flex space-x-4">
+            <div class="flex items-center">
+                <div class="w-3 h-3 bg-green-500 rounded-full mr-1"></div>
+                <span class="text-sm text-gray-600">Urlaub</span>
+            </div>
+            <div class="flex items-center">
+                <div class="w-3 h-3 bg-red-500 rounded-full mr-1"></div>
+                <span class="text-sm text-gray-600">Krankheit</span>
+            </div>
+            <div class="flex items-center">
+                <div class="w-3 h-3 bg-blue-500 rounded-full mr-1"></div>
+                <span class="text-sm text-gray-600">Sonderurlaub</span>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Footer -->
+{{ template "footer" . }}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // JavaScript für Tooltip-Funktionalität oder andere dynamische Funktionen
+        // könnte hier hinzugefügt werden
+    });
+</script>
+</body>
+</html>

@@ -99,6 +99,11 @@ func TemplateHelpers() template.FuncMap {
 		"now": func() time.Time {
 			return time.Now()
 		},
+		"isoWeek": func(t time.Time) int {
+			_, week := t.ISOWeek()
+			return week
+		},
+
 		"getInitials": GetInitials, // Neue Hilfsfunktion hinzugefügt
 	}
 }
