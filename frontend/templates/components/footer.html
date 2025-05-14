@@ -1,6 +1,5 @@
 {{ define "footer" }}
 <script>
-    // Füge diesen Code in footer.html ein, direkt nach dem öffnenden <script> Tag
     // JavaScript für die Navigation
     document.addEventListener('DOMContentLoaded', function() {
         // Mobile Navigation
@@ -25,7 +24,8 @@
         const mainContent = document.getElementById('main-content');
         const toggleButton = document.getElementById('toggle-sidebar');
         const expandButton = document.getElementById('expand-sidebar-button');
-        const sidebarTitle = document.getElementById('sidebar-title');
+        const sidebarLogoFull = document.getElementById('sidebar-logo-full');
+        const sidebarLogoIcon = document.getElementById('sidebar-logo-icon');
         const menuTexts = document.querySelectorAll('.menu-text');
 
         // Initialer Zustand der Sidebar
@@ -33,36 +33,34 @@
             sidebar.style.display = 'flex';
         }
 
-        // Speichern des Sidebar-Status im localStorage
-        const savedSidebarState = localStorage.getItem('sidebarCollapsed');
-        const isCollapsed = savedSidebarState === 'true';
-
         // Funktion zum Einklappen der Sidebar
         function collapseSidebar() {
             if (sidebar && mainContent) {
                 sidebar.style.width = '5rem';
                 mainContent.style.paddingLeft = '5rem';
 
-                // Sidebar-Elemente anpassen
-                if (sidebarTitle) sidebarTitle.style.display = 'none';
+                // Logos umschalten
+                if (sidebarLogoFull) sidebarLogoFull.classList.add('hidden');
+                if (sidebarLogoIcon) sidebarLogoIcon.classList.remove('hidden');
 
                 // Text in Menüpunkten ausblenden
                 menuTexts.forEach(text => {
                     text.style.display = 'none';
                 });
 
-                // Toggle-Button anpassen (Button zum Ausklappen)
+                // Toggle-Button anpassen
                 if (toggleButton) {
                     toggleButton.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L14.586 10l-4.293-4.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                    </svg>
-                `;
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L14.586 10l-4.293-4.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    `;
                 }
 
                 // Expand-Button in der oberen Leiste anzeigen
                 if (expandButton) {
-                    expandButton.style.display = 'block';
+                    expandButton.classList.remove('hidden');
+                    expandButton.classList.add('lg:block');
                 }
 
                 localStorage.setItem('sidebarCollapsed', 'true');
@@ -75,31 +73,37 @@
                 sidebar.style.width = '16rem';
                 mainContent.style.paddingLeft = '16rem';
 
-                // Sidebar-Elemente anpassen
-                if (sidebarTitle) sidebarTitle.style.display = 'block';
+                // Logos umschalten
+                if (sidebarLogoIcon) sidebarLogoIcon.classList.add('hidden');
+                if (sidebarLogoFull) sidebarLogoFull.classList.remove('hidden');
 
                 // Text in Menüpunkten anzeigen
                 menuTexts.forEach(text => {
                     text.style.display = 'inline';
                 });
 
-                // Toggle-Button anpassen (Button zum Einklappen)
+                // Toggle-Button anpassen
                 if (toggleButton) {
                     toggleButton.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M15.707 15.707a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414l5-5a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
-                    </svg>
-                `;
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M15.707 15.707a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414l5-5a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                        </svg>
+                    `;
                 }
 
                 // Expand-Button in der oberen Leiste ausblenden
                 if (expandButton) {
-                    expandButton.style.display = 'none';
+                    expandButton.classList.add('hidden');
+                    expandButton.classList.remove('lg:block');
                 }
 
                 localStorage.setItem('sidebarCollapsed', 'false');
             }
         }
+
+        // Speichern des Sidebar-Status im localStorage
+        const savedSidebarState = localStorage.getItem('sidebarCollapsed');
+        const isCollapsed = savedSidebarState === 'true';
 
         // Initialen Zustand setzen
         if (isCollapsed) {
@@ -123,6 +127,162 @@
         if (expandButton) {
             expandButton.addEventListener('click', function() {
                 expandSidebar();
+            });
+        }
+
+        // Tab-Wechsel Funktionalität (falls vorhanden)
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        if (tabBtns.length > 0 && tabContents.length > 0) {
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const tab = this.getAttribute('data-tab');
+
+                    // Aktiven Button-Zustand ändern
+                    tabBtns.forEach(button => {
+                        button.classList.remove('border-green-500', 'text-green-600');
+                        button.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                    });
+
+                    this.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                    this.classList.add('border-green-500', 'text-green-600');
+
+                    // Tab-Inhalte ein-/ausblenden
+                    tabContents.forEach(content => {
+                        content.classList.add('hidden');
+                    });
+
+                    document.getElementById(tab + '-tab').classList.remove('hidden');
+                });
+            });
+        }
+
+        // Suchfunktion für Tabellen (falls vorhanden)
+        const searchInput = document.getElementById('searchInput');
+        const userItems = document.querySelectorAll('.user-item');
+
+        if (searchInput && userItems.length > 0) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+
+                userItems.forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        // Modal-Funktionen (falls vorhanden)
+        window.openModal = function(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+            }
+        }
+
+        window.closeModal = function(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            }
+        }
+
+        // Benutzer bearbeiten Funktion (falls vorhanden)
+        window.openEditUserModal = function(id, firstName, lastName, email, role, status) {
+            // Formular-Aktion aktualisieren
+            const form = document.getElementById('editUserForm');
+            if (form) {
+                form.action = '/users/edit/' + id;
+
+                // Formularfelder vorausfüllen
+                document.getElementById('edit-user-id').value = id;
+                document.getElementById('edit-firstName').value = firstName;
+                document.getElementById('edit-lastName').value = lastName;
+                document.getElementById('edit-email').value = email;
+                document.getElementById('edit-role').value = role;
+                document.getElementById('edit-status').value = status;
+
+                // Modal öffnen
+                openModal('editUserModal');
+            }
+        }
+
+        // Benutzer löschen Funktion (falls vorhanden)
+        window.confirmDeleteUser = function(id, name) {
+            const messageElem = document.getElementById('delete-user-message');
+            if (messageElem) {
+                // Lösch-Message personalisieren
+                messageElem.textContent = `Sind Sie sicher, dass Sie den Benutzer "${name}" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.`;
+            }
+
+            // Bestätigungs-Button konfigurieren
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
+            if (confirmBtn) {
+                confirmBtn.onclick = function() {
+                    deleteUser(id);
+                };
+            }
+
+            // Modal öffnen
+            openModal('deleteUserModal');
+        }
+
+        // Benutzer löschen AJAX-Aufruf (falls verwendet)
+        window.deleteUser = function(id) {
+            fetch('/users/delete/' + id, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    closeModal('deleteUserModal');
+                    // URL zur Einstellungsseite aktualisieren
+                    window.location.href = '/settings?success=deleted';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+                });
+        }
+
+        // Event-Listener für Close-Buttons in Modals
+        const closeModalButtons = document.querySelectorAll('[data-close-modal]');
+        if (closeModalButtons.length > 0) {
+            closeModalButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const modalId = this.getAttribute('data-close-modal');
+                    closeModal(modalId);
+                });
+            });
+        }
+
+        // Passwort-Validierung (falls verwendet)
+        const passwordForm = document.querySelector('form[action="/users/change-password"]');
+        if (passwordForm) {
+            passwordForm.addEventListener('submit', function(e) {
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+
+                if (newPassword !== confirmPassword) {
+                    e.preventDefault();
+                    alert('Die Passwörter stimmen nicht überein.');
+                    return false;
+                }
+
+                if (newPassword.length < 6) {
+                    e.preventDefault();
+                    alert('Das Passwort muss mindestens 6 Zeichen lang sein.');
+                    return false;
+                }
             });
         }
     });
