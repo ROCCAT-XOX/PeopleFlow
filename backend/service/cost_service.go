@@ -66,7 +66,12 @@ func (s *CostService) CountEmployeesByDepartment(employees []*model.Employee) ([
 	// Zähle Mitarbeiter pro Abteilung
 	departmentCount := make(map[string]int)
 	for _, emp := range employees {
-		departmentCount[string(emp.Department)]++
+		deptName := string(emp.Department)
+		if deptName == "" {
+			// Wenn keine Abteilung definiert ist, verwende "Unbekannt"
+			deptName = "Unbekannt"
+		}
+		departmentCount[deptName]++
 	}
 
 	// Konvertiere in Listen für das Chart
@@ -94,10 +99,16 @@ func (s *CostService) CalculateCostsByDepartment(employees []*model.Employee) ([
 
 	for _, emp := range employees {
 		if emp.Status == model.EmployeeStatusActive || emp.Status == model.EmployeeStatusRemote || emp.Status == model.EmployeeStatusOnLeave {
-			dept := string(emp.Department)
+			// Abteilungsname mit Prüfung auf leeren Wert
+			deptName := string(emp.Department)
+			if deptName == "" {
+				// Wenn keine Abteilung definiert ist, verwende "Unbekannt"
+				deptName = "Unbekannt"
+			}
+
 			// Bruttolohn + AG-Anteil (21.5%)
 			totalCost := emp.Salary * 1.215
-			departmentCosts[dept] += totalCost
+			departmentCosts[deptName] += totalCost
 		}
 	}
 
