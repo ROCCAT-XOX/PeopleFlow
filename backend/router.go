@@ -258,7 +258,7 @@ func InitializeRoutes(router *gin.Engine) {
 		calendarHandler := handler.NewCalendarHandler()
 
 		// Hauptroute für den Kalender - innerhalb des authorized-Blocks
-		authorized.GET("/calendar", calendarHandler.GetAbsenceCalendar)
+		authorized.GET("/absence", calendarHandler.GetAbsenceCalendar)
 
 		// Benutzerprofilrouten
 		authorized.GET("/profile", userHandler.ShowUserProfile)

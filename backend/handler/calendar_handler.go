@@ -164,7 +164,7 @@ func (h *CalendarHandler) GetAbsenceCalendar(c *gin.Context) {
 	}
 
 	// Zusammenfassen aller Daten für die Anzeige
-	c.HTML(http.StatusOK, "calendar.html", gin.H{
+	c.HTML(http.StatusOK, "absence_calendar.html", gin.H{
 		"title":            "Abwesenheitskalender",
 		"active":           "calendar",
 		"user":             userModel.FirstName + " " + userModel.LastName,
