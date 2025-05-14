@@ -315,6 +315,14 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.PUT("/employees/:id/conversations/:conversationId", documentHandler.UpdateConversation)
 		authorized.GET("/upcoming-conversations", employeeHandler.ListUpcomingConversations)
 
+		// Integrations-Handler erstellen
+		integrationHandler := handler.NewIntegrationHandler()
+
+		// API-Endpunkte für Integrationen
+		authorized.POST("/api/integrations/timebutler/save", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.SaveTimebutlerApiKey)
+		authorized.GET("/api/integrations/status", integrationHandler.GetIntegrationStatus)
+		authorized.GET("/api/integrations/timebutler/test", integrationHandler.TestTimebutlerConnection)
+
 		// Optionale API-Endpoints für AJAX-Anfragen
 		api := router.Group("/api")
 		api.Use(middleware.AuthMiddleware())
