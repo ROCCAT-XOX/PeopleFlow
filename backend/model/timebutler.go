@@ -29,11 +29,21 @@ type TimebutlerUser struct {
 
 // TimebutlerAbsence repräsentiert eine Abwesenheit aus der Timebutler-API
 type TimebutlerAbsence struct {
-	UserID       string    `json:"userId"`
-	EmailAddress string    `json:"emailAddress"`
-	StartDate    time.Time `json:"startDate"`
-	EndDate      time.Time `json:"endDate"`
-	AbsenceType  string    `json:"absenceType"`
-	Status       string    `json:"status"`
-	Comment      string    `json:"comment"`
+	ID                 string    `json:"id"`
+	UserID             string    `json:"userId"`
+	StartDate          time.Time `json:"startDate"`
+	EndDate            time.Time `json:"endDate"`
+	IsHalfDay          bool      `json:"isHalfDay"`
+	IsMorning          bool      `json:"isMorning"`
+	EmployeeNumber     string    `json:"employeeNumber"`
+	AbsenceType        string    `json:"absenceType"`
+	IsExtraVacationDay bool      `json:"isExtraVacationDay"`
+	Status             string    `json:"status"`
+	SubstituteState    string    `json:"substituteState"`
+	Workdays           float64   `json:"workdays"`
+	Hours              float64   `json:"hours"`
+	MedicalCertificate string    `json:"medicalCertificate"`
+	Comment            string    `json:"comment"`
+	SubstituteUserID   string    `json:"substituteUserId"`
+	EmailAddress       string    `json:"emailAddress"`
 }

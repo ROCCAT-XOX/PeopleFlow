@@ -76,6 +76,9 @@ type Employee struct {
 
 	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
+
+	// Integration Timebutler
+	TimebutlerUserID string `bson:"timebutlerUserId,omitempty" json:"timebutlerUserId,omitempty"`
 }
 
 // Document repräsentiert ein Dokument oder eine Datei im System

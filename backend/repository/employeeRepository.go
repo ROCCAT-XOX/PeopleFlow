@@ -294,3 +294,17 @@ func (r *EmployeeRepository) CountByDepartment() (map[string]int, error) {
 
 	return result, nil
 }
+
+// FindByTimebutlerUserID findet einen Mitarbeiter anhand der Timebutler UserID
+func (r *EmployeeRepository) FindByTimebutlerUserID(timebutlerUserID string) (*model.Employee, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var employee model.Employee
+	err := r.collection.FindOne(ctx, bson.M{"timebutlerUserId": timebutlerUserID}).Decode(&employee)
+	if err != nil {
+		return nil, err
+	}
+
+	return &employee, nil
+}

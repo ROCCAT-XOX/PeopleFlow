@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -122,9 +123,14 @@ func (s *TimebutlerService) GetAbsences(year string) (string, error) {
 		return "", err
 	}
 
+	// URL für den API-Endpunkt für Abwesenheiten
 	url := "https://app.timebutler.com/api/v1/absences"
+
+	// Alle erforderlichen Parameter für die Timebutler API
 	method := "POST"
-	payload := strings.NewReader(fmt.Sprintf("auth=%s&year=%s", apiKey, year))
+	payload := strings.NewReader(fmt.Sprintf("auth=%s&year=%s&detailed=true", apiKey, year))
+
+	fmt.Printf("Requesting Timebutler absences for year: %s\n", year)
 
 	client := &http.Client{
 		Timeout: 10 * time.Second,
@@ -314,38 +320,58 @@ func (s *TimebutlerService) SyncTimebutlerUsers() (int, error) {
 
 	// Mitarbeiter durchgehen und mit Timebutler-Daten abgleichen
 	for _, employee := range employees {
+		// E-Mail in Kleinbuchstaben umwandeln
+		employeeEmail := strings.ToLower(employee.Email)
+
 		// Prüfen, ob ein Timebutler-Benutzer mit dieser E-Mail existiert
-		timebutlerUser, exists := timebutlerUsers[employee.Email]
-		if !exists {
+		// Wir suchen nach der E-Mail in lowercase
+		var matchedUser model.TimebutlerUser
+		found := false
+
+		for email, tbUser := range timebutlerUsers {
+			if strings.ToLower(email) == employeeEmail {
+				matchedUser = tbUser
+				found = true
+				break
+			}
+		}
+
+		if !found {
 			continue
 		}
 
 		// Flag, um zu prüfen, ob Änderungen vorgenommen wurden
 		updated := false
 
-		// Felder synchronisieren, die aus Timebutler kommen sollen
+		// Timebutler UserID hinzufügen oder aktualisieren
+		if employee.TimebutlerUserID != matchedUser.UserID {
+			employee.TimebutlerUserID = matchedUser.UserID
+			updated = true
+		}
+
+		// Weitere Felder synchronisieren, die aus Timebutler kommen sollen
 
 		// Telefon aktualisieren, wenn nicht gesetzt
-		if employee.Phone == "" && timebutlerUser.Phone != "" {
-			employee.Phone = timebutlerUser.Phone
+		if employee.Phone == "" && matchedUser.Phone != "" {
+			employee.Phone = matchedUser.Phone
 			updated = true
 		}
 
 		// Abteilung aktualisieren, wenn nicht gesetzt
-		if employee.Department == "" && timebutlerUser.Department != "" {
-			employee.Department = model.Department(timebutlerUser.Department)
+		if employee.Department == "" && matchedUser.Department != "" {
+			employee.Department = model.Department(matchedUser.Department)
 			updated = true
 		}
 
 		// Eintrittsdatum aktualisieren, wenn nicht gesetzt
-		if employee.HireDate.IsZero() && !timebutlerUser.DateOfEntry.IsZero() {
-			employee.HireDate = timebutlerUser.DateOfEntry
+		if employee.HireDate.IsZero() && !matchedUser.DateOfEntry.IsZero() {
+			employee.HireDate = matchedUser.DateOfEntry
 			updated = true
 		}
 
 		// Geburtsdatum aktualisieren, wenn nicht gesetzt
-		if employee.DateOfBirth.IsZero() && !timebutlerUser.DateOfBirth.IsZero() {
-			employee.DateOfBirth = timebutlerUser.DateOfBirth
+		if employee.DateOfBirth.IsZero() && !matchedUser.DateOfBirth.IsZero() {
+			employee.DateOfBirth = matchedUser.DateOfBirth
 			updated = true
 		}
 
@@ -437,12 +463,148 @@ func (s *TimebutlerService) GetTimebutlerAbsences(year string) (map[string][]mod
 	return absencesMap, nil
 }
 
+// ParseTimebutlerAbsences parst die CSV-Daten von Timebutler-Abwesenheiten
+func (s *TimebutlerService) ParseTimebutlerAbsences(data string) (map[string][]model.TimebutlerAbsence, error) {
+	// Ergebnis-Map initialisieren (UserID als Schlüssel)
+	absencesMap := make(map[string][]model.TimebutlerAbsence)
+
+	// CSV-Daten parsen
+	scanner := bufio.NewScanner(strings.NewReader(data))
+	isFirstLine := true
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Header-Zeile überspringen
+		if isFirstLine {
+			isFirstLine = false
+			continue
+		}
+
+		// Leere Zeilen überspringen
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+
+		// Zeile nach Semikolon aufteilen
+		fields := strings.Split(line, ";")
+
+		// Prüfen, ob genügend Felder vorhanden sind
+		if len(fields) < 15 {
+			fmt.Printf("Skipping line with insufficient fields: %s\n", line)
+			continue
+		}
+
+		// Felder extrahieren (basierend auf der bereitgestellten Struktur)
+		absenceID := strings.TrimSpace(fields[0])
+		startDateStr := strings.TrimSpace(fields[1])
+		endDateStr := strings.TrimSpace(fields[2])
+		isHalfDayStr := strings.TrimSpace(fields[3])
+		isMorningStr := strings.TrimSpace(fields[4])
+		userID := strings.TrimSpace(fields[5])
+		employeeNumber := strings.TrimSpace(fields[6])
+		absenceType := strings.TrimSpace(fields[7])
+		isExtraVacationDayStr := strings.TrimSpace(fields[8])
+		status := strings.TrimSpace(fields[9])
+		substituteState := strings.TrimSpace(fields[10])
+		workdaysStr := strings.TrimSpace(fields[11])
+		hoursStr := strings.TrimSpace(fields[12])
+		medicalCertificate := strings.TrimSpace(fields[13])
+		comment := strings.TrimSpace(fields[14])
+		substituteUserID := ""
+		if len(fields) > 15 {
+			substituteUserID = strings.TrimSpace(fields[15])
+		}
+
+		// UserID muss vorhanden sein
+		if userID == "" {
+			fmt.Printf("Skipping line with empty UserID: %s\n", line)
+			continue
+		}
+
+		// Datum parsen
+		startDate := parseTimebutlerDate(startDateStr)
+		endDate := parseTimebutlerDate(endDateStr)
+
+		// Wenn Datum nicht geparst werden konnte, überspringen
+		if startDate.IsZero() || endDate.IsZero() {
+			fmt.Printf("Skipping line with invalid dates: %s\n", line)
+			continue
+		}
+
+		// Boolean-Werte parsen
+		isHalfDay := strings.ToLower(isHalfDayStr) == "true"
+		isMorning := strings.ToLower(isMorningStr) == "true"
+		isExtraVacationDay := strings.ToLower(isExtraVacationDayStr) == "true"
+
+		// Numerische Werte parsen
+		workdays := 0.0
+		if workdaysStr != "" {
+			workdays, _ = strconv.ParseFloat(workdaysStr, 64)
+		}
+
+		hours := 0.0
+		if hoursStr != "" {
+			hours, _ = strconv.ParseFloat(hoursStr, 64)
+		}
+
+		// TimebutlerAbsence erstellen
+		absence := model.TimebutlerAbsence{
+			ID:                 absenceID,
+			UserID:             userID,
+			StartDate:          startDate,
+			EndDate:            endDate,
+			IsHalfDay:          isHalfDay,
+			IsMorning:          isMorning,
+			EmployeeNumber:     employeeNumber,
+			AbsenceType:        absenceType,
+			IsExtraVacationDay: isExtraVacationDay,
+			Status:             status,
+			SubstituteState:    substituteState,
+			Workdays:           workdays,
+			Hours:              hours,
+			MedicalCertificate: medicalCertificate,
+			Comment:            comment,
+			SubstituteUserID:   substituteUserID,
+		}
+
+		// Zur Map hinzufügen
+		absencesMap[userID] = append(absencesMap[userID], absence)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return absencesMap, nil
+}
+
 // SyncTimebutlerAbsences synchronisiert Timebutler-Abwesenheiten mit PeopleFlow-Mitarbeitern
 func (s *TimebutlerService) SyncTimebutlerAbsences(year string) (int, error) {
 	// Timebutler-Abwesenheiten abrufen
-	absencesMap, err := s.GetTimebutlerAbsences(year)
+	absencesData, err := s.GetAbsences(year)
 	if err != nil {
 		return 0, err
+	}
+
+	// Logging für Debugging
+	fmt.Println("Received absence data from Timebutler API. First 500 chars:")
+	if len(absencesData) > 500 {
+		fmt.Println(absencesData[:500] + "...")
+	} else {
+		fmt.Println(absencesData)
+	}
+
+	// Absences nach UserID parsen
+	absencesByUserID, err := s.ParseTimebutlerAbsences(absencesData)
+	if err != nil {
+		return 0, err
+	}
+
+	// Logging für Debugging
+	fmt.Printf("Parsed %d unique user IDs with absences\n", len(absencesByUserID))
+	for userID, absences := range absencesByUserID {
+		fmt.Printf("UserID: %s has %d absences\n", userID, len(absences))
 	}
 
 	// Repository für Mitarbeiter initialisieren
@@ -454,16 +616,32 @@ func (s *TimebutlerService) SyncTimebutlerAbsences(year string) (int, error) {
 		return 0, err
 	}
 
+	// Logging für Debugging
+	fmt.Printf("Found %d employees in the database\n", len(employees))
+	for _, emp := range employees {
+		if emp.TimebutlerUserID != "" {
+			fmt.Printf("Employee %s %s has Timebutler UserID: %s\n", emp.FirstName, emp.LastName, emp.TimebutlerUserID)
+		}
+	}
+
 	// Zähler für aktualisierte Mitarbeiter
 	updatedCount := 0
 
 	// Mitarbeiter durchgehen und Abwesenheiten zuordnen
 	for _, employee := range employees {
+		// Prüfen, ob TimebutlerUserID gesetzt ist
+		if employee.TimebutlerUserID == "" {
+			continue
+		}
+
 		// Prüfen, ob Abwesenheiten für diesen Mitarbeiter existieren
-		absences, exists := absencesMap[employee.Email]
+		absences, exists := absencesByUserID[employee.TimebutlerUserID]
 		if !exists || len(absences) == 0 {
 			continue
 		}
+
+		fmt.Printf("Processing %d absences for employee %s %s (ID: %s)\n",
+			len(absences), employee.FirstName, employee.LastName, employee.TimebutlerUserID)
 
 		// Abwesenheiten zu Mitarbeiter hinzufügen
 		abwesenheitenHinzugefuegt := false
@@ -483,7 +661,8 @@ func (s *TimebutlerService) SyncTimebutlerAbsences(year string) (int, error) {
 			if !alreadyExists {
 				// Abwesenheitstyp bestimmen
 				absenceType := "vacation" // Standard: Urlaub
-				if strings.Contains(strings.ToLower(absence.AbsenceType), "krank") {
+				if strings.Contains(strings.ToLower(absence.AbsenceType), "sick") ||
+					strings.Contains(strings.ToLower(absence.AbsenceType), "krank") {
 					absenceType = "sick"
 				} else if strings.Contains(strings.ToLower(absence.AbsenceType), "special") {
 					absenceType = "special"
@@ -493,16 +672,24 @@ func (s *TimebutlerService) SyncTimebutlerAbsences(year string) (int, error) {
 				status := "approved" // Standard: Genehmigt
 				if strings.ToLower(absence.Status) == "requested" {
 					status = "requested"
-				} else if strings.ToLower(absence.Status) == "rejected" {
+				} else if strings.ToLower(absence.Status) == "rejected" ||
+					strings.ToLower(absence.Status) == "declined" {
 					status = "rejected"
 				} else if strings.ToLower(absence.Status) == "cancelled" {
 					status = "cancelled"
 				}
 
-				// Dauer berechnen (in Tagen)
-				days := float64(absence.EndDate.Sub(absence.StartDate).Hours() / 24)
-				if days < 0.5 {
-					days = 0.5 // Mindestens halber Tag
+				// Arbeitstage verwenden, wenn verfügbar, sonst berechnen
+				days := absence.Workdays
+				if days < 0.1 {
+					// Wenn Workdays nicht gesetzt, berechnen wir die Tage
+					days = float64(absence.EndDate.Sub(absence.StartDate).Hours() / 24)
+					if absence.IsHalfDay {
+						days = 0.5
+					}
+					if days < 0.5 {
+						days = 0.5 // Mindestens halber Tag
+					}
 				}
 
 				// Neue Abwesenheit erstellen
@@ -520,6 +707,10 @@ func (s *TimebutlerService) SyncTimebutlerAbsences(year string) (int, error) {
 				// Zur Mitarbeiterabsenzenliste hinzufügen
 				employee.Absences = append(employee.Absences, newAbsence)
 				abwesenheitenHinzugefuegt = true
+
+				fmt.Printf("Added new absence: %s from %s to %s for employee %s %s\n",
+					absence.AbsenceType, absence.StartDate.Format("2006-01-02"),
+					absence.EndDate.Format("2006-01-02"), employee.FirstName, employee.LastName)
 			}
 		}
 
@@ -531,6 +722,7 @@ func (s *TimebutlerService) SyncTimebutlerAbsences(year string) (int, error) {
 				return updatedCount, err
 			}
 			updatedCount++
+			fmt.Printf("Updated employee %s %s with new absences\n", employee.FirstName, employee.LastName)
 		}
 	}
 
