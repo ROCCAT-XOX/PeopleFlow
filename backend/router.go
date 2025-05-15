@@ -331,6 +331,7 @@ func InitializeRoutes(router *gin.Engine) {
 		// API-Endpunkte für die Synchronisierung hinzufügen
 		authorized.POST("/api/integrations/timebutler/sync/users", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncTimebutlerUsers)
 		authorized.POST("/api/integrations/timebutler/sync/absences", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncTimebutlerAbsences)
+		authorized.POST("/api/integrations/timebutler/sync/holidayentitlements", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncTimebutlerHolidayEntitlements)
 		// API-Endpunkte für 123Erfasst
 		authorized.POST("/api/integrations/123erfasst/save", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.SaveErfasst123Credentials)
 		authorized.GET("/api/integrations/123erfasst/test", integrationHandler.TestErfasst123Connection)

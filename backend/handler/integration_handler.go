@@ -177,6 +177,37 @@ func (h *IntegrationHandler) SyncTimebutlerAbsences(c *gin.Context) {
 	})
 }
 
+// SyncTimebutlerHolidayEntitlements synchronizes Timebutler holiday entitlements with PeopleFlow employees
+func (h *IntegrationHandler) SyncTimebutlerHolidayEntitlements(c *gin.Context) {
+	// Check if Timebutler is connected
+	if !h.timebutlerService.IsConnected() {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "Timebutler is not connected",
+		})
+		return
+	}
+
+	// Year from request or use current year
+	year := c.DefaultQuery("year", fmt.Sprintf("%d", time.Now().Year()))
+
+	// Perform synchronization
+	updatedCount, err := h.timebutlerService.SyncHolidayEntitlements(year)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Error synchronizing holiday entitlements: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":      true,
+		"message":      fmt.Sprintf("%d employees were updated with holiday entitlements", updatedCount),
+		"updatedCount": updatedCount,
+	})
+}
+
 ////////////////////        123Erfasst Integration /////////////////////
 
 // SaveErfasst123Credentials speichert die Anmeldedaten für 123erfasst

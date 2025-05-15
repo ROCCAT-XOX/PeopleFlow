@@ -755,3 +755,186 @@ func (s *TimebutlerService) SyncTimebutlerAbsences(year string) (int, error) {
 
 	return updatedCount, nil
 }
+
+// Add this to backend/service/timebutler_service.go
+
+// GetHolidayEntitlements fetches holiday entitlement data from Timebutler
+func (s *TimebutlerService) GetHolidayEntitlements(year string) (string, error) {
+	apiKey, err := s.integrationRepo.GetApiKey("timebutler")
+	if err != nil {
+		return "", err
+	}
+
+	// URL for the API endpoint for holiday entitlements
+	url := "https://app.timebutler.com/api/v1/holidayentitlement"
+
+	// All required parameters for the Timebutler API
+	method := "POST"
+	payload := strings.NewReader(fmt.Sprintf("auth=%s&year=%s", apiKey, year))
+
+	fmt.Printf("Requesting Timebutler holiday entitlements for year: %s\n", year)
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	req, err := http.NewRequest(method, url, payload)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return "", errors.New(fmt.Sprintf("Timebutler API Error: %s", res.Status))
+	}
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+
+	// Mark integration as active
+	s.integrationRepo.SetIntegrationStatus("timebutler", true)
+
+	return string(body), nil
+}
+
+// ParseHolidayEntitlements parses the CSV data from Timebutler holiday entitlements
+func (s *TimebutlerService) ParseHolidayEntitlements(data string) (map[string]VacationInfo, error) {
+	entitlementMap := make(map[string]VacationInfo)
+
+	scanner := bufio.NewScanner(strings.NewReader(data))
+	isFirstLine := true
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Skip header line
+		if isFirstLine {
+			isFirstLine = false
+			continue
+		}
+
+		// Skip empty lines
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+
+		// Split line by semicolon
+		fields := strings.Split(line, ";")
+
+		// Check if there are enough fields (at least 3 for userId, total, and remaining)
+		if len(fields) < 3 {
+			continue
+		}
+
+		// Extract userID, total vacation, and remaining vacation
+		userID := strings.TrimSpace(fields[0])
+		totalVacationStr := strings.TrimSpace(fields[1])
+		remainingVacationStr := strings.TrimSpace(fields[2])
+
+		// Parse vacation values to float then to int
+		totalVacation, err := strconv.ParseFloat(totalVacationStr, 64)
+		if err != nil {
+			// If parsing fails, skip this entry
+			continue
+		}
+
+		remainingVacation, err := strconv.ParseFloat(remainingVacationStr, 64)
+		if err != nil {
+			// If parsing fails, skip this entry
+			continue
+		}
+
+		// Store in map with userID as key
+		entitlementMap[userID] = VacationInfo{
+			TotalVacationDays:     int(totalVacation),
+			RemainingVacationDays: int(remainingVacation),
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return entitlementMap, nil
+}
+
+// VacationInfo holds vacation data
+type VacationInfo struct {
+	TotalVacationDays     int
+	RemainingVacationDays int
+}
+
+// SyncHolidayEntitlements synchronizes Timebutler holiday entitlements with PeopleFlow employees
+func (s *TimebutlerService) SyncHolidayEntitlements(year string) (int, error) {
+	// Fetch holiday entitlements from Timebutler
+	entitlementsData, err := s.GetHolidayEntitlements(year)
+	if err != nil {
+		return 0, err
+	}
+
+	// Parse entitlements data
+	entitlementsByUserID, err := s.ParseHolidayEntitlements(entitlementsData)
+	if err != nil {
+		return 0, err
+	}
+
+	// Log for debugging
+	fmt.Printf("Parsed %d holiday entitlements\n", len(entitlementsByUserID))
+
+	// Repository for employees
+	employeeRepo := repository.NewEmployeeRepository()
+
+	// Get all employees
+	employees, err := employeeRepo.FindAll()
+	if err != nil {
+		return 0, err
+	}
+
+	// Counter for updated employees
+	updatedCount := 0
+
+	// Go through employees and update vacation days
+	for _, employee := range employees {
+		// Skip if no Timebutler UserID is set
+		if employee.TimebutlerUserID == "" {
+			continue
+		}
+
+		// Check if entitlement exists for this employee
+		vacationInfo, exists := entitlementsByUserID[employee.TimebutlerUserID]
+		if !exists {
+			continue
+		}
+
+		// Check if vacation data needs updating
+		if employee.VacationDays != vacationInfo.TotalVacationDays ||
+			employee.RemainingVacation != vacationInfo.RemainingVacationDays {
+
+			// Update vacation days
+			employee.VacationDays = vacationInfo.TotalVacationDays
+			employee.RemainingVacation = vacationInfo.RemainingVacationDays
+
+			// Update employee
+			employee.UpdatedAt = time.Now()
+			err := employeeRepo.Update(employee)
+			if err != nil {
+				return updatedCount, err
+			}
+			updatedCount++
+
+			fmt.Printf("Updated employee %s %s with vacation days: total=%d, remaining=%d\n",
+				employee.FirstName, employee.LastName, vacationInfo.TotalVacationDays, vacationInfo.RemainingVacationDays)
+		}
+	}
+
+	return updatedCount, nil
+}

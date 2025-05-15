@@ -197,3 +197,47 @@ function hideSyncSpinner() {
         spinner.remove();
     }
 }
+
+// Add this to frontend/static/js/timebutler.js
+
+function syncTimebutlerHolidayEntitlements() {
+    // Show loading state
+    const btnText = "Urlaubsansprüche synchronisieren";
+    const btn = document.querySelector('[onclick="syncTimebutlerHolidayEntitlements()"]');
+    if (btn) {
+        btn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Synchronisiere...';
+        btn.disabled = true;
+    }
+
+    // Get current year
+    const currentYear = new Date().getFullYear();
+
+    // Call API
+    fetch(`/api/integrations/timebutler/sync/holidayentitlements?year=${currentYear}`, {
+        method: 'POST',
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('success', data.message);
+            } else {
+                showNotification('error', data.message || 'Fehler bei der Synchronisierung');
+            }
+
+            // Reset button
+            if (btn) {
+                btn.innerHTML = btnText;
+                btn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Ein unerwarteter Fehler ist aufgetreten');
+
+            // Reset button
+            if (btn) {
+                btn.innerHTML = btnText;
+                btn.disabled = false;
+            }
+        });
+}
