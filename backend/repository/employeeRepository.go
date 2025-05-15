@@ -308,3 +308,17 @@ func (r *EmployeeRepository) FindByTimebutlerUserID(timebutlerUserID string) (*m
 
 	return &employee, nil
 }
+
+// FindByErfasst123ID findet einen Mitarbeiter anhand der 123erfasst ID
+func (r *EmployeeRepository) FindByErfasst123ID(erfasst123ID string) (*model.Employee, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var employee model.Employee
+	err := r.collection.FindOne(ctx, bson.M{"erfasst123Id": erfasst123ID}).Decode(&employee)
+	if err != nil {
+		return nil, err
+	}
+
+	return &employee, nil
+}

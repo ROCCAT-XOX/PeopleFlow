@@ -79,6 +79,9 @@ type Employee struct {
 
 	// Integration Timebutler
 	TimebutlerUserID string `bson:"timebutlerUserId,omitempty" json:"timebutlerUserId,omitempty"`
+
+	// Integration 123erfasst
+	Erfasst123ID string `bson:"erfasst123Id,omitempty" json:"erfasst123Id,omitempty"`
 }
 
 // Document repräsentiert ein Dokument oder eine Datei im System

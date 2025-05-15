@@ -296,6 +296,65 @@
                             </button>
                         </div>
                     </div>
+
+                    <!-- 123erfasst Integration -->
+                    <div class="relative rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                        <div class="flex items-center mb-4">
+                            <div class="flex-shrink-0">
+                                <img src="/static/images/integrations/123erfasst-logo.webp" alt="123erfasst" class="h-12 w-12 object-contain rounded">
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-medium text-gray-900">123erfasst</h3>
+                                <p class="text-sm text-gray-500">Digitale Zeiterfassung und Baustellendokumentation</p>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <form id="erfasst123Form" action="/api/integrations/123erfasst/save" method="POST">
+                                <div class="space-y-3">
+                                    <div>
+                                        <label for="erfasst123-email" class="block text-sm font-medium text-gray-700">E-Mail</label>
+                                        <div class="mt-1 flex rounded-md shadow-sm">
+                                            <input type="email" name="erfasst123-email" id="erfasst123-email"
+                                                   class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                                                   placeholder="E-Mail eingeben">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label for="erfasst123-password" class="block text-sm font-medium text-gray-700">Passwort</label>
+                                        <div class="mt-1 flex rounded-md shadow-sm">
+                                            <input type="password" name="erfasst123-password" id="erfasst123-password"
+                                                   class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                                                   placeholder="Passwort eingeben">
+                                            <button type="button" onclick="saveErfasst123Credentials()"
+                                                    class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                                Speichern
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="mt-2 text-xs text-gray-500">Geben Sie Ihre 123erfasst-Anmeldedaten ein.</p>
+                            </form>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+        <span id="erfasst123Status" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            Wird geladen...
+        </span>
+                            <button type="button" id="removeErfasst123Btn" class="text-sm text-red-600 hover:text-red-900" disabled>
+                                Entfernen
+                            </button>
+                        </div>
+
+                        <!-- Synchronisierungsbuttons mit display:none am Anfang -->
+                        <div id="erfasst123SyncButtons" class="mt-4 flex flex-col space-y-2" style="display: none;">
+                            <button type="button" onclick="syncErfasst123Employees()"
+                                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                <svg class="mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                Mitarbeiterdaten synchronisieren
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -353,18 +412,6 @@
                         </div>
                     </div>
 
-                    <!-- 123erfasst Integration -->
-                    <div class="relative rounded-lg border border-gray-200 bg-gray-50 p-4 opacity-75">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <img src="/static/images/integrations/123erfasst-logo.webp" alt="123erfasst" class="h-10 w-10 object-contain rounded">
-                            </div>
-                            <div class="ml-4">
-                                <h3 class="text-md font-medium text-gray-900">123erfasst</h3>
-                                <p class="text-xs text-gray-500">Digitale Zeiterfassung und Baustellendokumentation</p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- Interessiert an weiteren Integrationen -->
@@ -734,6 +781,7 @@
 <!-- Footer -->
 {{ template "footer" . }}
 <script src="/static/js/timebutler.js"></script>
+<script src="/static/js/123erfasst.js"></script>
 <script>
     // Tab-Wechsel Funktionalität - angepasst für ausgegraute Tabs
     document.addEventListener('DOMContentLoaded', function() {
