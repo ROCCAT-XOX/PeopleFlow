@@ -424,7 +424,7 @@
             }
           }
         }
-      },
+      }
     }
   });
 
@@ -443,7 +443,14 @@
           data: {{.deptCostsData}},
       backgroundColor: deptColors,
       borderColor: deptColors,
-      borderWidth: 1
+      borderWidth: 1,
+      borderRadius: {
+        topLeft: 8,
+        topRight: 8,
+        bottomLeft: 0,
+        bottomRight: 0
+      },
+      borderSkipped: 'bottom'
     }]
   },
     options: {
@@ -493,7 +500,14 @@
           data: {{.ageCounts}},
       backgroundColor: ageColors,
       borderColor: ageColors,
-      borderWidth: 1
+      borderWidth: 1,
+      borderRadius: {
+        topLeft: 8,
+        topRight: 8,
+        bottomLeft: 0,
+        bottomRight: 0
+      },
+      borderSkipped: 'bottom'
     }]
   },
     options: {
