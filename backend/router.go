@@ -258,6 +258,8 @@ func InitializeRoutes(router *gin.Engine) {
 		calendarHandler := handler.NewCalendarHandler()
 		planningHandler := handler.NewPlanningHandler()
 		timeTrackingHandler := handler.NewTimeTrackingHandler()
+		statisticsHandler := handler.NewStatisticsHandler()
+		statisticsAPIHandler := handler.NewStatisticsAPIHandler()
 
 		// Hauptroute für den Kalender - innerhalb des authorized-Blocks
 		authorized.GET("/absence", calendarHandler.GetAbsenceCalendar)
@@ -265,6 +267,8 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.GET("/timetracking", timeTrackingHandler.GetTimeTrackingView)
 		authorized.GET("/api/timetracking/employee/:id", timeTrackingHandler.GetEmployeeTimeEntries)
 		authorized.GET("/timetracking/export", timeTrackingHandler.ExportTimeTracking)
+		authorized.GET("/statistics", statisticsHandler.GetStatisticsView)
+		authorized.POST("/api/statistics/filter", statisticsAPIHandler.GetFilteredStatistics)
 
 		// Benutzerprofilrouten
 		authorized.GET("/profile", userHandler.ShowUserProfile)

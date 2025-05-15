@@ -103,6 +103,12 @@ func TemplateHelpers() template.FuncMap {
 			_, week := t.ISOWeek()
 			return week
 		},
+		"abs": func(x float64) float64 {
+			if x < 0 {
+				return -x
+			}
+			return x
+		},
 
 		"getInitials": GetInitials, // Neue Hilfsfunktion hinzugefügt
 	}
