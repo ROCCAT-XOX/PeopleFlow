@@ -86,16 +86,13 @@ func SalaryViewMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userRole, _ := c.Get("userRole")
 
-		// Debug-Ausgabe, um zu sehen, welche Rolle übergeben wird
-		fmt.Printf("SalaryViewMiddleware: userRole=%v\n", userRole)
-
 		// Nur Admin und Manager dürfen Gehaltsdaten sehen
 		if userRole != string(model.RoleAdmin) && userRole != string(model.RoleManager) {
 			c.Set("hideSalary", true)
 			fmt.Println("Salary hidden")
 		} else {
 			c.Set("hideSalary", false) // Explizit auf false setzen
-			fmt.Println("Salary visible")
+
 		}
 
 		c.Next()
