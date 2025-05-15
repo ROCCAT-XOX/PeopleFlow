@@ -1,0 +1,452 @@
+<!-- frontend/templates/timetracking.html -->
+{{ template "head" . }}
+<body class="bg-gray-50 min-h-screen flex flex-col">
+<!-- Navigation -->
+{{ template "navigation" . }}
+
+<!-- Main Content -->
+<main class="container mx-auto px-4 py-6 flex-grow">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Zeiterfassung</h1>
+    <p class="mt-1 text-sm text-gray-500">Übersicht aller Zeiterfassungen der Mitarbeiter.</p>
+  </div>
+
+  <!-- Filter-Bereich -->
+  <div class="bg-white shadow rounded-lg mb-6">
+    <div class="px-4 py-5 sm:p-6">
+      <form id="filter-form" class="space-y-6">
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <!-- Zeitraum-Filter -->
+          <div>
+            <label for="date-range" class="block text-sm font-medium text-gray-700">Zeitraum</label>
+            <div class="mt-1">
+              <select id="date-range" name="date-range" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
+                <option value="this-week">Diese Woche</option>
+                <option value="last-week">Letzte Woche</option>
+                <option value="this-month" selected>Dieser Monat</option>
+                <option value="last-month">Letzter Monat</option>
+                <option value="custom">Benutzerdefiniert</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Benutzerdefinierter Zeitraum -->
+          <div class="sm:col-span-2 hidden" id="custom-date-range">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="start-date" class="block text-sm font-medium text-gray-700">Von</label>
+                <input type="date" name="start-date" id="start-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+              </div>
+              <div>
+                <label for="end-date" class="block text-sm font-medium text-gray-700">Bis</label>
+                <input type="date" name="end-date" id="end-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+              </div>
+            </div>
+          </div>
+
+          <!-- Mitarbeiter-Filter (mit Mehrfachauswahl) -->
+          <div class="sm:col-span-2 lg:col-span-1">
+            <label for="employee-filter" class="block text-sm font-medium text-gray-700">Mitarbeiter</label>
+            <select id="employee-filter" name="employee" multiple class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md multiselect">
+              <option value="">Alle Mitarbeiter</option>
+              {{range .employees}}
+              <option value="{{.ID.Hex}}">{{.FirstName}} {{.LastName}}</option>
+              {{end}}
+            </select>
+          </div>
+
+          <!-- Projekt-Filter -->
+          <div>
+            <label for="project-filter" class="block text-sm font-medium text-gray-700">Projekt</label>
+            <select id="project-filter" name="project" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
+              <option value="">Alle Projekte</option>
+              {{range .projects}}
+              <option value="{{.ID}}">{{.Name}}</option>
+              {{end}}
+            </select>
+          </div>
+        </div>
+
+        <!-- Filter-Button -->
+        <div class="flex justify-end">
+          <button type="button" id="apply-filter" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+            <svg class="mr-2 -ml-1 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
+            </svg>
+            Filter anwenden
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Zusammenfassung -->
+  <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 mb-6">
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="px-4 py-5 sm:p-6">
+        <dl>
+          <dt class="text-sm font-medium text-gray-500 truncate">Gesamtstunden</dt>
+          <dd id="total-hours" class="mt-1 text-3xl font-semibold text-gray-900">{{.totalHours}} Std</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="px-4 py-5 sm:p-6">
+        <dl>
+          <dt class="text-sm font-medium text-gray-500 truncate">Mitarbeiter angezeigt</dt>
+          <dd id="total-employees-displayed" class="mt-1 text-3xl font-semibold text-gray-900">{{.totalEmployees}}</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="px-4 py-5 sm:p-6">
+        <dl>
+          <dt class="text-sm font-medium text-gray-500 truncate">Projekte angezeigt</dt>
+          <dd id="total-projects-displayed" class="mt-1 text-3xl font-semibold text-gray-900">{{.totalProjects}}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mitarbeiter Stundenliste - Zusammengefasst pro Mitarbeiter -->
+  <div class="bg-white shadow rounded-lg mb-6">
+    <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+      <h2 class="text-lg font-medium text-gray-900">Stunden pro Mitarbeiter</h2>
+    </div>
+    <div class="border-t border-gray-200">
+      <div class="overflow-hidden">
+        <div id="employee-hours-container">
+          {{range .employeeSummary}}
+          <div class="employee-summary-item border-b border-gray-200" data-employee-id="{{.EmployeeID}}">
+            <div class="px-4 py-4 sm:px-6 flex items-center justify-between">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 h-10 w-10">
+                  {{if .HasProfileImage}}
+                  <img class="h-10 w-10 rounded-full" src="/employees/{{.EmployeeID}}/profile-image" alt="">
+                  {{else}}
+                  <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-800 font-medium">
+                    {{ getInitials .EmployeeName }}
+                  </div>
+                  {{end}}
+                </div>
+                <div class="ml-4">
+                  <div class="text-sm font-medium text-gray-900">
+                    {{.EmployeeName}}
+                  </div>
+                  <div class="text-sm text-gray-500">
+                    Projekte: {{.ProjectCount}}
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center">
+                <span class="text-lg font-semibold text-gray-900">{{printf "%.1f" .TotalHours}} Std.</span>
+                <button class="ml-4 text-gray-400 hover:text-gray-500 toggle-details" data-employee-id="{{.EmployeeID}}">
+                  <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="employee-details hidden px-4 py-4 sm:px-6 bg-gray-50">
+              <h3 class="text-sm font-medium text-gray-900 mb-2">Projektdetails</h3>
+              <div class="space-y-2">
+                {{range .Projects}}
+                <div class="project-detail flex justify-between" data-project-id="{{.ProjectID}}">
+                  <span class="text-sm text-gray-700">{{.ProjectName}}</span>
+                  <span class="text-sm font-medium text-gray-900">{{printf "%.1f" .Hours}} Std.</span>
+                </div>
+                {{end}}
+              </div>
+
+              <h3 class="text-sm font-medium text-gray-900 mt-4 mb-2">Zeiteinträge</h3>
+              <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Datum</th>
+                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Projekt</th>
+                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tätigkeit</th>
+                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Von</th>
+                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bis</th>
+                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dauer</th>
+                  </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-gray-200">
+                  {{range .TimeEntries}}
+                  <tr class="time-entry-row" data-project-id="{{.ProjectID}}">
+                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{{.Date.Format "02.01.2006"}}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{{.ProjectName}}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{{.Activity}}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{{.StartTime.Format "15:04"}}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{{.EndTime.Format "15:04"}}</td>
+                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{{printf "%.1f" .Duration}} Std.</td>
+                  </tr>
+                  {{end}}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          {{else}}
+          <div class="px-4 py-4 sm:px-6 text-center text-gray-500">
+            Keine Zeiteinträge gefunden für den ausgewählten Zeitraum
+          </div>
+          {{end}}
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Footer -->
+{{ template "footer" . }}
+
+<script src="https://cdn.jsdelivr.net/npm/slim-select@2.0.0/dist/slimselect.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/slim-select@2.0.0/dist/slimselect.css" rel="stylesheet">
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialisierung des Select-Elements für Mehrfachauswahl
+    const employeeSelect = new SlimSelect({
+      select: '#employee-filter',
+      settings: {
+        placeholderText: 'Alle Mitarbeiter',
+        allowDeselect: true,
+        closeOnSelect: false,
+        showSearch: true,
+      }
+    });
+
+    // Toggle für Mitarbeiterdetails
+    document.querySelectorAll('.toggle-details').forEach(button => {
+      button.addEventListener('click', function() {
+        const employeeId = this.getAttribute('data-employee-id');
+        const detailsContainer = this.closest('.employee-summary-item').querySelector('.employee-details');
+
+        // Toggle Details anzeigen/ausblenden
+        if (detailsContainer.classList.contains('hidden')) {
+          detailsContainer.classList.remove('hidden');
+          this.innerHTML = `<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+                    </svg>`;
+        } else {
+          detailsContainer.classList.add('hidden');
+          this.innerHTML = `<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>`;
+        }
+      });
+    });
+
+    // Zeigt/versteckt den benutzerdefinierten Zeitraum
+    const dateRange = document.getElementById('date-range');
+    const customDateRange = document.getElementById('custom-date-range');
+
+    dateRange.addEventListener('change', function() {
+      if (this.value === 'custom') {
+        customDateRange.classList.remove('hidden');
+      } else {
+        customDateRange.classList.add('hidden');
+      }
+    });
+
+    // Filter-Funktionalität
+    const projectFilter = document.getElementById('project-filter');
+    const applyFilterBtn = document.getElementById('apply-filter');
+
+    applyFilterBtn.addEventListener('click', function() {
+      filterTimeEntries();
+    });
+
+    function filterTimeEntries() {
+      // Datumsfilterung
+      const dateRangeValue = dateRange.value;
+      let startDate = null;
+      let endDate = null;
+
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      if (dateRangeValue === 'custom') {
+        const startDateInput = document.getElementById('start-date');
+        const endDateInput = document.getElementById('end-date');
+
+        if (startDateInput.value) {
+          startDate = new Date(startDateInput.value);
+        }
+
+        if (endDateInput.value) {
+          endDate = new Date(endDateInput.value);
+          // Setzen auf Ende des Tages für korrekten Vergleich
+          endDate.setHours(23, 59, 59, 999);
+        }
+      } else if (dateRangeValue === 'this-week') {
+        // Diese Woche (Montag bis Sonntag)
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Justierung für Sonntag
+        startDate = new Date(today.setDate(diff));
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+        endDate.setHours(23, 59, 59, 999);
+      } else if (dateRangeValue === 'last-week') {
+        // Letzte Woche
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Justierung für Sonntag
+        startDate = new Date(today.setDate(diff - 7));
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+        endDate.setHours(23, 59, 59, 999);
+      } else if (dateRangeValue === 'this-month') {
+        // Dieser Monat
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        endDate.setHours(23, 59, 59, 999);
+      } else if (dateRangeValue === 'last-month') {
+        // Letzter Monat
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+        endDate.setHours(23, 59, 59, 999);
+      }
+
+      // Ausgewählte Mitarbeiter
+      const selectedValues = employeeSelect.getSelected();
+      const hasAllSelected = selectedValues.includes('') || selectedValues.length === 0;
+
+      // Ausgewähltes Projekt
+      const selectedProject = projectFilter.value;
+
+      // Alle Mitarbeiterzeilen durchgehen
+      document.querySelectorAll('.employee-summary-item').forEach(employeeItem => {
+        const employeeId = employeeItem.dataset.employeeId;
+        let showEmployee = true;
+
+        // Mitarbeiterfilter anwenden
+        if (!hasAllSelected && !selectedValues.includes(employeeId)) {
+          showEmployee = false;
+        }
+
+        // Zeiteinträge des Mitarbeiters filtern
+        let employeeHasFilteredEntries = false;
+        let employeeFilteredHours = 0;
+        const projectHours = {};
+
+        // Alle Zeiteinträge dieses Mitarbeiters durchgehen
+        employeeItem.querySelectorAll('.time-entry-row').forEach(row => {
+          const dateStr = row.querySelector('td:first-child').textContent;
+          const projectId = row.dataset.projectId;
+          const projectName = row.querySelector('td:nth-child(2)').textContent;
+          const durationStr = row.querySelector('td:last-child').textContent;
+          const duration = parseFloat(durationStr);
+
+          const entryDate = parseStringToDate(dateStr);
+          let showEntry = true;
+
+          // Datum filtern
+          if (startDate && entryDate < startDate) {
+            showEntry = false;
+          }
+
+          if (endDate && entryDate > endDate) {
+            showEntry = false;
+          }
+
+          // Projekt filtern
+          if (selectedProject && projectId !== selectedProject) {
+            showEntry = false;
+          }
+
+          // Zeile ein-/ausblenden
+          if (showEntry) {
+            row.classList.remove('hidden');
+            employeeHasFilteredEntries = true;
+            employeeFilteredHours += duration;
+
+            // Projektstunden aufaddieren
+            if (!projectHours[projectId]) {
+              projectHours[projectId] = {
+                hours: 0,
+                name: projectName
+              };
+            }
+            projectHours[projectId].hours += duration;
+          } else {
+            row.classList.add('hidden');
+          }
+        });
+
+        // Projekt-Details aktualisieren
+        employeeItem.querySelectorAll('.project-detail').forEach(detail => {
+          const projectId = detail.dataset.projectId;
+
+          // Projektfilter anwenden
+          if (selectedProject && projectId !== selectedProject) {
+            detail.classList.add('hidden');
+          } else if (projectHours[projectId]) {
+            // Stunden aktualisieren falls gefiltert
+            detail.querySelector('.font-medium').textContent =
+                    projectHours[projectId].hours.toFixed(1) + ' Std.';
+            detail.classList.remove('hidden');
+          } else {
+            detail.classList.add('hidden');
+          }
+        });
+
+        // Mitarbeiter gesamt-Stunden aktualisieren
+        if (employeeHasFilteredEntries) {
+          employeeItem.querySelector('.font-semibold').textContent =
+                  employeeFilteredHours.toFixed(1) + ' Std.';
+        }
+
+        // Falls der Mitarbeiter keine passenden Einträge hat oder ausgeblendet werden soll
+        if (!employeeHasFilteredEntries || !showEmployee) {
+          employeeItem.classList.add('hidden');
+        } else {
+          employeeItem.classList.remove('hidden');
+        }
+      });
+
+      // Statistiken aktualisieren
+      updateStats();
+    }
+
+    // Helper-Funktion zum Parsen von deutschem Datumsformat
+    function parseStringToDate(dateStr) {
+      const parts = dateStr.split('.');
+      if (parts.length === 3) {
+        return new Date(parts[2], parts[1] - 1, parts[0]);
+      }
+      return new Date(); // Fallback
+    }
+
+    // Statistiken aktualisieren
+    function updateStats() {
+      // Zähle sichtbare Mitarbeiter
+      const visibleEmployees = document.querySelectorAll('.employee-summary-item:not(.hidden)').length;
+      document.getElementById('total-employees-displayed').textContent = visibleEmployees;
+
+      // Berechne Gesamtstunden der sichtbaren Mitarbeiter
+      let totalHours = 0;
+      document.querySelectorAll('.employee-summary-item:not(.hidden)').forEach(item => {
+        const hoursText = item.querySelector('.font-semibold').textContent;
+        const hours = parseFloat(hoursText);
+        if (!isNaN(hours)) {
+          totalHours += hours;
+        }
+      });
+      document.getElementById('total-hours').textContent = totalHours.toFixed(1) + ' Std';
+
+      // Sammle alle sichtbaren Projekte
+      const visibleProjects = new Set();
+      document.querySelectorAll('.employee-summary-item:not(.hidden) .project-detail:not(.hidden)').forEach(project => {
+        const projectName = project.querySelector('span').textContent;
+        visibleProjects.add(projectName);
+      });
+      document.getElementById('total-projects-displayed').textContent = visibleProjects.size;
+    }
+
+    // Automatisch einmal zu Beginn filtern
+    setTimeout(filterTimeEntries, 100);
+  });
+</script>
+</body>
+</html>
