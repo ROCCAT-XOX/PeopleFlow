@@ -25,27 +25,19 @@
     </div>
 
     <!-- Tab Navigation -->
-    <div class="mb-6">
-        <nav class="flex space-x-4" aria-label="Tabs">
-            <button class="tab-btn px-3 py-2 text-sm font-medium rounded-md" data-tab="personal" onclick="showTab('personal')">
-                Persönliche Daten
+    <div class="border-b border-gray-200">
+        <nav class="flex -mb-px space-x-8" aria-label="Tabs">
+            <!-- Tab Buttons -->
+            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-green-500 text-green-600" data-tab="personal">
+                Persönliche Informationen
             </button>
-            <button class="tab-btn px-3 py-2 text-sm font-medium rounded-md" data-tab="documents" onclick="showTab('documents')">
+            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="documents">
                 Dokumente
             </button>
-            <button class="tab-btn px-3 py-2 text-sm font-medium rounded-md" data-tab="training" onclick="showTab('training')">
-                Weiterbildung
+            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="trainings">
+                Weiterbildungen
             </button>
-            <button class="tab-btn px-3 py-2 text-sm font-medium rounded-md" data-tab="evaluation" onclick="showTab('evaluation')">
-                Leistungsbeurteilungen
-            </button>
-            <button class="tab-btn px-3 py-2 text-sm font-medium rounded-md" data-tab="absence" onclick="showTab('absence')">
-                Abwesenheiten
-            </button>
-            <button class="tab-btn px-3 py-2 text-sm font-medium rounded-md" data-tab="conversations" onclick="showTab('conversations')">
-                Gespräche
-            </button>
-            <button class="tab-btn px-3 py-2 text-sm font-medium rounded-md" data-tab="development" onclick="showTab('development')">
+            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="development">
                 Entwicklungsplan
             </button>
             <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="projects">
@@ -54,1018 +46,946 @@
             <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="vacation">
                 Urlaub
             </button>
+            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="conversations">
+                Mitarbeitergespräche
+            </button>
         </nav>
     </div>
 
     <!-- Tab Content -->
-    <!-- 1. Persönliche Daten -->
-    <div id="personal-tab" class="tab-content bg-white shadow overflow-hidden sm:rounded-lg">
-        <div class="px-4 py-5 sm:px-6 flex items-center">
-            <div class="flex-shrink-0 h-24 w-24 mr-6 relative group">
-                {{if ne .employee.ProfileImage ""}}
-                <img class="h-24 w-24 rounded-full object-cover" src="/employees/{{.employee.ID.Hex}}/profile-image" alt="{{.employee.FirstName}} {{.employee.LastName}}">
-                {{else}}
-                <div class="h-24 w-24 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-2xl font-semibold">
-                    {{ getInitials (printf "%s %s" .employee.FirstName .employee.LastName) }}
-                </div>
-                {{end}}
-                <button type="button" onclick="openModal('uploadProfileImageModal')" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zm-2.207 2.207L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                    </svg>
-                </button>
-            </div>
-            <div>
-                <h2 class="text-xl font-bold text-gray-900">{{.employee.FirstName}} {{.employee.LastName}}</h2>
-                <p class="text-sm text-gray-500">{{.employee.Position}}</p>
-                <p class="mt-1 max-w-2xl text-sm text-gray-500">{{.employee.Department}}</p>
-                <div class="mt-2 flex items-center text-sm text-gray-500">
-                    <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
-                    </svg>
-                    Eingestellt am {{.employee.HireDate.Format "02.01.2006"}}
-                </div>
-            </div>
-        </div>
-        <div class="border-t border-gray-200">
-            <dl>
-                <!-- Persönliche Daten -->
-                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">E-Mail</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.Email}}</dd>
-                </div>
-                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">Telefon</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.Phone}}</dd>
-                </div>
-                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">Interne Rufnummer</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.InternalPhone}}</dd>
-                </div>
-                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">Kurzwahl intern</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.InternalExtension}}</dd>
-                </div>
-                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">Adresse</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.Address}}</dd>
-                </div>
-                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">Geburtsdatum</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                        {{if not .employee.DateOfBirth.IsZero}}
-                        {{.employee.DateOfBirth.Format "02.01.2006"}}
-                        {{else}}
-                        -
-                        {{end}}
-                    </dd>
-                </div>
-
-                <!-- Beschäftigungsdaten -->
-                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">Position</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.Position}}</dd>
-                </div>
-                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">Abteilung</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.Department}}</dd>
-                </div>
-                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">Vorgesetzter</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                        {{if .manager}}
-                        <a href="/employees/view/{{.manager.ID.Hex}}" class="text-green-600 hover:text-green-800">
-                            {{.manager.FirstName}} {{.manager.LastName}}
-                        </a>
-                        {{else}}
-                        -
-                        {{end}}
-                    </dd>
-                </div>
-                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">Status</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                        {{if eq .employee.Status "active"}}
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                            Aktiv
-                        </span>
-                        {{else if eq .employee.Status "inactive"}}
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                            Inaktiv
-                        </span>
-                        {{else if eq .employee.Status "onleave"}}
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                            Im Urlaub
-                        </span>
-                        {{else if eq .employee.Status "remote"}}
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                            Remote
-                        </span>
-                        {{end}}
-                    </dd>
-                </div>
-
-                <!-- Finanzielle Daten (nur für Administratoren) -->
-                {{if not .hideSalary}}
-                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">Gehalt</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.Salary}} €</dd>
-                </div>
-                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">Bankverbindung</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.BankAccount}}</dd>
-                </div>
-                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">Steuerklasse</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.TaxID}}</dd>
-                </div>
-                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">Sozialversicherungsnummer</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.SocialSecID}}</dd>
-                </div>
-                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">Krankenkasse</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{if .employee.HealthInsurance}}{{.employee.HealthInsurance}}{{else}}-{{end}}</dd>
-                </div>
-                {{end}}
-
-                <!-- Notfallkontakt -->
-                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">Notfallkontakt</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                        {{if .employee.EmergencyName}}
-                        {{.employee.EmergencyName}}<br>
-                        {{.employee.EmergencyPhone}}
-                        {{else}}
-                        -
-                        {{end}}
-                    </dd>
-                </div>
-
-                <!-- Notizen -->
-                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt class="text-sm font-medium text-gray-500">Notizen</dt>
-                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                        {{if .employee.Notes}}
-                        {{.employee.Notes}}
-                        {{else}}
-                        -
-                        {{end}}
-                    </dd>
-                </div>
-            </dl>
-        </div>
-    </div>
-    <!-- 2. Dokumente -->
-    <div id="documents-tab" class="tab-content hidden">
-        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-                <h2 class="text-lg font-medium text-gray-900">Dokumente</h2>
-                <button type="button" onclick="openModal('uploadDocumentModal')" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                    </svg>
-                    Dokument hochladen
-                </button>
-            </div>
-
-            <div class="px-4 py-2 border-t border-gray-200">
-                <h3 class="text-md font-medium text-gray-700 mb-3">Bewerbungs- und Einstellungsunterlagen</h3>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dateiname</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beschreibung</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hochgeladen am</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typ</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Größe</th>
-                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
-                        </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                        {{range .employee.ApplicationDocuments}}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{.Name}}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.Description}}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.UploadDate.Format "02.01.2006 15:04"}}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.FileType}}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatFileSize .FileSize}}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <a href="/employees/{{$.employee.ID.Hex}}/documents/{{.ID.Hex}}/download?category=application" class="text-green-600 hover:text-green-900 mr-3">Herunterladen</a>
-                                <a href="#" onclick="confirmDeleteDocument('{{$.employee.ID.Hex}}', '{{.ID.Hex}}', 'application')" class="text-red-600 hover:text-red-900">Löschen</a>
-                            </td>
-                        </tr>
-                        {{else}}
-                        <tr>
-                            <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Keine Dokumente vorhanden</td>
-                        </tr>
-                        {{end}}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="px-4 py-2 border-t border-gray-200">
-                <h3 class="text-md font-medium text-gray-700 mb-3">Allgemeine Dokumente</h3>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dateiname</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beschreibung</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hochgeladen am</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typ</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Größe</th>
-                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
-                        </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                        {{range .employee.Documents}}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{.Name}}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.Description}}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.UploadDate.Format "02.01.2006 15:04"}}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.FileType}}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatFileSize .FileSize}}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <a href="/employees/{{$.employee.ID.Hex}}/documents/{{.ID.Hex}}/download?category=general" class="text-green-600 hover:text-green-900 mr-3">Herunterladen</a>
-                                <a href="#" onclick="confirmDeleteDocument('{{$.employee.ID.Hex}}', '{{.ID.Hex}}', 'general')" class="text-red-600 hover:text-red-900">Löschen</a>
-                            </td>
-                        </tr>
-                        {{else}}
-                        <tr>
-                            <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Keine Dokumente vorhanden</td>
-                        </tr>
-                        {{end}}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- 3. Weiterbildung -->
-    <div id="training-tab" class="tab-content hidden">
-        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-                <h2 class="text-lg font-medium text-gray-900">Weiterbildung und Zertifizierungen</h2>
-                <button type="button" onclick="openModal('addTrainingModal')" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
-                    Weiterbildung hinzufügen
-                </button>
-            </div>
-
-            <div class="px-4 py-5 sm:px-6 divide-y divide-gray-200">
-                {{range .employee.Trainings}}
-                <div class="py-4 space-y-4">
-                    <div class="flex justify-between">
-                        <div>
-                            <h3 class="text-md font-medium text-gray-900">{{.Title}}</h3>
-                            <p class="text-sm text-gray-500">{{.Description}}</p>
-                        </div>
-                        <div class="flex items-start space-x-2">
-                            <button type="button" onclick="openTrainingDocumentUpload('{{.ID.Hex}}')" class="text-sm text-green-600 hover:text-green-900">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                            <button type="button" onclick="confirmDeleteTraining('{{$.employee.ID.Hex}}', '{{.ID.Hex}}')" class="text-sm text-red-600 hover:text-red-900">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                            <span class="block text-gray-500">Anbieter</span>
-                            <span class="block font-medium text-gray-900">{{.Provider}}</span>
-                        </div>
-                        <div>
-                            <span class="block text-gray-500">Zeitraum</span>
-                            <span class="block font-medium text-gray-900">
-                                {{.StartDate.Format "02.01.2006"}} -
-                                {{if not .EndDate.IsZero}}{{.EndDate.Format "02.01.2006"}}{{else}}aktuell{{end}}
-                            </span>
-                        </div>
-                        <div>
-                            <span class="block text-gray-500">Zertifikat</span>
-                            <span class="block font-medium text-gray-900">{{if .Certificate}}{{.Certificate}}{{else}}-{{end}}</span>
-                        </div>
-                        <div>
-                            <span class="block text-gray-500">Status</span>
-                            <span class="block font-medium text-gray-900">
-                                {{if eq .Status "planned"}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Geplant</span>
-                                {{else if eq .Status "ongoing"}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Laufend</span>
-                                {{else if eq .Status "completed"}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Abgeschlossen</span>
-                                {{else}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">{{.Status}}</span>
-                                {{end}}
-                            </span>
-                        </div>
-                    </div>
-                    {{if .Notes}}
-                    <div class="mt-2">
-                        <span class="block text-gray-500 text-sm">Notizen</span>
-                        <p class="text-sm text-gray-900">{{.Notes}}</p>
+    <div class="mt-6">
+        <!-- 1. Persönliche Daten -->
+        <div id="personal-tab" class="tab-content space-y-6">
+            <div class="px-4 py-5 sm:px-6 flex items-center">
+                <div class="flex-shrink-0 h-24 w-24 mr-6 relative group">
+                    {{if ne .employee.ProfileImage ""}}
+                    <img class="h-24 w-24 rounded-full object-cover" src="/employees/{{.employee.ID.Hex}}/profile-image" alt="{{.employee.FirstName}} {{.employee.LastName}}">
+                    {{else}}
+                    <div class="h-24 w-24 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-2xl font-semibold">
+                        {{ getInitials (printf "%s %s" .employee.FirstName .employee.LastName) }}
                     </div>
                     {{end}}
-
-                    {{if .Documents}}
-                    <div class="mt-2">
-                        <span class="block text-gray-500 text-sm mb-2">Dokumente</span>
-                        <ul class="divide-y divide-gray-200">
-                            {{range .Documents}}
-                            <li class="py-2 flex justify-between">
-                                <div class="flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
-                                    </svg>
-                                    <span class="text-sm text-gray-900">{{.Name}}</span>
-                                </div>
-                                <div class="flex space-x-2">
-                                    <a href="/employees/{{$.employee.ID.Hex}}/documents/{{.ID.Hex}}/download?category=training&relatedId={{$.ID.Hex}}" class="text-green-600 hover:text-green-900">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                        </svg>
-                                    </a>
-                                    <button onclick="confirmDeleteDocument('{{$.employee.ID.Hex}}', '{{.ID.Hex}}', 'training', '{{$.ID.Hex}}')" class="text-red-600 hover:text-red-900">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </li>
-                            {{end}}
-                        </ul>
-                    </div>
-                    {{end}}
+                    <button type="button" onclick="openModal('uploadProfileImageModal')" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zm-2.207 2.207L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                        </svg>
+                    </button>
                 </div>
-                {{else}}
-                <div class="py-4 text-center text-gray-500">
-                    Keine Weiterbildungen vorhanden
-                </div>
-                {{end}}
-            </div>
-        </div>
-    </div>
-    <!-- 4. Leistungsbeurteilungen -->
-    <div id="evaluation-tab" class="tab-content hidden">
-        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-                <h2 class="text-lg font-medium text-gray-900">Leistungsbeurteilungen</h2>
-                <button type="button" onclick="openModal('addEvaluationModal')" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
-                    Beurteilung hinzufügen
-                </button>
-            </div>
-
-            <div class="px-4 py-5 sm:px-6 divide-y divide-gray-200">
-                {{range .employee.Evaluations}}
-                <div class="py-4 space-y-4">
-                    <div class="flex justify-between">
-                        <div>
-                            <h3 class="text-md font-medium text-gray-900">{{.Title}}</h3>
-                            <p class="text-sm text-gray-500">Erstellt von {{.EvaluatorName}} am {{.Date.Format "02.01.2006"}}</p>
-                        </div>
-                        <div class="flex items-start space-x-2">
-                            <button type="button" onclick="openEvaluationDocumentUpload('{{.ID.Hex}}')" class="text-sm text-green-600 hover:text-green-900">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                            <button type="button" onclick="confirmDeleteEvaluation('{{$.employee.ID.Hex}}', '{{.ID.Hex}}')" class="text-sm text-red-600 hover:text-red-900">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                        </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">{{.employee.FirstName}} {{.employee.LastName}}</h2>
+                    <p class="text-sm text-gray-500">{{.employee.Position}}</p>
+                    <p class="mt-1 max-w-2xl text-sm text-gray-500">{{.employee.Department}}</p>
+                    <div class="mt-2 flex items-center text-sm text-gray-500">
+                        <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                        </svg>
+                        Eingestellt am {{.employee.HireDate.Format "02.01.2006"}}
                     </div>
-
-                    <div class="flex items-center space-x-1 text-sm">
-                        <span class="text-gray-500">Gesamtbewertung:</span>
-                        {{ $rating := .OverallRating }}
-
-                        <div class="flex text-yellow-400">
-                            {{range $i := iterate 5}}
-                            {{if lt $i $rating}}
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
+                </div>
+            </div>
+            <div class="border-t border-gray-200">
+                <dl>
+                    <!-- Persönliche Daten -->
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">E-Mail</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.Email}}</dd>
+                    </div>
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Telefon</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.Phone}}</dd>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Interne Rufnummer</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.InternalPhone}}</dd>
+                    </div>
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Kurzwahl intern</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.InternalExtension}}</dd>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Adresse</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.Address}}</dd>
+                    </div>
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Geburtsdatum</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            {{if not .employee.DateOfBirth.IsZero}}
+                            {{.employee.DateOfBirth.Format "02.01.2006"}}
                             {{else}}
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                            </svg>
+                            -
                             {{end}}
-                            {{end}}
-                        </div>
+                        </dd>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <span class="block text-gray-500 text-sm">Stärken</span>
-                            <p class="text-sm text-gray-900">{{.Strengths}}</p>
-                        </div>
-                        <div>
-                            <span class="block text-gray-500 text-sm">Verbesserungsbedarf</span>
-                            <p class="text-sm text-gray-900">{{.AreasToImprove}}</p>
-                        </div>
+                    <!-- Beschäftigungsdaten -->
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Position</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.Position}}</dd>
+                    </div>
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Abteilung</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.Department}}</dd>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Vorgesetzter</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            {{if .manager}}
+                            <a href="/employees/view/{{.manager.ID.Hex}}" class="text-green-600 hover:text-green-800">
+                                {{.manager.FirstName}} {{.manager.LastName}}
+                            </a>
+                            {{else}}
+                            -
+                            {{end}}
+                        </dd>
+                    </div>
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Status</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            {{if eq .employee.Status "active"}}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                Aktiv
+                            </span>
+                            {{else if eq .employee.Status "inactive"}}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                Inaktiv
+                            </span>
+                            {{else if eq .employee.Status "onleave"}}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                Im Urlaub
+                            </span>
+                            {{else if eq .employee.Status "remote"}}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                Remote
+                            </span>
+                            {{end}}
+                        </dd>
                     </div>
 
-                    {{if .Comments}}
-                    <div>
-                        <span class="block text-gray-500 text-sm">Kommentar des Vorgesetzten</span>
-                        <p class="text-sm text-gray-900">{{.Comments}}</p>
+                    <!-- Finanzielle Daten (nur für Administratoren) -->
+                    {{if not .hideSalary}}
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Gehalt</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.Salary}} €</dd>
+                    </div>
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Bankverbindung</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.BankAccount}}</dd>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Steuerklasse</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.TaxID}}</dd>
+                    </div>
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Sozialversicherungsnummer</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{.employee.SocialSecID}}</dd>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Krankenkasse</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{if .employee.HealthInsurance}}{{.employee.HealthInsurance}}{{else}}-{{end}}</dd>
                     </div>
                     {{end}}
 
-                    {{if .EmployeeComments}}
-                    <div>
-                        <span class="block text-gray-500 text-sm">Kommentar des Mitarbeiters</span>
-                        <p class="text-sm text-gray-900">{{.EmployeeComments}}</p>
-                    </div>
-                    {{end}}
-
-                    {{if .Documents}}
-                    <div class="mt-2">
-                        <span class="block text-gray-500 text-sm mb-2">Dokumente</span>
-                        <ul class="divide-y divide-gray-200">
-                            {{range .Documents}}
-                            <li class="py-2 flex justify-between">
-                                <div class="flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
-                                    </svg>
-                                    <span class="text-sm text-gray-900">{{.Name}}</span>
-                                </div>
-                                <div class="flex space-x-2">
-                                    <a href="/employees/{{$.employee.ID.Hex}}/documents/{{.ID.Hex}}/download?category=evaluation&relatedId={{$.ID.Hex}}" class="text-green-600 hover:text-green-900">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                        </svg>
-                                    </a>
-                                    <button onclick="confirmDeleteDocument('{{$.employee.ID.Hex}}', '{{.ID.Hex}}', 'evaluation', '{{$.ID.Hex}}')" class="text-red-600 hover:text-red-900">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </li>
+                    <!-- Notfallkontakt -->
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Notfallkontakt</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            {{if .employee.EmergencyName}}
+                            {{.employee.EmergencyName}}<br>
+                            {{.employee.EmergencyPhone}}
+                            {{else}}
+                            -
                             {{end}}
-                        </ul>
+                        </dd>
                     </div>
-                    {{end}}
-                </div>
-                {{else}}
-                <div class="py-4 text-center text-gray-500">
-                    Keine Leistungsbeurteilungen vorhanden
-                </div>
-                {{end}}
+
+                    <!-- Notizen -->
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Notizen</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            {{if .employee.Notes}}
+                            {{.employee.Notes}}
+                            {{else}}
+                            -
+                            {{end}}
+                        </dd>
+                    </div>
+                </dl>
             </div>
         </div>
-    </div>
-    <!-- 5. Abwesenheiten -->
-    <div id="absence-tab" class="tab-content hidden">
-        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-                <div>
-                    <h2 class="text-lg font-medium text-gray-900">Abwesenheiten</h2>
-                    <p class="mt-1 max-w-2xl text-sm text-gray-500">
-                        Urlaubsanspruch: {{.employee.VacationDays}} Tage | Verbleibend: {{.employee.RemainingVacation}} Tage
-                    </p>
+        <!-- 2. Dokumente -->
+        <div id="documents-tab" class="tab-content hidden space-y-6">
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                    <h2 class="text-lg font-medium text-gray-900">Dokumente</h2>
+                    <button type="button" onclick="openModal('uploadDocumentModal')" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        </svg>
+                        Dokument hochladen
+                    </button>
                 </div>
-                <button type="button" onclick="openModal('addAbsenceModal')" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
-                    Abwesenheit erfassen
-                </button>
-            </div>
 
-            <div class="px-4 py-5 sm:px-6">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Art</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Von</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bis</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tage</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grund</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Genehmigt von</th>
-                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
-                        </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                        {{range .employee.Absences}}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{if eq .Type "vacation"}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Urlaub</span>
-                                {{else if eq .Type "sick"}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Krankheit</span>
-                                {{else if eq .Type "special"}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Sonderurlaub</span>
-                                {{else}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">{{.Type}}</span>
-                                {{end}}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{.StartDate.Format "02.01.2006"}}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{.EndDate.Format "02.01.2006"}}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{.Days}}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{if eq .Status "requested"}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Beantragt</span>
-                                {{else if eq .Status "approved"}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Genehmigt</span>
-                                {{else if eq .Status "rejected"}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Abgelehnt</span>
-                                {{else if eq .Status "cancelled"}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Storniert</span>
-                                {{else}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">{{.Status}}</span>
-                                {{end}}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{.Reason}}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{if .ApproverName}}{{.ApproverName}}{{else}}-{{end}}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <div class="flex justify-end space-x-2">
-                                    {{if eq .Status "requested"}}
-                                    {{if or (eq $.userRole "admin") (eq $.userRole "hr") (eq $.userRole "manager")}}
-                                    <button onclick="approveAbsence('{{$.employee.ID.Hex}}', '{{.ID.Hex}}', 'approve')" class="text-green-600 hover:text-green-900">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
-                                    <button onclick="approveAbsence('{{$.employee.ID.Hex}}', '{{.ID.Hex}}', 'reject')"
-                                            class="text-red-600 hover:text-red-900">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
-                                             fill="currentColor">
-                                            <path fill-rule="evenodd"
-                                                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                                  clip-rule="evenodd"/>
-                                        </svg>
-                                    </button>
-                                    {{end}}
-                                    {{end}}
+                <div class="px-4 py-2 border-t border-gray-200">
+                    <h3 class="text-md font-medium text-gray-700 mb-3">Bewerbungs- und Einstellungsunterlagen</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dateiname</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beschreibung</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hochgeladen am</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typ</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Größe</th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
+                            </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                            {{range .employee.ApplicationDocuments}}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{.Name}}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.Description}}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.UploadDate.Format "02.01.2006 15:04"}}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.FileType}}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatFileSize .FileSize}}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <a href="/employees/{{$.employee.ID.Hex}}/documents/{{.ID.Hex}}/download?category=application" class="text-green-600 hover:text-green-900 mr-3">Herunterladen</a>
+                                    <a href="#" onclick="confirmDeleteDocument('{{$.employee.ID.Hex}}', '{{.ID.Hex}}', 'application')" class="text-red-600 hover:text-red-900">Löschen</a>
+                                </td>
+                            </tr>
+                            {{else}}
+                            <tr>
+                                <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Keine Dokumente vorhanden</td>
+                            </tr>
+                            {{end}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
-                                    {{if .Documents}}
-                                    <button onclick="openAbsenceDocumentsModal('{{.ID.Hex}}')"
-                                            class="text-blue-600 hover:text-blue-900">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
-                                             fill="currentColor">
-                                            <path fill-rule="evenodd"
-                                                  d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                                                  clip-rule="evenodd"/>
-                                        </svg>
-                                    </button>
-                                    {{else}}
-                                    <button onclick="openAbsenceDocumentUpload('{{.ID.Hex}}')"
-                                            class="text-green-600 hover:text-green-900">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
-                                             fill="currentColor">
-                                            <path fill-rule="evenodd"
-                                                  d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z"
-                                                  clip-rule="evenodd"/>
-                                        </svg>
-                                    </button>
-                                    {{end}}
-
-                                    <button onclick="confirmDeleteAbsence('{{$.employee.ID.Hex}}', '{{.ID.Hex}}')"
-                                            class="text-red-600 hover:text-red-900">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
-                                             fill="currentColor">
-                                            <path fill-rule="evenodd"
-                                                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                                                  clip-rule="evenodd"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        {{else}}
-                        <tr>
-                            <td colspan="8" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Keine
-                                Abwesenheiten vorhanden
-                            </td>
-                        </tr>
-                        {{end}}
-                        </tbody>
-                    </table>
+                <div class="px-4 py-2 border-t border-gray-200">
+                    <h3 class="text-md font-medium text-gray-700 mb-3">Allgemeine Dokumente</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dateiname</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beschreibung</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hochgeladen am</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typ</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Größe</th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
+                            </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                            {{range .employee.Documents}}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{.Name}}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.Description}}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.UploadDate.Format "02.01.2006 15:04"}}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.FileType}}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatFileSize .FileSize}}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <a href="/employees/{{$.employee.ID.Hex}}/documents/{{.ID.Hex}}/download?category=general" class="text-green-600 hover:text-green-900 mr-3">Herunterladen</a>
+                                    <a href="#" onclick="confirmDeleteDocument('{{$.employee.ID.Hex}}', '{{.ID.Hex}}', 'general')" class="text-red-600 hover:text-red-900">Löschen</a>
+                                </td>
+                            </tr>
+                            {{else}}
+                            <tr>
+                                <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Keine Dokumente vorhanden</td>
+                            </tr>
+                            {{end}}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    <!-- 6. Gespräche -->
-    <div id="conversations-tab" class="tab-content hidden">
-        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-                <div>
-                    <h2 class="text-lg font-medium text-gray-900">Gespräche</h2>
-                    <p class="text-sm text-gray-500 mt-1">Übersicht aller Mitarbeitergespräche und Termine</p>
+        <!-- 3. Weiterbildung -->
+        <div id="trainings-tab" class="tab-content hidden space-y-6">
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                    <h2 class="text-lg font-medium text-gray-900">Weiterbildung und Zertifizierungen</h2>
+                    <button type="button" onclick="openModal('addTrainingModal')" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        Weiterbildung hinzufügen
+                    </button>
                 </div>
-                <button type="button" onclick="openModal('addConversationModal')" class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
-                    Gespräch hinzufügen
-                </button>
-            </div>
 
-            <div class="px-4 py-5 sm:px-6">
-                {{if .employee.Conversations}}
-                <div class="overflow-hidden bg-white shadow sm:rounded-lg divide-y divide-gray-200">
-                    {{range .employee.Conversations}}
-                    <div class="px-4 py-5 sm:px-6">
+                <div class="px-4 py-5 sm:px-6 divide-y divide-gray-200">
+                    {{range .employee.Trainings}}
+                    <div class="py-4 space-y-4">
                         <div class="flex justify-between">
                             <div>
-                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
-                                    {{.Title}}
-                                    <span class="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                        {{if eq .Status "planned"}}
-                                    bg-blue-100 text-blue-800
-                                    {{else if eq .Status "completed"}}
-                                    bg-green-100 text-green-800
-                                    {{else}}
-                                    bg-gray-100 text-gray-800
-                                    {{end}}">
-                                    {{if eq .Status "planned"}}Geplant{{else if eq .Status "completed"}}Abgeschlossen{{else}}{{.Status}}{{end}}
-                                    </span>
-                                    <span class="ml-2 text-sm text-gray-500">
-                                    {{.Date.Format "02.01.2006"}}
-                                </span>
-                                </h3>
-                                <div class="text-sm text-gray-500 mt-1">{{.Description}}</div>
+                                <h3 class="text-md font-medium text-gray-900">{{.Title}}</h3>
+                                <p class="text-sm text-gray-500">{{.Description}}</p>
                             </div>
-                            <div class="mt-3 flex space-x-3 items-center justify-end">
-                                {{if eq .Status "planned"}}
-                                <button type="button" onclick="markConversationCompleted('{{$.employee.ID.Hex}}', '{{.ID.Hex}}')" class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            <div class="flex items-start space-x-2">
+                                <button type="button" onclick="openTrainingDocumentUpload('{{.ID.Hex}}')" class="text-sm text-green-600 hover:text-green-900">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
                                     </svg>
-                                    Als erledigt markieren
                                 </button>
-                                {{end}}
-                                <button type="button" onclick="openEditConversationModal('{{.ID.Hex}}', '{{.Title}}', '{{.Description}}', '{{.Date.Format "2006-01-02"}}', '{{.Notes}}')" class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                                </svg>
-                                Bearbeiten
-                                </button>
-                                <button type="button" onclick="confirmDeleteConversation('{{$.employee.ID.Hex}}', '{{.ID.Hex}}')" class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                <button type="button" onclick="confirmDeleteTraining('{{$.employee.ID.Hex}}', '{{.ID.Hex}}')" class="text-sm text-red-600 hover:text-red-900">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                         <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                                     </svg>
-                                    Löschen
                                 </button>
                             </div>
-
-                            {{if .Notes}}
-                            <div class="mt-3">
-                                <div class="bg-gray-50 p-3 rounded-md">
-                                    <h4 class="text-sm font-medium text-gray-700 mb-1">Notizen:</h4>
-                                    <p class="text-sm text-gray-600 whitespace-pre-line">{{.Notes}}</p>
-                                </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                                <span class="block text-gray-500">Anbieter</span>
+                                <span class="block font-medium text-gray-900">{{.Provider}}</span>
                             </div>
-                            {{end}}
+                            <div>
+                                <span class="block text-gray-500">Zeitraum</span>
+                                <span class="block font-medium text-gray-900">
+                                    {{.StartDate.Format "02.01.2006"}} -
+                                    {{if not .EndDate.IsZero}}{{.EndDate.Format "02.01.2006"}}{{else}}aktuell{{end}}
+                                </span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-500">Zertifikat</span>
+                                <span class="block font-medium text-gray-900">{{if .Certificate}}{{.Certificate}}{{else}}-{{end}}</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-500">Status</span>
+                                <span class="block font-medium text-gray-900">
+                                    {{if eq .Status "planned"}}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Geplant</span>
+                                    {{else if eq .Status "ongoing"}}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Laufend</span>
+                                    {{else if eq .Status "completed"}}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Abgeschlossen</span>
+                                    {{else}}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">{{.Status}}</span>
+                                    {{end}}
+                                </span>
+                            </div>
+                        </div>
+                        {{if .Notes}}
+                        <div class="mt-2">
+                            <span class="block text-gray-500 text-sm">Notizen</span>
+                            <p class="text-sm text-gray-900">{{.Notes}}</p>
+                        </div>
+                        {{end}}
+
+                        {{if .Documents}}
+                        <div class="mt-2">
+                            <span class="block text-gray-500 text-sm mb-2">Dokumente</span>
+                            <ul class="divide-y divide-gray-200">
+                                {{range .Documents}}
+                                <li class="py-2 flex justify-between">
+                                    <div class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
+                                        </svg>
+                                        <span class="text-sm text-gray-900">{{.Name}}</span>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <a href="/employees/{{$.employee.ID.Hex}}/documents/{{.ID.Hex}}/download?category=training&relatedId={{$.ID.Hex}}" class="text-green-600 hover:text-green-900">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
+                                        </a>
+                                        <button onclick="confirmDeleteDocument('{{$.employee.ID.Hex}}', '{{.ID.Hex}}', 'training', '{{$.ID.Hex}}')" class="text-red-600 hover:text-red-900">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </li>
+                                {{end}}
+                            </ul>
                         </div>
                         {{end}}
                     </div>
                     {{else}}
-                    <div class="text-center py-10 bg-white rounded-lg border border-gray-100">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Gespräche vorhanden</h3>
-                        <p class="mt-1 text-sm text-gray-500">Erstellen Sie einen Gesprächstermin um zu beginnen.</p>
-                        <div class="mt-6">
-                            <button type="button" onclick="openModal('addConversationModal')" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                                <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                    <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                                </svg>
-                                Gespräch hinzufügen
-                            </button>
-                        </div>
+                    <div class="py-4 text-center text-gray-500">
+                        Keine Weiterbildungen vorhanden
                     </div>
                     {{end}}
                 </div>
             </div>
         </div>
-    </div>
-    <!-- 7. Entwicklungsplan -->
-    <div id="development-tab" class="tab-content hidden">
-        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-                <h2 class="text-lg font-medium text-gray-900">Entwicklungsplan</h2>
-                <button type="button" onclick="openModal('addDevelopmentItemModal')"
-                        class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20"
-                         fill="currentColor">
-                        <path fill-rule="evenodd"
-                              d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                              clip-rule="evenodd"/>
-                    </svg>
-                    Entwicklungsziel hinzufügen
-                </button>
-            </div>
+        <!-- 4. Leistungsbeurteilungen -->
+        <div id="evaluation-tab" class="tab-content hidden">
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                    <h2 class="text-lg font-medium text-gray-900">Leistungsbeurteilungen</h2>
+                    <button type="button" onclick="openModal('addEvaluationModal')" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        Beurteilung hinzufügen
+                    </button>
+                </div>
 
-            <div class="px-4 py-5 sm:px-6">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col"
-                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Titel
-                            </th>
-                            <th scope="col"
-                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Beschreibung
-                            </th>
-                            <th scope="col"
-                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Typ
-                            </th>
-                            <th scope="col"
-                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Zieldatum
-                            </th>
-                            <th scope="col"
-                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Status
-                            </th>
-                            <th scope="col"
-                                class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Aktionen
-                            </th>
-                        </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                        {{range .employee.DevelopmentPlan}}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{.Title}}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500">{{.Description}}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{if eq .Type "skill"}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Fähigkeit</span>
-                                {{else if eq .Type "knowledge"}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">Wissen</span>
-                                {{else if eq .Type "certification"}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Zertifizierung</span>
+                <div class="px-4 py-5 sm:px-6 divide-y divide-gray-200">
+                    {{range .employee.Evaluations}}
+                    <div class="py-4 space-y-4">
+                        <div class="flex justify-between">
+                            <div>
+                                <h3 class="text-md font-medium text-gray-900">{{.Title}}</h3>
+                                <p class="text-sm text-gray-500">Erstellt von {{.EvaluatorName}} am {{.Date.Format "02.01.2006"}}</p>
+                            </div>
+                            <div class="flex items-start space-x-2">
+                                <button type="button" onclick="openEvaluationDocumentUpload('{{.ID.Hex}}')" class="text-sm text-green-600 hover:text-green-900">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                                <button type="button" onclick="confirmDeleteEvaluation('{{$.employee.ID.Hex}}', '{{.ID.Hex}}')" class="text-sm text-red-600 hover:text-red-900">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center space-x-1 text-sm">
+                            <span class="text-gray-500">Gesamtbewertung:</span>
+                            {{ $rating := .OverallRating }}
+
+                            <div class="flex text-yellow-400">
+                                {{range $i := iterate 5}}
+                                {{if lt $i $rating}}
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118l-2.8-2.034c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
                                 {{else}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">{{.Type}}</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                </svg>
                                 {{end}}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{if not .TargetDate.IsZero}}
-                                {{.TargetDate.Format "02.01.2006"}}
-                                {{else}}
-                                -
                                 {{end}}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{if eq .Status "not started"}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Nicht begonnen</span>
-                                {{else if eq .Status "in progress"}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">In Bearbeitung</span>
-                                {{else if eq .Status "completed"}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Abgeschlossen</span>
-                                {{else}}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">{{.Status}}</span>
-                                {{end}}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <div class="flex justify-end space-x-2">
-                                    <button onclick="confirmDeleteDevelopmentItem('{{$.employee.ID.Hex}}', '{{.ID.Hex}}')"
-                                            class="text-red-600 hover:text-red-900">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
-                                             fill="currentColor">
-                                            <path fill-rule="evenodd"
-                                                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                                                  clip-rule="evenodd"/>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <span class="block text-gray-500 text-sm">Stärken</span>
+                                <p class="text-sm text-gray-900">{{.Strengths}}</p>
+                            </div>
+                            <div>
+                                <span class="block text-gray-500 text-sm">Verbesserungsbedarf</span>
+                                <p class="text-sm text-gray-900">{{.AreasToImprove}}</p>
+                            </div>
+                        </div>
+
+                        {{if .Comments}}
+                        <div>
+                            <span class="block text-gray-500 text-sm">Kommentar des Vorgesetzten</span>
+                            <p class="text-sm text-gray-900">{{.Comments}}</p>
+                        </div>
+                        {{end}}
+
+                        {{if .EmployeeComments}}
+                        <div>
+                            <span class="block text-gray-500 text-sm">Kommentar des Mitarbeiters</span>
+                            <p class="text-sm text-gray-900">{{.EmployeeComments}}</p>
+                        </div>
+                        {{end}}
+
+                        {{if .Documents}}
+                        <div class="mt-2">
+                            <span class="block text-gray-500 text-sm mb-2">Dokumente</span>
+                            <ul class="divide-y divide-gray-200">
+                                {{range .Documents}}
+                                <li class="py-2 flex justify-between">
+                                    <div class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
                                         </svg>
+                                        <span class="text-sm text-gray-900">{{.Name}}</span>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <a href="/employees/{{$.employee.ID.Hex}}/documents/{{.ID.Hex}}/download?category=evaluation&relatedId={{$.ID.Hex}}" class="text-green-600 hover:text-green-900">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
+                                        </a>
+                                        <button onclick="confirmDeleteDocument('{{$.employee.ID.Hex}}', '{{.ID.Hex}}', 'evaluation', '{{$.ID.Hex}}')" class="text-red-600 hover:text-red-900">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </li>
+                                {{end}}
+                            </ul>
+                        </div>
+                        {{end}}
+                    </div>
+                    {{else}}
+                    <div class="py-4 text-center text-gray-500">
+                        Keine Leistungsbeurteilungen vorhanden
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+        <!-- 5. Abwesenheiten -->
+        <div id="absence-tab" class="tab-content hidden">
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg font-medium text-gray-900">Abwesenheiten</h2>
+                        <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                            Urlaubsanspruch: {{.employee.VacationDays}} Tage | Verbleibend: {{.employee.RemainingVacation}} Tage
+                        </p>
+                    </div>
+                    <button type="button" onclick="openModal('addAbsenceModal')" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        Abwesenheit erfassen
+                    </button>
+                </div>
+
+                <div class="px-4 py-5 sm:px-6">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Art</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Von</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bis</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tage</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grund</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Genehmigt von</th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
+                            </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                            {{range .employee.Absences}}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {{if eq .Type "vacation"}}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Urlaub</span>
+                                    {{else if eq .Type "sick"}}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Krankheit</span>
+                                    {{else if eq .Type "special"}}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Sonderurlaub</span>
+                                    {{else}}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">{{.Type}}</span>
+                                    {{end}}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{.StartDate.Format "02.01.2006"}}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{.EndDate.Format "02.01.2006"}}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{.Days}}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{if eq .Status "requested"}}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Beantragt</span>
+                                    {{else if eq .Status "approved"}}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Genehmigt</span>
+                                    {{else if eq .Status "rejected"}}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Abgelehnt</span>
+                                    {{else if eq .Status "cancelled"}}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Storniert</span>
+                                    {{else}}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">{{.Status}}</span>
+                                    {{end}}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{.Reason}}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{if .ApproverName}}{{.ApproverName}}{{else}}-{{end}}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <div class="flex justify-end space-x-2">
+                                        {{if eq .Status "requested"}}
+                                        {{if or (eq $.userRole "admin") (eq $.userRole "hr") (eq $.userRole "manager")}}
+                                        <button onclick="approveAbsence('{{$.employee.ID.Hex}}', '{{.ID.Hex}}', 'approve')" class="text-green-600 hover:text-green-900">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                        <button onclick="approveAbsence('{{$.employee.ID.Hex}}', '{{.ID.Hex}}', 'reject')"
+                                                class="text-red-600 hover:text-red-900">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                                 fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                                      clip-rule="evenodd"/>
+                                            </svg>
+                                        </button>
+                                        {{end}}
+                                        {{end}}
+
+                                        {{if .Documents}}
+                                        <button onclick="openAbsenceDocumentsModal('{{.ID.Hex}}')"
+                                                class="text-blue-600 hover:text-blue-900">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                                 fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                      d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                                                      clip-rule="evenodd"/>
+                                            </svg>
+                                        </button>
+                                        {{else}}
+                                        <button onclick="openAbsenceDocumentUpload('{{.ID.Hex}}')"
+                                                class="text-green-600 hover:text-green-900">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                                 fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                      d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z"
+                                                      clip-rule="evenodd"/>
+                                            </svg>
+                                        </button>
+                                        {{end}}
+
+                                        <button onclick="confirmDeleteAbsence('{{$.employee.ID.Hex}}', '{{.ID.Hex}}')"
+                                                class="text-red-600 hover:text-red-900">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                                 fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                      d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                                      clip-rule="evenodd"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {{else}}
+                            <tr>
+                                <td colspan="8" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Keine
+                                    Abwesenheiten vorhanden
+                                </td>
+                            </tr>
+                            {{end}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 6. Gespräche -->
+        <div id="conversations-tab" class="tab-content hidden space-y-6">
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg font-medium text-gray-900">Gespräche</h2>
+                        <p class="text-sm text-gray-500 mt-1">Übersicht aller Mitarbeitergespräche und Termine</p>
+                    </div>
+                    <button type="button" onclick="openModal('addConversationModal')" class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        Gespräch hinzufügen
+                    </button>
+                </div>
+
+                <div class="px-4 py-5 sm:px-6">
+                    {{if .employee.Conversations}}
+                    <div class="overflow-hidden bg-white shadow sm:rounded-lg divide-y divide-gray-200">
+                        {{range .employee.Conversations}}
+                        <div class="px-4 py-5 sm:px-6">
+                            <div class="flex justify-between">
+                                <div>
+                                    <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                        {{.Title}}
+                                        <span class="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                            {{if eq .Status "planned"}}
+                                        bg-blue-100 text-blue-800
+                                        {{else if eq .Status "completed"}}
+                                        bg-green-100 text-green-800
+                                        {{else}}
+                                        bg-gray-100 text-gray-800
+                                        {{end}}">
+                                        {{if eq .Status "planned"}}Geplant{{else if eq .Status "completed"}}Abgeschlossen{{else}}{{.Status}}{{end}}
+                                        </span>
+                                        <span class="ml-2 text-sm text-gray-500">
+                                        {{.Date.Format "02.01.2006"}}
+                                    </span>
+                                    </h3>
+                                    <div class="text-sm text-gray-500 mt-1">{{.Description}}</div>
+                                </div>
+                                <div class="mt-3 flex space-x-3 items-center justify-end">
+                                    {{if eq .Status "planned"}}
+                                    <button type="button" onclick="markConversationCompleted('{{$.employee.ID.Hex}}', '{{.ID.Hex}}')" class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                        </svg>
+                                        Als erledigt markieren
+                                    </button>
+                                    {{end}}
+                                    <button type="button" onclick="openEditConversationModal('{{.ID.Hex}}', '{{.Title}}', '{{.Description}}', '{{.Date.Format "2006-01-02"}}', '{{.Notes}}')" class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                    </svg>
+                                    Bearbeiten
+                                    </button>
+                                    <button type="button" onclick="confirmDeleteConversation('{{$.employee.ID.Hex}}', '{{.ID.Hex}}')" class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                        </svg>
+                                        Löschen
                                     </button>
                                 </div>
-                            </td>
-                        </tr>
-                        {{else}}
-                        <tr>
-                            <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Keine
-                                Entwicklungsziele vorhanden
-                            </td>
-                        </tr>
-                        {{end}}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- 8. Projekte -->
-    <div id="projects-tab" class="tab-content hidden">
-        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-                <div>
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">Projektzuweisungen</h3>
-                    <p class="mt-1 max-w-2xl text-sm text-gray-500">Projekte, denen der Mitarbeiter zugewiesen ist.</p>
-                </div>
-            </div>
-            <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
-                {{if .employee.ProjectAssignments}}
-                <div class="flow-root mt-6">
-                    <ul role="list" class="-my-5 divide-y divide-gray-200">
-                        {{range .employee.ProjectAssignments}}
-                        <li class="py-4">
-                            <div class="flex items-center space-x-4">
-                                <div class="flex-shrink-0">
-                                    <div class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                                        <svg class="h-5 w-5 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                        </svg>
+
+                                {{if .Notes}}
+                                <div class="mt-3">
+                                    <div class="bg-gray-50 p-3 rounded-md">
+                                        <h4 class="text-sm font-medium text-gray-700 mb-1">Notizen:</h4>
+                                        <p class="text-sm text-gray-600 whitespace-pre-line">{{.Notes}}</p>
                                     </div>
                                 </div>
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-gray-900 truncate">
-                                        {{.ProjectName}}
-                                    </p>
-                                    <p class="text-sm text-gray-500 truncate">
-                                        {{formatDate .StartDate}} - {{formatDate .EndDate}}
-                                    </p>
-                                </div>
-                                <div>
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                            {{.Source}}
-                                        </span>
-                                </div>
+                                {{end}}
                             </div>
-                        </li>
+                            {{end}}
+                        </div>
+                        {{else}}
+                        <div class="text-center py-10 bg-white rounded-lg border border-gray-100">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Gespräche vorhanden</h3>
+                            <p class="mt-1 text-sm text-gray-500">Erstellen Sie einen Gesprächstermin um zu beginnen.</p>
+                            <div class="mt-6">
+                                <button type="button" onclick="openModal('addConversationModal')" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                    <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                                    </svg>
+                                    Gespräch hinzufügen
+                                </button>
+                            </div>
+                        </div>
                         {{end}}
-                    </ul>
+                    </div>
                 </div>
-                {{else}}
-                <p class="text-sm text-gray-500">Keine Projektzuweisungen vorhanden.</p>
-                {{end}}
             </div>
         </div>
-    </div>
-    <!-- 9. Urlaub -->
-    <div id="vacation-tab" class="tab-content hidden">
-        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-                <div>
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">Urlaubsübersicht</h3>
-                    <p class="mt-1 max-w-2xl text-sm text-gray-500">Übersicht aller Urlaube und Abwesenheiten.</p>
+        <!-- 7. Entwicklungsplan -->
+        <div id="development-tab" class="tab-content hidden space-y-6">
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Entwicklungsplan</h3>
+                        <p class="mt-1 max-w-2xl text-sm text-gray-500">Ziele und Entwicklungsschritte</p>
+                    </div>
+                    <button type="button" onclick="openModal('addDevelopmentItemModal')" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        Hinzufügen
+                    </button>
                 </div>
-
-                <!-- Summary statistics for vacations -->
-                <div class="bg-gray-50 px-4 py-3 rounded-md">
-                    <div class="grid grid-cols-2 gap-4 text-center">
-                        <div>
-                            <p class="text-sm text-gray-500">Urlaubstage gesamt</p>
-                            <p class="text-lg font-semibold">{{.employee.VacationDays}}</p>
+                <!-- Entwicklungsplan-Inhalt -->
+                <div class="border-t border-gray-200">
+                    <div class="bg-white overflow-hidden">
+                        {{if .employee.DevelopmentPlan}}
+                        <ul class="divide-y divide-gray-200">
+                            {{range .employee.DevelopmentPlan}}
+                            <li class="px-4 py-4 sm:px-6">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex flex-col">
+                                        <p class="text-sm font-medium text-gray-900">{{.Title}}</p>
+                                        <p class="text-sm text-gray-500">{{.Description}}</p>
+                                        <div class="mt-2 flex items-center text-sm text-gray-500">
+                                            <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                                            </svg>
+                                            <span>Zieldatum: {{formatDate .TargetDate}}</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center">
+                                        {{if eq .Status "completed"}}
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Abgeschlossen</span>
+                                        {{else if eq .Status "in progress"}}
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">In Bearbeitung</span>
+                                        {{else}}
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Nicht begonnen</span>
+                                        {{end}}
+                                        <button onclick="confirmDeleteDevelopmentItem('{{$.employee.ID.Hex}}', '{{.ID.Hex}}', '{{.Title}}')" class="ml-4 text-red-600 hover:text-red-900">
+                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </li>
+                            {{end}}
+                        </ul>
+                        {{else}}
+                        <div class="text-center py-8">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+                            </svg>
+                            <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Entwicklungspunkte</h3>
+                            <p class="mt-1 text-sm text-gray-500">Beginnen Sie damit, einen Entwicklungspunkt hinzuzufügen.</p>
+                            <div class="mt-6">
+                                <button type="button" onclick="openModal('addDevelopmentItemModal')" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                    <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                                    </svg>
+                                    Entwicklungspunkt hinzufügen
+                                </button>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-sm text-gray-500">Verbleibend</p>
-                            <p class="text-lg font-semibold">{{.employee.RemainingVacation}}</p>
-                        </div>
+                        {{end}}
                     </div>
                 </div>
             </div>
-
-            <div class="border-t border-gray-200">
-                <!-- Filter controls -->
-                <div class="px-4 py-3 bg-gray-50 sm:px-6 flex justify-between items-center">
-                    <div class="flex items-center space-x-4">
-                        <span class="text-sm font-medium text-gray-700">Filter:</span>
-                        <div>
-                            <select id="vacation-year-filter" class="mt-1 block pl-3 pr-10 py-1 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
-                                <option value="all">Alle Jahre</option>
-                                <option value="2025" selected>2025</option>
-                                <option value="2024">2024</option>
-                                <option value="2023">2023</option>
-                            </select>
-                        </div>
-                        <div>
-                            <select id="vacation-type-filter" class="mt-1 block pl-3 pr-10 py-1 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
-                                <option value="all">Alle Typen</option>
-                                <option value="vacation">Urlaub</option>
-                                <option value="sick">Krankheit</option>
-                                <option value="special">Sonderurlaub</option>
-                            </select>
-                        </div>
-                    </div>
-
+        </div>
+        <!-- 8. Projekte -->
+        <div id="projects-tab" class="tab-content hidden space-y-6">
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
                     <div>
-                        <select id="vacation-status-filter" class="mt-1 block pl-3 pr-10 py-1 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
-                            <option value="all">Alle Status</option>
-                            <option value="approved">Genehmigt</option>
-                            <option value="requested">Beantragt</option>
-                            <option value="rejected">Abgelehnt</option>
-                        </select>
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Projekte</h3>
+                        <p class="mt-1 max-w-2xl text-sm text-gray-500">Projektbeteiligungen des Mitarbeiters</p>
                     </div>
                 </div>
-
-                <!-- Vacation list -->
-                <div class="px-4 py-5 sm:px-6">
-                    {{if .employee.Absences}}
-                    <div class="flow-root">
-                        <ul role="list" class="divide-y divide-gray-200" id="vacation-list">
-                            {{range .employee.Absences}}
-                            <li class="py-4 vacation-item"
-                                data-type="{{.Type}}"
-                                data-status="{{.Status}}"
-                                data-year="{{.StartDate.Year}}">
-                                <div class="flex items-center space-x-4">
-                                    <div class="flex-shrink-0">
-                                        <div class="h-10 w-10 rounded-full flex items-center justify-center
-                                                {{if eq .Type "vacation"}}bg-green-100{{else if eq .Type "sick"}}bg-red-100{{else}}bg-blue-100{{end}}">
-                                        {{if eq .Type "vacation"}}
-                                        <svg class="h-6 w-6 {{if eq .Type "vacation"}}text-green-600{{else if eq .Type "sick"}}text-red-600{{else}}text-blue-600{{end}}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                                        </svg>
-                                        {{else if eq .Type "sick"}}
-                                        <svg class="h-6 w-6 {{if eq .Type "vacation"}}text-green-600{{else if eq .Type "sick"}}text-red-600{{else}}text-blue-600{{end}}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        {{else}}
-                                        <svg class="h-6 w-6 {{if eq .Type "vacation"}}text-green-600{{else if eq .Type "sick"}}text-red-600{{else}}text-blue-600{{end}}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
+                <div class="border-t border-gray-200">
+                    <div class="bg-white overflow-hidden">
+                        {{if .employee.ProjectAssignments}}
+                        <ul class="divide-y divide-gray-200">
+                            {{range .employee.ProjectAssignments}}
+                            <li class="px-4 py-4 sm:px-6">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex flex-col">
+                                        <p class="text-sm font-medium text-gray-900">{{.ProjectName}}</p>
+                                        {{if .Role}}
+                                        <p class="text-sm text-gray-500">Rolle: {{.Role}}</p>
+                                        {{end}}
+                                        <div class="mt-2 flex items-center text-sm text-gray-500">
+                                            <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                                            </svg>
+                                            <span>{{formatDate .StartDate}} - {{formatDate .EndDate}}</span>
+                                        </div>
+                                        {{if .Notes}}
+                                        <p class="mt-2 text-sm text-gray-500">{{.Notes}}</p>
+                                        {{end}}
+                                        {{if .Source}}
+                                        <p class="mt-1 text-xs text-gray-400">Quelle: {{.Source}}</p>
                                         {{end}}
                                     </div>
                                 </div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex justify-between">
-                                        <p class="text-sm font-medium text-gray-900">
-                                            {{if eq .Type "vacation"}}
-                                            Urlaub
-                                            {{else if eq .Type "sick"}}
-                                            Krankheit
-                                            {{else}}
-                                            Sonderurlaub
-                                            {{end}}
-                                            {{if .Reason}} - {{.Reason}}{{end}}
-                                        </p>
-                                        <div>
-                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                                        {{if eq .Status "approved"}}bg-green-100 text-green-800
-                                            {{else if eq .Status "requested"}}bg-yellow-100 text-yellow-800
-                                            {{else if eq .Status "rejected"}}bg-red-100 text-red-800
-                                            {{else}}bg-gray-100 text-gray-800{{end}}">
-                                            {{if eq .Status "approved"}}
-                                            Genehmigt
-                                            {{else if eq .Status "requested"}}
-                                            Beantragt
-                                            {{else if eq .Status "rejected"}}
-                                            Abgelehnt
-                                            {{else}}
-                                            {{.Status}}
-                                            {{end}}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="mt-1 flex items-center">
-                                        <p class="text-sm text-gray-500 mr-2">
-                                            <span class="font-medium">Zeitraum:</span>
-                                            {{formatDate .StartDate}} - {{formatDate .EndDate}}
-                                        </p>
-                                        <p class="text-sm text-gray-500">
-                                            <span class="font-medium">Tage:</span>
-                                            {{.Days}}
-                                        </p>
-                                    </div>
-                                    {{if .Notes}}
-                                    <p class="mt-1 text-sm text-gray-500">
-                                        <span class="font-medium">Notizen:</span> {{.Notes}}
-                                    </p>
-                                    {{end}}
-                                </div>
+                            </li>
+                            {{end}}
+                        </ul>
+                        {{else}}
+                        <div class="text-center py-8">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd" />
+                                <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z" />
+                            </svg>
+                            <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Projekte</h3>
+                            <p class="mt-1 text-sm text-gray-500">Dieser Mitarbeiter ist noch keinem Projekt zugewiesen.</p>
+                            <p class="mt-1 text-xs text-gray-500">Projekte können über Integrationen wie 123erfasst synchronisiert werden.</p>
+                        </div>
+                        {{end}}
                     </div>
-                    </li>
-                    {{end}}
-                    </ul>
                 </div>
-                {{else}}
-                <p class="text-sm text-gray-500">Keine Urlaube oder Abwesenheiten vorhanden.</p>
-                {{end}}
+            </div>
+        </div>
+        <!-- Urlaub Tab -->
+        <div id="vacation-tab" class="tab-content hidden space-y-6">
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Urlaub & Abwesenheiten</h3>
+                        <p class="mt-1 max-w-2xl text-sm text-gray-500">Übersicht aller Urlaube und Abwesenheiten</p>
+                    </div>
+                    <button type="button" onclick="openModal('addAbsenceModal')" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        Abwesenheit hinzufügen
+                    </button>
+                </div>
+
+                <!-- Urlaubskonto -->
+                <div class="px-4 py-5 sm:px-6 border-t border-gray-200">
+                    <h4 class="text-base font-medium text-gray-900">Urlaubskonto</h4>
+                    <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-3">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="text-sm font-medium text-gray-500">Gesamter Jahresurlaub</div>
+                            <div class="mt-1 text-3xl font-semibold text-gray-900">{{.employee.VacationDays}} Tage</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="text-sm font-medium text-gray-500">Bereits genommen</div>
+                            <div class="mt-1 text-3xl font-semibold text-gray-900">{{.usedVacationDays}} Tage</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="text-sm font-medium text-gray-500">Verbleibender Urlaub</div>
+                            <div class="mt-1 text-3xl font-semibold text-gray-900">{{.remainingVacation}} Tage</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Abwesenheiten Liste -->
+                <div class="border-t border-gray-200">
+                    <div class="bg-white overflow-hidden">
+                        {{if .employee.Absences}}
+                        <ul class="divide-y divide-gray-200">
+                            {{range .employee.Absences}}
+                            <li class="px-4 py-4 sm:px-6">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex flex-col">
+                                        {{if eq .Type "vacation"}}
+                                        <p class="text-sm font-medium text-gray-900">Urlaub</p>
+                                        {{else if eq .Type "sick"}}
+                                        <p class="text-sm font-medium text-gray-900">Krankheit</p>
+                                        {{else}}
+                                        <p class="text-sm font-medium text-gray-900">Sonstige Abwesenheit</p>
+                                        {{end}}
+                                        <div class="mt-2 flex items-center text-sm text-gray-500">
+                                            <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                                            </svg>
+                                            <span>{{formatDate .StartDate}} - {{formatDate .EndDate}} ({{.Days}} Tage)</span>
+                                        </div>
+                                        {{if .Reason}}
+                                        <p class="mt-1 text-sm text-gray-500">{{.Reason}}</p>
+                                        {{end}}
+                                    </div>
+                                    <div>
+                                        {{if eq .Status "approved"}}
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Genehmigt</span>
+                                        {{else if eq .Status "requested"}}
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Beantragt</span>
+                                        {{else if eq .Status "rejected"}}
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Abgelehnt</span>
+                                        {{else}}
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">{{.Status}}</span>
+                                        {{end}}
+                                    </div>
+                                </div>
+                            </li>
+                            {{end}}
+                        </ul>
+                        {{else}}
+                        <div class="text-center py-8">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                            </svg>
+                            <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Abwesenheiten</h3>
+                            <p class="mt-1 text-sm text-gray-500">Beginnen Sie damit, eine Abwesenheit hinzuzufügen.</p>
+                            <div class="mt-6">
+                                <button type="button" onclick="openModal('addAbsenceModal')" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                    <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                                    </svg>
+                                    Abwesenheit hinzufügen
+                                </button>
+                            </div>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1512,743 +1432,6 @@
 {{ template "footer" . }}
 <script src="/static/js/employee_detail_advanced.js"></script>
 <script>
-    // Fügen Sie diese Funktion dem bestehenden JavaScript in employee_detail_advanced.html hinzu
-    function previewImage(input) {
-        const preview = document.getElementById('profileImagePreview');
-
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-
-            reader.onload = function(e) {
-                if (preview.tagName.toLowerCase() === 'img') {
-                    preview.src = e.target.result;
-                } else {
-                    // Wenn es ein DIV ist (Standard-Avatar), ersetzen wir es durch ein Image
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.className = 'h-32 w-32 rounded-full mx-auto object-cover';
-                    img.id = 'profileImagePreview';
-                    preview.parentNode.replaceChild(img, preview);
-                }
-            }
-
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-
-    // In employee_detail_advanced.html
-    document.addEventListener('DOMContentLoaded', function() {
-        const uploadProfileImageForm = document.getElementById('uploadProfileImageForm');
-        if (uploadProfileImageForm) {
-            uploadProfileImageForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const formData = new FormData(this);
-
-                fetch(this.action, {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            return response.json().then(data => {
-                                throw new Error(data.error || 'Fehler beim Hochladen des Profilbilds');
-                            });
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        closeModal('uploadProfileImageModal');
-                        // Display success message
-                        alert('Profilbild erfolgreich hochgeladen');
-                        // Reload the page to show the updated profile image
-                        window.location.reload();
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Ein Fehler ist aufgetreten: ' + error.message);
-                    });
-            });
-        }
-    });
-
-    // Modal functions
-    function openModal(id) {
-        document.getElementById(id).classList.remove('hidden');
-        document.body.classList.add('overflow-hidden');
-    }
-
-    function closeModal(id) {
-        document.getElementById(id).classList.add('hidden');
-        document.body.classList.remove('overflow-hidden');
-    }
-
-    // Document upload for training
-    function openTrainingDocumentUpload(trainingId) {
-        const docCategory = document.getElementById('docCategory');
-        const docRelatedId = document.getElementById('docRelatedId');
-
-        // Set the category and related ID
-        if (docCategory) docCategory.value = 'training';
-        if (docRelatedId) docRelatedId.value = trainingId;
-
-        // Open the modal
-        openModal('uploadDocumentModal');
-    }
-
-    // Document upload for evaluation
-    function openEvaluationDocumentUpload(evaluationId) {
-        const docCategory = document.getElementById('docCategory');
-        const docRelatedId = document.getElementById('docRelatedId');
-
-        // Set the category and related ID
-        if (docCategory) docCategory.value = 'evaluation';
-        if (docRelatedId) docRelatedId.value = evaluationId;
-
-        // Open the modal
-        openModal('uploadDocumentModal');
-    }
-
-    // Document upload for absence
-    function openAbsenceDocumentUpload(absenceId) {
-        const docCategory = document.getElementById('docCategory');
-        const docRelatedId = document.getElementById('docRelatedId');
-
-        // Set the category and related ID
-        if (docCategory) docCategory.value = 'absence';
-        if (docRelatedId) docRelatedId.value = absenceId;
-
-        // Open the modal
-        openModal('uploadDocumentModal');
-    }
-
-    // Document deletion confirmation
-    function confirmDeleteDocument(employeeId, documentId, category, relatedId = '') {
-        const title = document.getElementById('confirmationTitle');
-        const message = document.getElementById('confirmationMessage');
-        const confirmBtn = document.getElementById('confirmActionBtn');
-
-        if (title) title.textContent = 'Dokument löschen';
-        if (message) message.textContent = 'Sind Sie sicher, dass Sie dieses Dokument löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.';
-
-        if (confirmBtn) {
-            confirmBtn.onclick = function() {
-                deleteDocument(employeeId, documentId, category, relatedId);
-            };
-        }
-
-        openModal('confirmationModal');
-    }
-
-    // Training deletion confirmation
-    function confirmDeleteTraining(employeeId, trainingId) {
-        const title = document.getElementById('confirmationTitle');
-        const message = document.getElementById('confirmationMessage');
-        const confirmBtn = document.getElementById('confirmActionBtn');
-
-        if (title) title.textContent = 'Weiterbildung löschen';
-        if (message) message.textContent = 'Sind Sie sicher, dass Sie diese Weiterbildung löschen möchten? Alle zugehörigen Dokumente werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.';
-
-        if (confirmBtn) {
-            confirmBtn.onclick = function() {
-                deleteTraining(employeeId, trainingId);
-            };
-        }
-
-        openModal('confirmationModal');
-    }
-
-    // Evaluation deletion confirmation
-    function confirmDeleteEvaluation(employeeId, evaluationId) {
-        const title = document.getElementById('confirmationTitle');
-        const message = document.getElementById('confirmationMessage');
-        const confirmBtn = document.getElementById('confirmActionBtn');
-
-        if (title) title.textContent = 'Leistungsbeurteilung löschen';
-        if (message) message.textContent = 'Sind Sie sicher, dass Sie diese Leistungsbeurteilung löschen möchten? Alle zugehörigen Dokumente werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.';
-
-        if (confirmBtn) {
-            confirmBtn.onclick = function() {
-                deleteEvaluation(employeeId, evaluationId);
-            };
-        }
-
-        openModal('confirmationModal');
-    }
-
-    // Absence deletion confirmation
-    function confirmDeleteAbsence(employeeId, absenceId) {
-        const title = document.getElementById('confirmationTitle');
-        const message = document.getElementById('confirmationMessage');
-        const confirmBtn = document.getElementById('confirmActionBtn');
-
-        if (title) title.textContent = 'Abwesenheit löschen';
-        if (message) message.textContent = 'Sind Sie sicher, dass Sie diese Abwesenheit löschen möchten? Alle zugehörigen Dokumente werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.';
-
-        if (confirmBtn) {
-            confirmBtn.onclick = function() {
-                deleteAbsence(employeeId, absenceId);
-            };
-        }
-
-        openModal('confirmationModal');
-    }
-
-    // Development item deletion confirmation
-    function confirmDeleteDevelopmentItem(employeeId, itemId) {
-        const title = document.getElementById('confirmationTitle');
-        const message = document.getElementById('confirmationMessage');
-        const confirmBtn = document.getElementById('confirmActionBtn');
-
-        if (title) title.textContent = 'Entwicklungsziel löschen';
-        if (message) message.textContent = 'Sind Sie sicher, dass Sie dieses Entwicklungsziel löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.';
-
-        if (confirmBtn) {
-            confirmBtn.onclick = function() {
-                deleteDevelopmentItem(employeeId, itemId);
-            };
-        }
-
-        openModal('confirmationModal');
-    }
-
-    // AJAX functions for deleting items
-    function deleteDocument(employeeId, documentId, category, relatedId = '') {
-        let url = `/employees/${employeeId}/documents/${documentId}?category=${category}`;
-        if (relatedId) {
-            url += `&relatedId=${relatedId}`;
-        }
-
-        fetch(url, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Fehler beim Löschen des Dokuments');
-                }
-                return response.json();
-            })
-            .then(data => {
-                closeModal('confirmationModal');
-                // Reload the page to show the updated data
-                window.location.reload();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Ein Fehler ist aufgetreten: ' + error.message);
-            });
-    }
-
-    function deleteTraining(employeeId, trainingId) {
-        fetch(`/employees/${employeeId}/trainings/${trainingId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Fehler beim Löschen der Weiterbildung');
-                }
-                return response.json();
-            })
-            .then(data => {
-                closeModal('confirmationModal');
-                // Reload the page to show the updated data
-                window.location.reload();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Ein Fehler ist aufgetreten: ' + error.message);
-            });
-    }
-
-    function deleteEvaluation(employeeId, evaluationId) {
-        fetch(`/employees/${employeeId}/evaluations/${evaluationId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Fehler beim Löschen der Leistungsbeurteilung');
-                }
-                return response.json();
-            })
-            .then(data => {
-                closeModal('confirmationModal');
-                // Reload the page to show the updated data
-                window.location.reload();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Ein Fehler ist aufgetreten: ' + error.message);
-            });
-    }
-
-    function deleteAbsence(employeeId, absenceId) {
-        fetch(`/employees/${employeeId}/absences/${absenceId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Fehler beim Löschen der Abwesenheit');
-                }
-                return response.json();
-            })
-            .then(data => {
-                closeModal('confirmationModal');
-                // Reload the page to show the updated data
-                window.location.reload();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Ein Fehler ist aufgetreten: ' + error.message);
-            });
-    }
-
-    function deleteDevelopmentItem(employeeId, itemId) {
-        fetch(`/employees/${employeeId}/development/${itemId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Fehler beim Löschen des Entwicklungsziels');
-                }
-                return response.json();
-            })
-            .then(data => {
-                closeModal('confirmationModal');
-                // Reload the page to show the updated data
-                window.location.reload();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Ein Fehler ist aufgetreten: ' + error.message);
-            });
-    }
-
-    // Function to approve or reject absence
-    function approveAbsence(employeeId, absenceId, action) {
-        const formData = new FormData();
-        formData.append('action', action);
-
-        fetch(`/employees/${employeeId}/absences/${absenceId}/approve`, {
-            method: 'POST',
-            body: formData
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Fehler beim ${action === 'approve' ? 'Genehmigen' : 'Ablehnen'} der Abwesenheit`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Reload the page to show the updated data
-                window.location.reload();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Ein Fehler ist aufgetreten: ' + error.message);
-            });
-    }
-
-    // Function to show absence documents in a modal
-    function openAbsenceDocumentsModal(absenceId) {
-        // This would need a new modal to be implemented
-        alert('Funktion noch nicht implementiert');
-    }
-
-    // Function to display a specific tab
-    function showTab(tabId) {
-        // Hide all tab contents
-        document.querySelectorAll('.tab-content').forEach(tab => {
-            tab.classList.add('hidden');
-        });
-
-        // Remove active class from all tab buttons
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('bg-green-100', 'text-green-700');
-            btn.classList.add('text-gray-500', 'hover:text-gray-700', 'hover:bg-gray-100');
-        });
-
-        // Show the selected tab content
-        document.getElementById(tabId + '-tab').classList.remove('hidden');
-
-        // Add active class to the selected tab button
-        const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
-        activeBtn.classList.remove('text-gray-500', 'hover:text-gray-700', 'hover:bg-gray-100');
-        activeBtn.classList.add('bg-green-100', 'text-green-700');
-    }
-    
-    // Initialize page with the first tab active
-    document.addEventListener('DOMContentLoaded', function() {
-        showTab('personal');
-
-        // Form submission handlers
-        const uploadDocumentForm = document.getElementById('uploadDocumentForm');
-        if (uploadDocumentForm) {
-            uploadDocumentForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const formData = new FormData(this);
-
-                fetch(this.action, {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Fehler beim Hochladen des Dokuments');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        closeModal('uploadDocumentModal');
-                        // Reload the page to show the updated data
-                        window.location.reload();
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Ein Fehler ist aufgetreten: ' + error.message);
-                    });
-            });
-        }
-
-        const addTrainingForm = document.getElementById('addTrainingForm');
-        if (addTrainingForm) {
-            addTrainingForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const formData = new FormData(this);
-
-                fetch(this.action, {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Fehler beim Hinzufügen der Weiterbildung');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        closeModal('addTrainingModal');
-                        // Reload the page to show the updated data
-                        window.location.reload();
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Ein Fehler ist aufgetreten: ' + error.message);
-                    });
-            });
-        }
-
-        const addEvaluationForm = document.getElementById('addEvaluationForm');
-        if (addEvaluationForm) {
-            addEvaluationForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const formData = new FormData(this);
-
-                fetch(this.action, {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Fehler beim Hinzufügen der Leistungsbeurteilung');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        closeModal('addEvaluationModal');
-                        // Reload the page to show the updated data
-                        window.location.reload();
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Ein Fehler ist aufgetreten: ' + error.message);
-                    });
-            });
-        }
-
-        const addAbsenceForm = document.getElementById('addAbsenceForm');
-        if (addAbsenceForm) {
-            addAbsenceForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const formData = new FormData(this);
-
-                fetch(this.action, {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Fehler beim Hinzufügen der Abwesenheit');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        closeModal('addAbsenceModal');
-                        // Reload the page to show the updated data
-                        window.location.reload();
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Ein Fehler ist aufgetreten: ' + error.message);
-                    });
-            });
-        }
-
-        const addDevelopmentItemForm = document.getElementById('addDevelopmentItemForm');
-        if (addDevelopmentItemForm) {
-            addDevelopmentItemForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const formData = new FormData(this);
-
-                fetch(this.action, {
-                    method: 'POST',
-                    body: formData
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Fehler beim Hinzufügen des Entwicklungsziels');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        closeModal('addDevelopmentItemModal');
-                        // Reload the page to show the updated data
-                        window.location.reload();
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Ein Fehler ist aufgetreten: ' + error.message);
-                    });
-            });
-        }
-    });
-
-    // Löschen-Bestätigung für ein Gespräch
-    function confirmDeleteConversation(employeeId, conversationId) {
-        const title = document.getElementById('confirmationTitle');
-        const message = document.getElementById('confirmationMessage');
-        const confirmBtn = document.getElementById('confirmActionBtn');
-
-        if (title) title.textContent = 'Gespräch löschen';
-        if (message) message.textContent = 'Sind Sie sicher, dass Sie dieses Gespräch löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.';
-
-        if (confirmBtn) {
-            confirmBtn.onclick = function() {
-                deleteConversation(employeeId, conversationId);
-            };
-        }
-
-        openModal('confirmationModal');
-    }
-
-    // Gespräch löschen
-    function deleteConversation(employeeId, conversationId) {
-        fetch(`/employees/${employeeId}/conversations/${conversationId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Fehler beim Löschen des Gesprächs');
-                }
-                return response.json();
-            })
-            .then(data => {
-                closeModal('confirmationModal');
-                // Seite neu laden, um die Änderungen anzuzeigen
-                window.location.reload();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Ein Fehler ist aufgetreten: ' + error.message);
-            });
-    }
-
-    // Gespräch als abgeschlossen markieren
-    // Ergänzung der bestehenden Funktion zum Markieren als abgeschlossen
-    function markConversationCompleted(employeeId, conversationId) {
-        fetch(`/employees/${employeeId}/conversations/${conversationId}/complete`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Fehler beim Markieren des Gesprächs als abgeschlossen');
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Seite neu laden, um die Änderungen anzuzeigen
-                window.location.reload();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Ein Fehler ist aufgetreten: ' + error.message);
-            });
-    }
-
-    // Formular-Handling für das Hinzufügen von Gesprächen
-    document.addEventListener('DOMContentLoaded', function() {
-        const addConversationForm = document.getElementById('addConversationForm');
-        if (addConversationForm) {
-            addConversationForm.addEventListener('submit', addConversationHandler);
-        }
-    });
-
-    // Funktion zum Öffnen des Bearbeitungsmodals
-    function openEditConversationModal(id, title, description, date, notes) {
-        // Das bestehende Modal-Formular verwenden
-        const form = document.getElementById('addConversationForm');
-
-        // Umbennen der Form-Action
-        form.action = `/employees/{{.employee.ID.Hex}}/conversations/${id}`;
-        form.method = 'POST';
-
-        // Formularfelder ausfüllen
-        const titleField = document.getElementById('conversationTitle');
-        const dateField = document.getElementById('conversationDate');
-        const descriptionField = document.getElementById('conversationDescription');
-        const notesField = document.getElementById('conversationNotes');
-
-        if (titleField) titleField.value = title;
-        if (dateField) dateField.value = date;
-        if (descriptionField) descriptionField.value = description;
-        if (notesField) notesField.value = notes || '';
-
-        // Überschrift ändern
-        const modalTitle = document.querySelector('#addConversationModal .text-lg.font-medium');
-        if (modalTitle) modalTitle.textContent = 'Gespräch bearbeiten';
-
-        // Button-Text ändern
-        const submitButton = form.querySelector('button[type="submit"]');
-        if (submitButton) submitButton.textContent = 'Speichern';
-
-        // Hidden Input für die ID hinzufügen (falls nicht vorhanden)
-        let idField = form.querySelector('input[name="id"]');
-        if (!idField) {
-            idField = document.createElement('input');
-            idField.type = 'hidden';
-            idField.name = 'id';
-            form.appendChild(idField);
-        }
-        idField.value = id;
-
-        // Event-Listener hinzufügen (vorhandene entfernen)
-        form.removeEventListener('submit', addConversationHandler);
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            updateConversation(id);
-        });
-
-        // Modal öffnen
-        openModal('addConversationModal');
-    }
-
-    // Funktion zum Aktualisieren eines Gesprächs
-    function updateConversation(conversationId) {
-        const form = document.getElementById('addConversationForm');
-        const formData = new FormData(form);
-
-        // AJAX-Request für das Update
-        fetch(`/employees/{{.employee.ID.Hex}}/conversations/${conversationId}`, {
-            method: 'PUT',
-            body: formData
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Fehler beim Aktualisieren des Gesprächs');
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Formular zurücksetzen
-                form.reset();
-
-                // Modal-Titel und Button-Text zurücksetzen
-                const modalTitle = document.querySelector('#addConversationModal .text-lg.font-medium');
-                if (modalTitle) modalTitle.textContent = 'Gespräch hinzufügen';
-
-                const submitButton = form.querySelector('button[type="submit"]');
-                if (submitButton) submitButton.textContent = 'Hinzufügen';
-
-                // Event-Listener für das Hinzufügen wiederherstellen
-                form.removeEventListener('submit', updateConversation);
-                form.addEventListener('submit', addConversationHandler);
-
-                // Modal schließen
-                closeModal('addConversationModal');
-
-                // Seite neu laden
-                window.location.reload();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Ein Fehler ist aufgetreten: ' + error.message);
-            });
-    }
-    function addConversationHandler(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-
-        fetch(this.action, {
-            method: 'POST',
-            body: formData
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Fehler beim Hinzufügen des Gesprächs');
-                }
-                return response.json();
-            })
-            .then(data => {
-                closeModal('addConversationModal');
-                // Seite neu laden, um die Änderungen anzuzeigen
-                window.location.reload();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Ein Fehler ist aufgetreten: ' + error.message);
-            });
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        // Prüfen, ob ein Hashtag in der URL ist
-        if (window.location.hash) {
-            // Extrahieren des Tab-Namens aus dem Hash
-            const tabName = window.location.hash.substring(1); // Entfernt das # vom Anfang
-
-            // Wenn der Hash dem Tab "conversations" entspricht, diesen Tab anzeigen
-            if (tabName === 'conversations') {
-                showTab('conversations');
-
-                // Scrolle ein bisschen nach unten, damit der Tab in der Mitte der Seite ist
-                setTimeout(function() {
-                    window.scrollBy({
-                        top: 200,
-                        behavior: 'smooth'
-                    });
-                }, 100);
-            }
-        }
-    });
-
 
 </script>
 </body>
