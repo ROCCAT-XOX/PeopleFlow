@@ -10,7 +10,9 @@ import (
 	"errors"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -473,5 +475,410 @@ func (s *Erfasst123Service) SyncErfasst123Projects(startDate, endDate string) (i
 		}
 	}
 
+	return updatedCount, nil
+}
+
+// Add to backend/service/erfasst123_service.go
+
+// GetTimeEntries retrieves time entry data from 123erfasst
+func (s *Erfasst123Service) GetTimeEntries(startDate, endDate string) ([]model.Erfasst123Time, error) {
+	email, password, err := s.GetCredentials()
+	if err != nil {
+		return nil, err
+	}
+
+	// Basic Auth Token
+	auth := fmt.Sprintf("%s:%s", email, password)
+	encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
+
+	// Format the dates properly with timezone information
+	startDateTime := fmt.Sprintf("%sT00:00:00Z", startDate)
+	endDateTime := fmt.Sprintf("%sT23:59:59Z", endDate)
+
+	fmt.Printf("Formatted date range: %s to %s\n", startDateTime, endDateTime)
+
+	// GraphQL query for time entry data
+	query := fmt.Sprintf(`{
+        "query": "query GetStaffTimesWithActivityAndWage($filter: TimeCollectionFilter) { times(filter: $filter) { nodes { fid person { ident firstname lastname mail } project { id name } date timeStart timeEnd activity { ident name } wageType { ident name } } totalCount } }",
+        "variables": {
+            "filter": {
+                "date": {
+                    "_gte": "%s",
+                    "_lte": "%s"
+                }
+            }
+        }
+    }`, startDateTime, endDateTime)
+
+	// Debug: Print the query
+	fmt.Printf("Query: %s\n", query)
+
+	// HTTP request
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	req, err := http.NewRequest("POST", "https://server.123erfasst.de/api/graphql", bytes.NewBufferString(query))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Basic "+encodedAuth)
+
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("123erfasst API error: %s", res.Status)
+	}
+
+	// Read the response body
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Debug: Log a sample of the response
+	if len(body) > 100 {
+		fmt.Printf("Response sample (first 100 chars): %s...\n", string(body[:100]))
+	} else {
+		fmt.Printf("Response: %s\n", string(body))
+	}
+
+	// Parse response using a new reader
+	var response model.Erfasst123TimeResponse
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse dates and calculate durations
+	for i, timeEntry := range response.Data.Times.Nodes {
+		// Debug: Log the raw date fields for this entry
+		fmt.Printf("Entry %d raw data - date: %s, timeStart: %s, timeEnd: %s\n",
+			i, timeEntry.Date, timeEntry.TimeStart, timeEntry.TimeEnd)
+
+		// Parse date with multiple formats
+		if timeEntry.Date != "" {
+			var parseErr error
+			var dateParsed time.Time
+
+			// Try different date formats
+			formats := []string{
+				"2006-01-02",  // ISO format
+				"02.01.2006",  // German format
+				"2006/01/02",  // Slash format
+				"Jan 2, 2006", // Text format
+				"2 Jan 2006",  // Alternative text format
+				time.RFC3339,  // RFC3339
+			}
+
+			for _, format := range formats {
+				dateParsed, parseErr = time.Parse(format, timeEntry.Date)
+				if parseErr == nil {
+					response.Data.Times.Nodes[i].DateParsed = dateParsed
+					break
+				}
+			}
+
+			if parseErr != nil {
+				fmt.Printf("Warning: Could not parse date %s with any format\n", timeEntry.Date)
+			}
+		} else {
+			fmt.Printf("Warning: Empty date field for time entry %d\n", i)
+		}
+
+		// Parse start time with multiple formats
+		if timeEntry.TimeStart != "" {
+			var parseErr error
+			var startTime time.Time
+
+			// Try different time formats
+			formats := []string{
+				time.RFC3339,          // 2006-01-02T15:04:05Z07:00
+				"2006-01-02T15:04:05", // Without timezone
+				"2006-01-02 15:04:05", // Space instead of T
+				"15:04:05",            // Time only
+			}
+
+			for _, format := range formats {
+				startTime, parseErr = time.Parse(format, timeEntry.TimeStart)
+				if parseErr == nil {
+					response.Data.Times.Nodes[i].TimeStartParsed = startTime
+					break
+				}
+			}
+
+			if parseErr != nil {
+				// Special handling for time-only formats
+				if len(timeEntry.TimeStart) <= 8 && strings.Contains(timeEntry.TimeStart, ":") {
+					// If it's just time (like "07:30:00"), combine with the date
+					if !response.Data.Times.Nodes[i].DateParsed.IsZero() {
+						timeComponents := strings.Split(timeEntry.TimeStart, ":")
+						if len(timeComponents) >= 2 {
+							hour, _ := strconv.Atoi(timeComponents[0])
+							minute, _ := strconv.Atoi(timeComponents[1])
+
+							// Create a new time using the date and the time components
+							date := response.Data.Times.Nodes[i].DateParsed
+							combinedTime := time.Date(
+								date.Year(), date.Month(), date.Day(),
+								hour, minute, 0, 0, time.UTC)
+
+							response.Data.Times.Nodes[i].TimeStartParsed = combinedTime
+							fmt.Printf("Combined date %s with time %s: %s\n",
+								date.Format("2006-01-02"),
+								timeEntry.TimeStart,
+								combinedTime.Format(time.RFC3339))
+						}
+					}
+				} else {
+					fmt.Printf("Warning: Could not parse start time %s with any format\n", timeEntry.TimeStart)
+				}
+			}
+		} else {
+			fmt.Printf("Warning: Empty timeStart field for time entry %d\n", i)
+		}
+
+		// Parse end time with similar approach
+		if timeEntry.TimeEnd != "" {
+			var parseErr error
+			var endTime time.Time
+
+			// Try different time formats
+			formats := []string{
+				time.RFC3339,          // 2006-01-02T15:04:05Z07:00
+				"2006-01-02T15:04:05", // Without timezone
+				"2006-01-02 15:04:05", // Space instead of T
+				"15:04:05",            // Time only
+			}
+
+			for _, format := range formats {
+				endTime, parseErr = time.Parse(format, timeEntry.TimeEnd)
+				if parseErr == nil {
+					response.Data.Times.Nodes[i].TimeEndParsed = endTime
+					break
+				}
+			}
+
+			if parseErr != nil {
+				// Special handling for time-only formats
+				if len(timeEntry.TimeEnd) <= 8 && strings.Contains(timeEntry.TimeEnd, ":") {
+					// If it's just time (like "12:00:00"), combine with the date
+					if !response.Data.Times.Nodes[i].DateParsed.IsZero() {
+						timeComponents := strings.Split(timeEntry.TimeEnd, ":")
+						if len(timeComponents) >= 2 {
+							hour, _ := strconv.Atoi(timeComponents[0])
+							minute, _ := strconv.Atoi(timeComponents[1])
+
+							// Create a new time using the date and the time components
+							date := response.Data.Times.Nodes[i].DateParsed
+							combinedTime := time.Date(
+								date.Year(), date.Month(), date.Day(),
+								hour, minute, 0, 0, time.UTC)
+
+							response.Data.Times.Nodes[i].TimeEndParsed = combinedTime
+							fmt.Printf("Combined date %s with time %s: %s\n",
+								date.Format("2006-01-02"),
+								timeEntry.TimeEnd,
+								combinedTime.Format(time.RFC3339))
+						}
+					}
+				} else {
+					fmt.Printf("Warning: Could not parse end time %s with any format\n", timeEntry.TimeEnd)
+				}
+			}
+		} else {
+			fmt.Printf("Warning: Empty timeEnd field for time entry %d\n", i)
+		}
+
+		// Calculate duration if both start and end times are valid
+		if !response.Data.Times.Nodes[i].TimeStartParsed.IsZero() && !response.Data.Times.Nodes[i].TimeEndParsed.IsZero() {
+			duration := response.Data.Times.Nodes[i].TimeEndParsed.Sub(response.Data.Times.Nodes[i].TimeStartParsed).Hours()
+			response.Data.Times.Nodes[i].Duration = duration
+			fmt.Printf("Calculated duration for entry %d: %.2f hours\n", i, duration)
+		} else {
+			fmt.Printf("Skipping duration calculation for entry %d due to invalid times\n", i)
+		}
+	}
+
+	// Log how many entries have valid dates
+	validEntries := 0
+	for _, entry := range response.Data.Times.Nodes {
+		if !entry.DateParsed.IsZero() && !entry.TimeStartParsed.IsZero() && !entry.TimeEndParsed.IsZero() {
+			validEntries++
+		}
+	}
+	fmt.Printf("Found %d entries with valid dates out of %d total entries\n",
+		validEntries, len(response.Data.Times.Nodes))
+
+	// Mark integration as active
+	s.integrationRepo.SetIntegrationStatus("123erfasst", true)
+
+	return response.Data.Times.Nodes, nil
+}
+
+// SyncErfasst123TimeEntries synchronizes 123erfasst time entries with PeopleFlow employees
+func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string) (int, error) {
+	// Get time entries from 123erfasst
+	fmt.Printf("Fetching time entries from 123erfasst for period %s to %s\n", startDate, endDate)
+
+	timeEntries, err := s.GetTimeEntries(startDate, endDate)
+	if err != nil {
+		fmt.Printf("Error fetching time entries: %v\n", err)
+		return 0, err
+	}
+
+	fmt.Printf("Received %d time entries from 123erfasst\n", len(timeEntries))
+
+	// Repository for employees
+	employeeRepo := repository.NewEmployeeRepository()
+
+	// Counter for updated employees
+	updatedCount := 0
+
+	// Process each time entry
+	employeesChecked := make(map[string]bool)
+	employeesFound := make(map[string]bool)
+
+	for _, timeEntry := range timeEntries {
+		// Skip if dates not parsed correctly
+		if timeEntry.DateParsed.IsZero() || timeEntry.TimeStartParsed.IsZero() || timeEntry.TimeEndParsed.IsZero() {
+			fmt.Printf("Skipping time entry with invalid dates for person %s %s\n",
+				timeEntry.Person.Firstname, timeEntry.Person.Lastname)
+			continue
+		}
+
+		personIdent := timeEntry.Person.Ident
+		personName := fmt.Sprintf("%s %s", timeEntry.Person.Firstname, timeEntry.Person.Lastname)
+
+		// Only log the lookup attempt once per employee
+		if !employeesChecked[personIdent] {
+			employeesChecked[personIdent] = true
+			fmt.Printf("Looking up employee with 123erfasst ID: %s (%s)\n", personIdent, personName)
+		}
+
+		// Find the employee by 123erfasst ID
+		employee, err := employeeRepo.FindByErfasst123ID(personIdent)
+		if err != nil {
+			if !employeesChecked[personIdent] {
+				fmt.Printf("Could not find employee by Erfasst123ID %s: %v\n", personIdent, err)
+			}
+
+			// Employee not found by ID, try by email and name
+			if !employeesFound[personIdent] {
+				employees, err := employeeRepo.FindAll()
+				if err != nil {
+					fmt.Printf("Error fetching all employees: %v\n", err)
+					continue
+				}
+
+				// Match by email or name
+				employeeFound := false
+				for _, emp := range employees {
+					if strings.EqualFold(emp.Email, timeEntry.Person.Mail) ||
+						(strings.EqualFold(emp.FirstName, timeEntry.Person.Firstname) &&
+							strings.EqualFold(emp.LastName, timeEntry.Person.Lastname)) {
+
+						// Found a match - update the employee with the 123erfasst ID
+						if emp.Erfasst123ID == "" {
+							fmt.Printf("Updating employee %s %s with 123erfasst ID: %s\n",
+								emp.FirstName, emp.LastName, personIdent)
+							emp.Erfasst123ID = personIdent
+							emp.UpdatedAt = time.Now()
+							err = employeeRepo.Update(emp)
+							if err != nil {
+								fmt.Printf("Error updating employee %s %s with 123erfasst ID: %v\n",
+									emp.FirstName, emp.LastName, err)
+							}
+						}
+
+						employee = emp
+						employeeFound = true
+						employeesFound[personIdent] = true
+						fmt.Printf("Found employee %s %s by email/name match\n",
+							emp.FirstName, emp.LastName)
+						break
+					}
+				}
+
+				// If still not found, skip this time entry
+				if !employeeFound {
+					if !employeesFound[personIdent] {
+						fmt.Printf("Could not find matching employee for %s (%s, email: %s)\n",
+							personName, personIdent, timeEntry.Person.Mail)
+					}
+					continue
+				}
+			} else {
+				// Skip if we've already tried and failed to find this employee
+				continue
+			}
+		} else {
+			employeesFound[personIdent] = true
+		}
+
+		// Check if this time entry already exists
+		timeEntryExists := false
+		for _, existingEntry := range employee.TimeEntries {
+			if existingEntry.Date.Equal(timeEntry.DateParsed) &&
+				existingEntry.StartTime.Equal(timeEntry.TimeStartParsed) &&
+				existingEntry.EndTime.Equal(timeEntry.TimeEndParsed) &&
+				existingEntry.ProjectID == timeEntry.Project.ID {
+				timeEntryExists = true
+				break
+			}
+		}
+
+		// If time entry doesn't exist, add it
+		if !timeEntryExists {
+			// Create a new time entry
+			wageTypeName := ""
+			if timeEntry.WageType != nil {
+				wageTypeName = timeEntry.WageType.Name
+			}
+
+			activityName := ""
+			if timeEntry.Activity.Name != "" {
+				activityName = timeEntry.Activity.Name
+			}
+
+			newTimeEntry := model.TimeEntry{
+				ID:          primitive.NewObjectID(),
+				Date:        timeEntry.DateParsed,
+				StartTime:   timeEntry.TimeStartParsed,
+				EndTime:     timeEntry.TimeEndParsed,
+				Duration:    timeEntry.Duration,
+				ProjectID:   timeEntry.Project.ID,
+				ProjectName: timeEntry.Project.Name,
+				Activity:    activityName,
+				WageType:    wageTypeName,
+				Source:      "123erfasst",
+			}
+
+			// Add to employee's time entries
+			employee.TimeEntries = append(employee.TimeEntries, newTimeEntry)
+			employee.UpdatedAt = time.Now()
+
+			// Update employee in database
+			err = employeeRepo.Update(employee)
+			if err != nil {
+				fmt.Printf("Error updating employee %s %s: %v\n",
+					employee.FirstName, employee.LastName, err)
+				continue
+			}
+
+			updatedCount++
+			fmt.Printf("Updated employee %s %s with time entry for project: %s on %s\n",
+				employee.FirstName, employee.LastName, timeEntry.Project.Name,
+				timeEntry.DateParsed.Format("2006-01-02"))
+		}
+	}
+
+	fmt.Printf("Sync complete. Updated %d time entries across employees.\n", updatedCount)
 	return updatedCount, nil
 }

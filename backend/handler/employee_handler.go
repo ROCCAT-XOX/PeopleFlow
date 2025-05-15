@@ -292,6 +292,54 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 		employee.RemainingVacation = employee.VacationDays - int(usedVacationDays)
 	}
 
+	// Prepare time entries data for the view
+	var timeEntries []model.TimeEntry
+	var totalHours float64
+	var projectMap = make(map[string]float64)
+	var startDate time.Time
+	var endDate time.Time
+
+	// Sort time entries by date (newest first)
+	if len(employee.TimeEntries) > 0 {
+		// Make a copy to avoid modifying the original
+		timeEntries = make([]model.TimeEntry, len(employee.TimeEntries))
+		copy(timeEntries, employee.TimeEntries)
+
+		// Sort time entries by date (newest first)
+		sort.Slice(timeEntries, func(i, j int) bool {
+			return timeEntries[i].Date.After(timeEntries[j].Date)
+		})
+
+		// Initialize with the first entry's date
+		startDate = timeEntries[len(timeEntries)-1].Date
+		endDate = timeEntries[0].Date
+
+		// Calculate total hours and project distribution
+		for _, entry := range timeEntries {
+			totalHours += entry.Duration
+			projectMap[entry.ProjectName] += entry.Duration
+
+			// Update start and end dates if needed
+			if entry.Date.Before(startDate) {
+				startDate = entry.Date
+			}
+			if entry.Date.After(endDate) {
+				endDate = entry.Date
+			}
+		}
+	}
+
+	// Convert project map to arrays for chart
+	var projectLabels []string
+	var projectHours []float64
+	for project, hours := range projectMap {
+		projectLabels = append(projectLabels, project)
+		projectHours = append(projectHours, hours)
+	}
+
+	// Format total hours with 2 decimal places
+	totalHoursFormatted := fmt.Sprintf("%.2f", totalHours)
+
 	// Daten an das Template übergeben
 	c.HTML(http.StatusOK, "employee_detail_advanced.html", gin.H{
 		"title":             employee.FirstName + " " + employee.LastName,
@@ -308,6 +356,13 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 		"hideSalary":        hideSalary,
 		"usedVacationDays":  usedVacationDays,
 		"remainingVacation": employee.RemainingVacation,
+		"timeEntries":       timeEntries,
+		"totalHours":        totalHoursFormatted,
+		"projectCount":      len(projectMap),
+		"startDate":         startDate,
+		"endDate":           endDate,
+		"projectLabels":     projectLabels,
+		"projectHours":      projectHours,
 	})
 }
 

@@ -83,6 +83,7 @@ type Employee struct {
 	// Integration 123erfasst
 	Erfasst123ID       string              `bson:"erfasst123Id,omitempty" json:"erfasst123Id,omitempty"`
 	ProjectAssignments []ProjectAssignment `bson:"projectAssignments,omitempty" json:"projectAssignments,omitempty"`
+	TimeEntries        []TimeEntry         `bson:"timeEntries,omitempty" json:"timeEntries,omitempty"`
 }
 
 // Document repräsentiert ein Dokument oder eine Datei im System
@@ -175,5 +176,19 @@ type ProjectAssignment struct {
 	EndDate     time.Time          `bson:"endDate" json:"endDate"`
 	Role        string             `bson:"role,omitempty" json:"role,omitempty"`
 	Notes       string             `bson:"notes,omitempty" json:"notes,omitempty"`
+	Source      string             `bson:"source" json:"source"` // e.g., "123erfasst"
+}
+
+// TimeEntry represents a time entry logged by an employee
+type TimeEntry struct {
+	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Date        time.Time          `bson:"date" json:"date"`
+	StartTime   time.Time          `bson:"startTime" json:"startTime"`
+	EndTime     time.Time          `bson:"endTime" json:"endTime"`
+	Duration    float64            `bson:"duration" json:"duration"` // Duration in hours
+	ProjectID   string             `bson:"projectId" json:"projectId"`
+	ProjectName string             `bson:"projectName" json:"projectName"`
+	Activity    string             `bson:"activity" json:"activity"`
+	WageType    string             `bson:"wageType,omitempty" json:"wageType,omitempty"`
 	Source      string             `bson:"source" json:"source"` // e.g., "123erfasst"
 }

@@ -542,3 +542,63 @@ function openAbsenceDocumentsModal(absenceId) {
     // Stub-Funktion, noch nicht implementiert
     alert('Funktion noch nicht implementiert');
 }
+
+
+// ============ TIME TRACKING ==============
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if the time entries tab is selected and initialize chart
+    const timeEntriesTab = document.getElementById('timeentries-tab');
+    const timeDistributionChart = document.getElementById('timeDistributionChart');
+
+    if (timeEntriesTab && timeDistributionChart) {
+        // Get project data from the rendered page
+        const projectLabels = JSON.parse('{{.projectLabels | json}}' || '[]');
+        const projectHours = JSON.parse('{{.projectHours | json}}' || '[]');
+
+        // Initialize chart when the tab is clicked
+        document.querySelector('[data-tab="timeentries"]').addEventListener('click', function() {
+            if (!window.timeChart) {
+                window.timeChart = new Chart(timeDistributionChart, {
+                    type: 'pie',
+                    data: {
+                        labels: projectLabels,
+                        datasets: [{
+                            data: projectHours,
+                            backgroundColor: [
+                                '#10B981', // green-500
+                                '#3B82F6', // blue-500
+                                '#F59E0B', // amber-500
+                                '#EF4444', // red-500
+                                '#8B5CF6', // purple-500
+                                '#EC4899', // pink-500
+                                '#14B8A6', // teal-500
+                                '#F97316', // orange-500
+                                '#6366F1', // indigo-500
+                                '#06B6D4'  // cyan-500
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltips: {
+                            callbacks: {
+                                label: function(tooltipItem, data) {
+                                    const dataset = data.datasets[tooltipItem.datasetIndex];
+                                    const total = dataset.data.reduce((acc, val) => acc + val, 0);
+                                    const currentValue = dataset.data[tooltipItem.index];
+                                    const percentage = Math.round((currentValue / total) * 100);
+                                    return `${data.labels[tooltipItem.index]}: ${currentValue.toFixed(2)} Std. (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+});

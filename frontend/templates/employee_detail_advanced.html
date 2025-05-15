@@ -81,6 +81,9 @@
             <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="conversations">
                 Mitarbeitergespräche
             </button>
+            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="timeentries">
+                Zeiterfassung
+            </button>
         </nav>
     </div>
 
@@ -1014,6 +1017,90 @@
                                     Abwesenheit hinzufügen
                                 </button>
                             </div>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Zeiterfassung -->
+        <div id="timeentries-tab" class="tab-content hidden space-y-6">
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Zeiterfassung</h3>
+                        <p class="mt-1 max-w-2xl text-sm text-gray-500">Erfasste Arbeitszeiten des Mitarbeiters</p>
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-500">Quelle: 123erfasst</span>
+                    </div>
+                </div>
+                <div class="border-t border-gray-200">
+                    <div class="bg-white overflow-hidden">
+                        {{if .employee.TimeEntries}}
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Datum</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Projekt</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tätigkeit</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Von</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bis</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dauer</th>
+                                </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                {{range .timeEntries}}
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{.Date.Format "02.01.2006"}}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.ProjectName}}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.Activity}}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.StartTime.Format "15:04"}}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.EndTime.Format "15:04"}}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{printf "%.2f" .Duration}} Std.</td>
+                                </tr>
+                                {{end}}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Time summary section -->
+                        <div class="px-4 py-5 sm:px-6 border-t border-gray-200">
+                            <h4 class="text-base font-medium text-gray-900 mb-3">Zusammenfassung</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <div class="text-sm font-medium text-gray-500">Gesamtstunden</div>
+                                    <div class="mt-1 text-3xl font-semibold text-gray-900">{{.totalHours}} Std.</div>
+                                </div>
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <div class="text-sm font-medium text-gray-500">Projekte</div>
+                                    <div class="mt-1 text-3xl font-semibold text-gray-900">{{.projectCount}}</div>
+                                </div>
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <div class="text-sm font-medium text-gray-500">Zeitraum</div>
+                                    <div class="mt-1 text-sm font-medium text-gray-900">
+                                        {{.startDate.Format "02.01.2006"}} - {{.endDate.Format "02.01.2006"}}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chart section for time distribution by project -->
+                        <div class="px-4 py-5 sm:px-6 border-t border-gray-200">
+                            <h4 class="text-base font-medium text-gray-900 mb-3">Stundenverteilung nach Projekten</h4>
+                            <div class="h-64">
+                                <canvas id="timeDistributionChart"></canvas>
+                            </div>
+                        </div>
+                        {{else}}
+                        <div class="text-center py-8">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                            </svg>
+                            <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Zeiterfassungsdaten</h3>
+                            <p class="mt-1 text-sm text-gray-500">Für diesen Mitarbeiter sind keine Zeiterfassungsdaten vorhanden.</p>
+                            <p class="mt-1 text-xs text-gray-500">Zeiten können über die 123erfasst-Integration synchronisiert werden.</p>
                         </div>
                         {{end}}
                     </div>

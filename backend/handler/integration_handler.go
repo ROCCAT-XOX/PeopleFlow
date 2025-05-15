@@ -307,3 +307,44 @@ func (h *IntegrationHandler) RemoveErfasst123Integration(c *gin.Context) {
 		"message": "123erfasst-Integration erfolgreich entfernt",
 	})
 }
+
+// SyncErfasst123TimeEntries synchronizes 123erfasst time entries with PeopleFlow employees
+func (h *IntegrationHandler) SyncErfasst123TimeEntries(c *gin.Context) {
+	// Check if 123erfasst is connected
+	if !h.erfasst123Service.IsConnected() {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "123erfasst is not connected",
+		})
+		return
+	}
+
+	// Get date range from request, default to current month
+	now := time.Now()
+	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	startDate := c.DefaultQuery("startDate", startOfMonth.Format("2006-01-02"))
+
+	// End date defaults to one month from start date
+	endDateDefault := startOfMonth.AddDate(0, 1, -1).Format("2006-01-02")
+	endDate := c.DefaultQuery("endDate", endDateDefault)
+
+	// Perform synchronization
+	updatedCount, err := h.erfasst123Service.SyncErfasst123TimeEntries(startDate, endDate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Error synchronizing time entries: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":      true,
+		"message":      fmt.Sprintf("%d employees were updated with time entries", updatedCount),
+		"updatedCount": updatedCount,
+		"dateRange": gin.H{
+			"startDate": startDate,
+			"endDate":   endDate,
+		},
+	})
+}

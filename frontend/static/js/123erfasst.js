@@ -167,22 +167,79 @@ function saveErfasst123Credentials() {
         });
 }
 
-// Mitarbeiterdaten synchronisieren
-function syncErfasst123Employees() {
-    fetch('/api/integrations/123erfasst/sync/employees', {
-        method: 'POST'
+// Function to save 123erfasst credentials
+function saveErfasst123Credentials() {
+    const email = document.getElementById('erfasst123-email').value;
+    const password = document.getElementById('erfasst123-password').value;
+
+    if (!email || !password) {
+        showNotification('Fehler', 'Bitte geben Sie E-Mail und Passwort ein.', 'error');
+        return;
+    }
+
+    // Show loading state
+    const button = event.currentTarget;
+    const originalText = button.innerHTML;
+    button.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Speichern...
+    `;
+    button.disabled = true;
+
+    // Create form data
+    const formData = new FormData();
+    formData.append('erfasst123-email', email);
+    formData.append('erfasst123-password', password);
+
+    // Save credentials
+    fetch('/api/integrations/123erfasst/save', {
+        method: 'POST',
+        body: formData
     })
         .then(response => response.json())
         .then(data => {
+            // Restore button state
+            button.innerHTML = originalText;
+            button.disabled = false;
+
             if (data.success) {
-                alert(`Synchronisierung erfolgreich! ${data.updatedCount} Mitarbeiter wurden aktualisiert.`);
+                // Show success notification
+                showNotification(
+                    'Anmeldedaten gespeichert',
+                    'Die 123erfasst Anmeldedaten wurden erfolgreich gespeichert.',
+                    'success'
+                );
+
+                // Update status and enable sync buttons
+                document.getElementById('erfasst123Status').innerHTML = 'Verbunden';
+                document.getElementById('erfasst123Status').className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800';
+                document.getElementById('removeErfasst123Btn').disabled = false;
+                document.getElementById('erfasst123SyncButtons').style.display = 'flex';
+
+                // Check if 123erfasst integration is connected
+                loadIntegrationStatus();
             } else {
-                alert('Fehler: ' + data.message);
+                // Show error notification
+                showNotification(
+                    'Fehler beim Speichern',
+                    data.message || 'Die Anmeldedaten konnten nicht gespeichert werden.',
+                    'error'
+                );
             }
         })
         .catch(error => {
-            console.error('Fehler bei der Synchronisierung:', error);
-            alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+            // Restore button state and show error
+            button.innerHTML = originalText;
+            button.disabled = false;
+            showNotification(
+                'Fehler beim Speichern',
+                'Beim Speichern der Anmeldedaten ist ein Fehler aufgetreten.',
+                'error'
+            );
+            console.error('Error:', error);
         });
 }
 
@@ -215,23 +272,23 @@ function removeErfasst123Integration() {
 // Function to synchronize 123erfasst projects
 function syncErfasst123Projects() {
     // Show loading state
-    const button = event.target;
+    const button = event.currentTarget;
     const originalText = button.innerHTML;
-    button.disabled = true;
     button.innerHTML = `
-        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
         Synchronisiere...
     `;
+    button.disabled = true;
 
-    // Get current month date range
+    // Get date range for the current month
     const now = new Date();
     const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
     const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
-    // Make AJAX request
+    // Call API to sync projects
     fetch(`/api/integrations/123erfasst/sync/projects?startDate=${startDate}&endDate=${endDate}`, {
         method: 'POST',
         headers: {
@@ -240,22 +297,36 @@ function syncErfasst123Projects() {
     })
         .then(response => response.json())
         .then(data => {
-            // Reset button
-            button.disabled = false;
+            // Restore button state
             button.innerHTML = originalText;
+            button.disabled = false;
 
-            // Show success or error message
             if (data.success) {
-                showNotification('success', data.message);
+                // Show success notification
+                showNotification(
+                    'Synchronisierung erfolgreich',
+                    `Es wurden ${data.updatedCount} Mitarbeiter mit Projektdaten aktualisiert.`,
+                    'success'
+                );
             } else {
-                showNotification('error', data.message);
+                // Show error notification
+                showNotification(
+                    'Fehler bei der Synchronisierung',
+                    data.message || 'Die Projektdaten konnten nicht synchronisiert werden.',
+                    'error'
+                );
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            button.disabled = false;
+            // Restore button state and show error
             button.innerHTML = originalText;
-            showNotification('error', 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+            button.disabled = false;
+            showNotification(
+                'Fehler bei der Synchronisierung',
+                'Bei der Synchronisierung ist ein unerwarteter Fehler aufgetreten.',
+                'error'
+            );
+            console.error('Error:', error);
         });
 }
 
@@ -291,4 +362,65 @@ function showNotification(type, message) {
         notification.style.opacity = '0';
         notification.style.transform = 'translateY(2px)';
     }, 3000);
+}
+
+// Function to synchronize time entries from 123erfasst
+function syncErfasst123TimeEntries() {
+    // Show loading state
+    const button = event.currentTarget;
+    const originalText = button.innerHTML;
+    button.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Synchronisiere...
+    `;
+    button.disabled = true;
+
+    // Get date range for the current month
+    const now = new Date();
+    const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+
+    // Call API to sync time entries
+    fetch(`/api/integrations/123erfasst/sync/times?startDate=${startDate}&endDate=${endDate}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            // Restore button state
+            button.innerHTML = originalText;
+            button.disabled = false;
+
+            if (data.success) {
+                // Show success notification with the number of updated records
+                showNotification(
+                    'Synchronisierung erfolgreich',
+                    `Es wurden ${data.updatedCount} Mitarbeiter mit Zeiterfassungsdaten aktualisiert.`,
+                    'success'
+                );
+            } else {
+                // Show error notification
+                showNotification(
+                    'Fehler bei der Synchronisierung',
+                    data.message || 'Die Zeiterfassungsdaten konnten nicht synchronisiert werden.',
+                    'error'
+                );
+            }
+        })
+        .catch(error => {
+            // Restore button state and show error
+            button.innerHTML = originalText;
+            button.disabled = false;
+            showNotification(
+                'Fehler bei der Synchronisierung',
+                'Bei der Synchronisierung ist ein unerwarteter Fehler aufgetreten.',
+                'error'
+            );
+            console.error('Error:', error);
+        });
 }

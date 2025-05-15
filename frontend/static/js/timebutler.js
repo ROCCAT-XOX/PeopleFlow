@@ -78,95 +78,192 @@ function updateTimebutlerStatus(connected, hasApiKey) {
     }
 }
 
+// Function to save Timebutler API key
 function saveTimebutlerApiKey() {
-    const apiKeyInput = document.getElementById('timebutler-api');
-    if (!apiKeyInput) {
-        console.error("API Key input element not found!");
-        return;
-    }
-
-    const apiKey = apiKeyInput.value;
-
-    // Wenn der Input-Feld Sternchen enthält und der Schlüssel bereits gespeichert ist, nichts tun
-    if (apiKey === '••••••••••••••••••••••••••••••••') {
-        alert('API-Schlüssel ist bereits gespeichert');
-        return;
-    }
+    const apiKey = document.getElementById('timebutler-api').value;
 
     if (!apiKey) {
-        alert('Bitte geben Sie einen API-Schlüssel ein');
+        showNotification('Fehler', 'Bitte geben Sie einen API-Schlüssel ein.', 'error');
         return;
     }
 
-    const form = document.getElementById('timebutlerForm');
-    if (!form) {
-        console.error("Timebutler form not found!");
-        return;
-    }
+    // Show loading state
+    const button = event.currentTarget;
+    const originalText = button.innerHTML;
+    button.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Speichern...
+    `;
+    button.disabled = true;
 
-    const formData = new FormData(form);
+    // Create form data
+    const formData = new FormData();
+    formData.append('timebutler-api', apiKey);
 
+    // Save API key
     fetch('/api/integrations/timebutler/save', {
         method: 'POST',
         body: formData
     })
         .then(response => response.json())
         .then(data => {
+            // Restore button state
+            button.innerHTML = originalText;
+            button.disabled = false;
+
             if (data.success) {
-                alert('Timebutler-Integration erfolgreich konfiguriert');
-                fetchIntegrationStatus();
+                // Show success notification
+                showNotification(
+                    'API-Schlüssel gespeichert',
+                    'Der Timebutler API-Schlüssel wurde erfolgreich gespeichert.',
+                    'success'
+                );
+
+                // Update status and enable sync buttons
+                document.getElementById('timebutlerStatus').innerHTML = 'Verbunden';
+                document.getElementById('timebutlerStatus').className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800';
+                document.getElementById('removeTimebutlerBtn').disabled = false;
+                document.getElementById('timebutlerSyncButtons').style.display = 'flex';
+
+                // Check if Timebutler integration is connected
+                loadIntegrationStatus();
             } else {
-                alert('Fehler: ' + data.message);
+                // Show error notification
+                showNotification(
+                    'Fehler beim Speichern',
+                    data.message || 'Der API-Schlüssel konnte nicht gespeichert werden.',
+                    'error'
+                );
             }
         })
         .catch(error => {
+            // Restore button state and show error
+            button.innerHTML = originalText;
+            button.disabled = false;
+            showNotification(
+                'Fehler beim Speichern',
+                'Beim Speichern des API-Schlüssels ist ein Fehler aufgetreten.',
+                'error'
+            );
             console.error('Error:', error);
-            alert('Fehler bei der Verbindung mit dem Server');
         });
 }
 
+// Function to synchronize users from Timebutler
 function syncTimebutlerUsers() {
-    showSyncSpinner('Synchronisiere Benutzerdaten...');
+    // Show loading state
+    const button = event.currentTarget;
+    const originalText = button.innerHTML;
+    button.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Synchronisiere...
+    `;
+    button.disabled = true;
 
+    // Call API to sync users
     fetch('/api/integrations/timebutler/sync/users', {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
     })
         .then(response => response.json())
         .then(data => {
-            hideSyncSpinner();
+            // Restore button state
+            button.innerHTML = originalText;
+            button.disabled = false;
+
             if (data.success) {
-                alert(data.message);
+                // Show success notification
+                showNotification(
+                    'Synchronisierung erfolgreich',
+                    `Es wurden ${data.updatedCount} Mitarbeiter aktualisiert.`,
+                    'success'
+                );
             } else {
-                alert('Fehler: ' + data.message);
+                // Show error notification
+                showNotification(
+                    'Fehler bei der Synchronisierung',
+                    data.message || 'Die Mitarbeiterdaten konnten nicht synchronisiert werden.',
+                    'error'
+                );
             }
         })
         .catch(error => {
-            hideSyncSpinner();
+            // Restore button state and show error
+            button.innerHTML = originalText;
+            button.disabled = false;
+            showNotification(
+                'Fehler bei der Synchronisierung',
+                'Bei der Synchronisierung ist ein unerwarteter Fehler aufgetreten.',
+                'error'
+            );
             console.error('Error:', error);
-            alert('Fehler bei der Synchronisierung');
         });
 }
 
+// Function to synchronize absences from Timebutler
 function syncTimebutlerAbsences() {
-    const year = new Date().getFullYear();
-    showSyncSpinner('Synchronisiere Abwesenheiten...');
+    // Show loading state
+    const button = event.currentTarget;
+    const originalText = button.innerHTML;
+    button.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Synchronisiere...
+    `;
+    button.disabled = true;
 
-    fetch(`/api/integrations/timebutler/sync/absences?year=${year}`, {
-        method: 'POST'
+    // Get current year
+    const currentYear = new Date().getFullYear();
+
+    // Call API to sync absences
+    fetch(`/api/integrations/timebutler/sync/absences?year=${currentYear}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
     })
         .then(response => response.json())
         .then(data => {
-            hideSyncSpinner();
+            // Restore button state
+            button.innerHTML = originalText;
+            button.disabled = false;
+
             if (data.success) {
-                alert(data.message);
+                // Show success notification
+                showNotification(
+                    'Synchronisierung erfolgreich',
+                    `Es wurden ${data.updatedCount} Mitarbeiter mit Abwesenheitsdaten aktualisiert.`,
+                    'success'
+                );
             } else {
-                alert('Fehler: ' + data.message);
+                // Show error notification
+                showNotification(
+                    'Fehler bei der Synchronisierung',
+                    data.message || 'Die Abwesenheitsdaten konnten nicht synchronisiert werden.',
+                    'error'
+                );
             }
         })
         .catch(error => {
-            hideSyncSpinner();
+            // Restore button state and show error
+            button.innerHTML = originalText;
+            button.disabled = false;
+            showNotification(
+                'Fehler bei der Synchronisierung',
+                'Bei der Synchronisierung ist ein unerwarteter Fehler aufgetreten.',
+                'error'
+            );
             console.error('Error:', error);
-            alert('Fehler bei der Synchronisierung');
         });
 }
 
@@ -198,46 +295,63 @@ function hideSyncSpinner() {
     }
 }
 
-// Add this to frontend/static/js/timebutler.js
 
+
+// Function to synchronize holiday entitlements from Timebutler
 function syncTimebutlerHolidayEntitlements() {
     // Show loading state
-    const btnText = "Urlaubsansprüche synchronisieren";
-    const btn = document.querySelector('[onclick="syncTimebutlerHolidayEntitlements()"]');
-    if (btn) {
-        btn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Synchronisiere...';
-        btn.disabled = true;
-    }
+    const button = event.currentTarget;
+    const originalText = button.innerHTML;
+    button.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Synchronisiere...
+    `;
+    button.disabled = true;
 
     // Get current year
     const currentYear = new Date().getFullYear();
 
-    // Call API
+    // Call API to sync holiday entitlements
     fetch(`/api/integrations/timebutler/sync/holidayentitlements?year=${currentYear}`, {
         method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                showNotification('success', data.message);
-            } else {
-                showNotification('error', data.message || 'Fehler bei der Synchronisierung');
-            }
+            // Restore button state
+            button.innerHTML = originalText;
+            button.disabled = false;
 
-            // Reset button
-            if (btn) {
-                btn.innerHTML = btnText;
-                btn.disabled = false;
+            if (data.success) {
+                // Show success notification
+                showNotification(
+                    'Synchronisierung erfolgreich',
+                    `Es wurden ${data.updatedCount} Mitarbeiter mit Urlaubsansprüchen aktualisiert.`,
+                    'success'
+                );
+            } else {
+                // Show error notification
+                showNotification(
+                    'Fehler bei der Synchronisierung',
+                    data.message || 'Die Urlaubsansprüche konnten nicht synchronisiert werden.',
+                    'error'
+                );
             }
         })
         .catch(error => {
+            // Restore button state and show error
+            button.innerHTML = originalText;
+            button.disabled = false;
+            showNotification(
+                'Fehler bei der Synchronisierung',
+                'Bei der Synchronisierung ist ein unerwarteter Fehler aufgetreten.',
+                'error'
+            );
             console.error('Error:', error);
-            showNotification('error', 'Ein unerwarteter Fehler ist aufgetreten');
-
-            // Reset button
-            if (btn) {
-                btn.innerHTML = btnText;
-                btn.disabled = false;
-            }
         });
 }

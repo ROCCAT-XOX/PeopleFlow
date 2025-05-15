@@ -23,7 +23,6 @@ type Erfasst123Employee struct {
 	ExitDateParsed *time.Time `json:"-"`        // Intern geparst
 }
 
-// Erfasst123Response repräsentiert die Antwortstruktur der GraphQL API
 type Erfasst123Response struct {
 	Data struct {
 		Persons struct {
