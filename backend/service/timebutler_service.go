@@ -579,7 +579,7 @@ func (s *TimebutlerService) ParseTimebutlerAbsences(data string) (map[string][]m
 	return absencesMap, nil
 }
 
-// SyncTimebutlerAbsences synchronisiert Timebutler-Abwesenheiten mit PeopleFlow-Mitarbeitern
+// SyncTimebutlerAbsences synchronizes Timebutler absences with PeopleFlow employees
 func (s *TimebutlerService) SyncTimebutlerAbsences(year string) (int, error) {
 	// Timebutler-Abwesenheiten abrufen
 	absencesData, err := s.GetAbsences(year)
@@ -623,6 +623,9 @@ func (s *TimebutlerService) SyncTimebutlerAbsences(year string) (int, error) {
 			fmt.Printf("Employee %s %s has Timebutler UserID: %s\n", emp.FirstName, emp.LastName, emp.TimebutlerUserID)
 		}
 	}
+
+	// Standardwert für Urlaubstage pro Jahr
+	const standardVacationDays = 30
 
 	// Zähler für aktualisierte Mitarbeiter
 	updatedCount := 0
@@ -714,15 +717,39 @@ func (s *TimebutlerService) SyncTimebutlerAbsences(year string) (int, error) {
 			}
 		}
 
-		// Mitarbeiter aktualisieren, wenn Abwesenheiten hinzugefügt wurden
-		if abwesenheitenHinzugefuegt {
+		// Calculate total vacation days and remaining vacation
+		// Aktuelle Jahr berechnen
+		currentYear := time.Now().Year()
+		var usedVacationDays float64 = 0
+
+		// Berechnen, wie viele Urlaubstage im aktuellen Jahr genommen wurden
+		for _, absence := range employee.Absences {
+			// Nur genehmigte Urlaubstage (nicht Krankheit oder Sonderurlaub) im aktuellen Jahr zählen
+			if absence.Type == "vacation" &&
+				absence.Status == "approved" &&
+				absence.StartDate.Year() == currentYear {
+				usedVacationDays += absence.Days
+			}
+		}
+
+		// VacationDays-Feld setzen, wenn noch nicht gesetzt
+		if employee.VacationDays == 0 {
+			employee.VacationDays = standardVacationDays
+		}
+
+		// Verbleibende Urlaubstage berechnen
+		employee.RemainingVacation = employee.VacationDays - int(usedVacationDays)
+
+		// Mitarbeiter aktualisieren, wenn Abwesenheiten hinzugefügt wurden oder Urlaubstage berechnet wurden
+		if abwesenheitenHinzugefuegt || employee.VacationDays > 0 {
 			employee.UpdatedAt = time.Now()
 			err := employeeRepo.Update(employee)
 			if err != nil {
 				return updatedCount, err
 			}
 			updatedCount++
-			fmt.Printf("Updated employee %s %s with new absences\n", employee.FirstName, employee.LastName)
+			fmt.Printf("Updated employee %s %s with absences and vacation information\n",
+				employee.FirstName, employee.LastName)
 		}
 	}
 

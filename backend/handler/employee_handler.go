@@ -270,20 +270,44 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 	// Hilfsfunktion für das aktuelle Datum
 	now := time.Now()
 
+	// Calculate used and remaining vacation days for the current year
+	var usedVacationDays float64 = 0
+	currentYear := time.Now().Year()
+
+	for _, absence := range employee.Absences {
+		if absence.Type == "vacation" &&
+			absence.Status == "approved" &&
+			absence.StartDate.Year() == currentYear {
+			usedVacationDays += absence.Days
+		}
+	}
+
+	// If VacationDays is not set, provide a default
+	if employee.VacationDays == 0 {
+		employee.VacationDays = 30 // Default value if not set
+	}
+
+	// Calculate remaining vacation days if not already set
+	if employee.RemainingVacation == 0 {
+		employee.RemainingVacation = employee.VacationDays - int(usedVacationDays)
+	}
+
 	// Daten an das Template übergeben
 	c.HTML(http.StatusOK, "employee_detail_advanced.html", gin.H{
-		"title":          employee.FirstName + " " + employee.LastName,
-		"active":         "employees",
-		"user":           userModel.FirstName + " " + userModel.LastName,
-		"email":          userModel.Email,
-		"year":           time.Now().Year(),
-		"employee":       employee,
-		"manager":        manager,
-		"userRole":       userRole,
-		"formatFileSize": formatFileSize,
-		"iterate":        iterate,
-		"now":            now,
-		"hideSalary":     hideSalary,
+		"title":             employee.FirstName + " " + employee.LastName,
+		"active":            "employees",
+		"user":              userModel.FirstName + " " + userModel.LastName,
+		"email":             userModel.Email,
+		"year":              time.Now().Year(),
+		"employee":          employee,
+		"manager":           manager,
+		"userRole":          userRole,
+		"formatFileSize":    formatFileSize,
+		"iterate":           iterate,
+		"now":               now,
+		"hideSalary":        hideSalary,
+		"usedVacationDays":  usedVacationDays,
+		"remainingVacation": employee.RemainingVacation,
 	})
 }
 

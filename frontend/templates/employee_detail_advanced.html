@@ -51,6 +51,9 @@
             <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="projects">
                 Projekte
             </button>
+            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="vacation">
+                Urlaub
+            </button>
         </nav>
     </div>
 
@@ -923,6 +926,150 @@
             </div>
         </div>
     </div>
+    <!-- 9. Urlaub -->
+    <div id="vacation-tab" class="tab-content hidden">
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                <div>
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Urlaubsübersicht</h3>
+                    <p class="mt-1 max-w-2xl text-sm text-gray-500">Übersicht aller Urlaube und Abwesenheiten.</p>
+                </div>
+
+                <!-- Summary statistics for vacations -->
+                <div class="bg-gray-50 px-4 py-3 rounded-md">
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                        <div>
+                            <p class="text-sm text-gray-500">Urlaubstage gesamt</p>
+                            <p class="text-lg font-semibold">{{.employee.VacationDays}}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Verbleibend</p>
+                            <p class="text-lg font-semibold">{{.employee.RemainingVacation}}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-200">
+                <!-- Filter controls -->
+                <div class="px-4 py-3 bg-gray-50 sm:px-6 flex justify-between items-center">
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm font-medium text-gray-700">Filter:</span>
+                        <div>
+                            <select id="vacation-year-filter" class="mt-1 block pl-3 pr-10 py-1 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
+                                <option value="all">Alle Jahre</option>
+                                <option value="2025" selected>2025</option>
+                                <option value="2024">2024</option>
+                                <option value="2023">2023</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select id="vacation-type-filter" class="mt-1 block pl-3 pr-10 py-1 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
+                                <option value="all">Alle Typen</option>
+                                <option value="vacation">Urlaub</option>
+                                <option value="sick">Krankheit</option>
+                                <option value="special">Sonderurlaub</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <select id="vacation-status-filter" class="mt-1 block pl-3 pr-10 py-1 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
+                            <option value="all">Alle Status</option>
+                            <option value="approved">Genehmigt</option>
+                            <option value="requested">Beantragt</option>
+                            <option value="rejected">Abgelehnt</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Vacation list -->
+                <div class="px-4 py-5 sm:px-6">
+                    {{if .employee.Absences}}
+                    <div class="flow-root">
+                        <ul role="list" class="divide-y divide-gray-200" id="vacation-list">
+                            {{range .employee.Absences}}
+                            <li class="py-4 vacation-item"
+                                data-type="{{.Type}}"
+                                data-status="{{.Status}}"
+                                data-year="{{.StartDate.Year}}">
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex-shrink-0">
+                                        <div class="h-10 w-10 rounded-full flex items-center justify-center
+                                                {{if eq .Type "vacation"}}bg-green-100{{else if eq .Type "sick"}}bg-red-100{{else}}bg-blue-100{{end}}">
+                                        {{if eq .Type "vacation"}}
+                                        <svg class="h-6 w-6 {{if eq .Type "vacation"}}text-green-600{{else if eq .Type "sick"}}text-red-600{{else}}text-blue-600{{end}}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                        </svg>
+                                        {{else if eq .Type "sick"}}
+                                        <svg class="h-6 w-6 {{if eq .Type "vacation"}}text-green-600{{else if eq .Type "sick"}}text-red-600{{else}}text-blue-600{{end}}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {{else}}
+                                        <svg class="h-6 w-6 {{if eq .Type "vacation"}}text-green-600{{else if eq .Type "sick"}}text-red-600{{else}}text-blue-600{{end}}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        {{end}}
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between">
+                                        <p class="text-sm font-medium text-gray-900">
+                                            {{if eq .Type "vacation"}}
+                                            Urlaub
+                                            {{else if eq .Type "sick"}}
+                                            Krankheit
+                                            {{else}}
+                                            Sonderurlaub
+                                            {{end}}
+                                            {{if .Reason}} - {{.Reason}}{{end}}
+                                        </p>
+                                        <div>
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                                        {{if eq .Status "approved"}}bg-green-100 text-green-800
+                                            {{else if eq .Status "requested"}}bg-yellow-100 text-yellow-800
+                                            {{else if eq .Status "rejected"}}bg-red-100 text-red-800
+                                            {{else}}bg-gray-100 text-gray-800{{end}}">
+                                            {{if eq .Status "approved"}}
+                                            Genehmigt
+                                            {{else if eq .Status "requested"}}
+                                            Beantragt
+                                            {{else if eq .Status "rejected"}}
+                                            Abgelehnt
+                                            {{else}}
+                                            {{.Status}}
+                                            {{end}}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-1 flex items-center">
+                                        <p class="text-sm text-gray-500 mr-2">
+                                            <span class="font-medium">Zeitraum:</span>
+                                            {{formatDate .StartDate}} - {{formatDate .EndDate}}
+                                        </p>
+                                        <p class="text-sm text-gray-500">
+                                            <span class="font-medium">Tage:</span>
+                                            {{.Days}}
+                                        </p>
+                                    </div>
+                                    {{if .Notes}}
+                                    <p class="mt-1 text-sm text-gray-500">
+                                        <span class="font-medium">Notizen:</span> {{.Notes}}
+                                    </p>
+                                    {{end}}
+                                </div>
+                    </div>
+                    </li>
+                    {{end}}
+                    </ul>
+                </div>
+                {{else}}
+                <p class="text-sm text-gray-500">Keine Urlaube oder Abwesenheiten vorhanden.</p>
+                {{end}}
+            </div>
+        </div>
+    </div>
+
 
 
 
@@ -1363,7 +1510,7 @@
 
 <!-- Footer -->
 {{ template "footer" . }}
-
+<script src="/static/js/employee_detail_advanced.js"></script>
 <script>
     // Fügen Sie diese Funktion dem bestehenden JavaScript in employee_detail_advanced.html hinzu
     function previewImage(input) {
