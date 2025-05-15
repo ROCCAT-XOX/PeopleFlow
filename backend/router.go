@@ -256,9 +256,11 @@ func InitializeRoutes(router *gin.Engine) {
 
 		// Kalender-Handler erstellen
 		calendarHandler := handler.NewCalendarHandler()
+		planningHandler := handler.NewPlanningHandler()
 
 		// Hauptroute für den Kalender - innerhalb des authorized-Blocks
 		authorized.GET("/absence", calendarHandler.GetAbsenceCalendar)
+		authorized.GET("/planning", planningHandler.GetProjectPlanningView)
 
 		// Benutzerprofilrouten
 		authorized.GET("/profile", userHandler.ShowUserProfile)
