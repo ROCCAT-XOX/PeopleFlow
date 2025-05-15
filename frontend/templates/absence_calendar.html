@@ -14,23 +14,23 @@
     <!-- Kalender Steuerung -->
     <div class="flex justify-between items-center mb-6">
         <div class="flex space-x-2">
-            <a href="/calendar?year={{.prevMonth.Year}}&month={{printf "%02d" .prevMonth.Month}}" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            <a href="/absence?year={{.prevMonth.Year}}&month={{printf "%02d" .prevMonth.Month}}" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
             <svg class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
             Vorheriger Monat
             </a>
             <span class="inline-flex items-center px-4 py-2 text-lg font-semibold">
-                {{.currentMonthName}} {{.currentYear}}
-            </span>
-            <a href="/calendar?year={{.nextMonth.Year}}&month={{printf "%02d" .nextMonth.Month}}" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            {{.currentMonthName}} {{.currentYear}}
+        </span>
+            <a href="/absence?year={{.nextMonth.Year}}&month={{printf "%02d" .nextMonth.Month}}" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
             Nächster Monat
             <svg class="h-5 w-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
             </a>
         </div>
-        <a href="/calendar?year={{.today.Year}}&month={{printf "%02d" .today.Month}}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+        <a href="/absence?year={{.today.Year}}&month={{printf "%02d" .today.Month}}" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
         <svg class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
