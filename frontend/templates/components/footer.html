@@ -1,5 +1,14 @@
 {{ define "footer" }}
 <script>
+    // Initialen Zustand beim Laden der Seite setzen
+    document.addEventListener('DOMContentLoaded', function() {
+        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        if (isCollapsed) {
+            document.body.classList.add('sidebar-collapsed');
+        } else {
+            document.body.classList.remove('sidebar-collapsed');
+        }
+    });
     // JavaScript für die Navigation
     document.addEventListener('DOMContentLoaded', function() {
         // Mobile Navigation
@@ -33,11 +42,11 @@
             sidebar.style.display = 'flex';
         }
 
-        // Funktion zum Einklappen der Sidebar
         function collapseSidebar() {
             if (sidebar && mainContent) {
                 sidebar.style.width = '5rem';
                 mainContent.style.paddingLeft = '5rem';
+                document.body.classList.add('sidebar-collapsed'); // Neue Zeile
 
                 // Logos umschalten
                 if (sidebarLogoFull) sidebarLogoFull.classList.add('hidden');
@@ -56,11 +65,12 @@
             }
         }
 
-// Funktion zum Ausklappen der Sidebar
+// In der expandSidebar-Funktion hinzufügen:
         function expandSidebar() {
             if (sidebar && mainContent) {
                 sidebar.style.width = '16rem';
                 mainContent.style.paddingLeft = '16rem';
+                document.body.classList.remove('sidebar-collapsed'); // Neue Zeile
 
                 // Logos umschalten
                 if (sidebarLogoIcon) sidebarLogoIcon.classList.add('hidden');

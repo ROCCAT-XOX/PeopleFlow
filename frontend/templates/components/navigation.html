@@ -6,37 +6,49 @@
 
 <!-- Stil für die Schriftart auf der gesamten Seite -->
 <style>
-    body {
-        font-family: 'Inter', sans-serif;
-    }
-
-    /* Transition für die Sidebar-Breite */
+    /* Verbesserte Sidebar-Transition */
     .sidebar-transition {
         transition: width 0.3s ease-in-out;
     }
 
-    /* Eingeblendete Tooltips für eingeklappte Sidebar */
-    .sidebar-tooltip {
-        visibility: hidden;
-        position: absolute;
-        left: 100%;
-        top: 50%;
-        transform: translateY(-50%);
-        background-color: rgba(55, 65, 81, 0.9);
-        color: white;
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        white-space: nowrap;
-        opacity: 0;
-        transition: opacity 0.2s ease-in-out;
-        margin-left: 0.5rem;
-        z-index: 50;
+    /* Stellen Sie sicher, dass der Hauptinhalt die volle verfügbare Breite nutzt */
+    #main-content {
+        width: 100%;
+        max-width: 100%;
+        transition: padding-left 0.3s ease-in-out;
     }
 
-    .sidebar-item:hover .sidebar-tooltip {
-        visibility: visible;
-        opacity: 1;
+    /* Responsive Anpassungen für den Hauptinhalt */
+    @media (min-width: 1024px) {
+        #main-content {
+            padding-left: 16rem; /* Standardbreite der ausgeklappten Sidebar */
+        }
+
+        .sidebar-collapsed #main-content {
+            padding-left: 5rem; /* Breite der eingeklappten Sidebar */
+        }
+    }
+
+    /* Verbesserte Container-Breite für Content */
+    .container {
+        width: 100%;
+        max-width: 100%;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    @media (min-width: 640px) {
+        .container {
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .container {
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
     }
 </style>
 
