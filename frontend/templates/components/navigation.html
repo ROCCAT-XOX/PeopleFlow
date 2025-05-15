@@ -1,8 +1,5 @@
 {{ define "navigation" }}
-<!-- Hinzufügen der Inter-Schriftart von Google Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 
 <!-- Stil für die Schriftart auf der gesamten Seite -->
 <style>
@@ -25,6 +22,21 @@
             padding-left: 2rem;
             padding-right: 2rem;
         }
+    }
+
+    body.sidebar-collapsed .sidebar-nav-link {
+        justify-content: center !important;
+    }
+
+    /* Normale Anzeige der Sidebar-Links */
+    .sidebar-nav-link {
+        transition: justify-content 0.3s ease;
+    }
+
+    /* Stellen Sie sicher, dass die Tab-Funktionalität weiterhin funktioniert */
+    body.sidebar-collapsed .tab-btn.active,
+    body.sidebar-collapsed .tab-btn:hover {
+        justify-content: center !important;
     }
 </style>
 
@@ -61,11 +73,11 @@
                             <!-- Mitarbeiter - nur für berechtigte Rollen -->
                             {{if or (eq .userRole "admin") (eq .userRole "manager") (eq .userRole "hr")}}
                             <li class="sidebar-item relative">
-                                <a href="/employees" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "employees" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
-                                <svg class="h-6 w-6 shrink-0 {{ if eq .active "employees" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-                                </svg>
-                                <span class="menu-text">Mitarbeiter</span>
+                                <a href="/employees" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "employee" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
+                                    <svg class="h-6 w-6 shrink-0 text-[#16A34A]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"></path>
+                                    </svg>
+                                    <span class="menu-text" style="display: none;">Mitarbeiter</span>
                                 </a>
                             </li>
                             {{end}}

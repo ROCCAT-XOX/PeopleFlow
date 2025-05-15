@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (mobileMenuButton) {
         mobileMenuButton.addEventListener('click', function() {
             mobileMenu.style.display = 'block';
+
         });
     }
 
@@ -35,6 +36,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const sidebarLogoFull = document.getElementById('sidebar-logo-full');
     const sidebarLogoIcon = document.getElementById('sidebar-logo-icon');
     const menuTexts = document.querySelectorAll('.menu-text');
+    const navbarContent = document.querySelector('.navbar-content');
+
+    // Selektoren für Sidebar-Links in li-Elementen
+    const sidebarItems = document.querySelectorAll('.sidebar-item a.group');
 
     // Initialer Zustand der Sidebar
     if (sidebar) {
@@ -45,7 +50,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (sidebar && mainContent) {
             sidebar.style.width = '5rem';
             mainContent.style.paddingLeft = '5rem';
-            document.body.classList.add('sidebar-collapsed'); // Neue Zeile
+            document.body.classList.add('sidebar-collapsed');
+
+            // Navbar-Content auf 'center' setzen beim Zusammenklappen
+            if (navbarContent) {
+                navbarContent.style.justifyContent = 'center';
+            }
+
+            // Alle Sidebar-Links in li-Elementen zentrieren
+            sidebarItems.forEach(link => {
+                link.style.justifyContent = 'center';
+            });
 
             // Logos umschalten
             if (sidebarLogoFull) sidebarLogoFull.classList.add('hidden');
@@ -64,12 +79,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-// In der expandSidebar-Funktion hinzufügen:
     function expandSidebar() {
         if (sidebar && mainContent) {
             sidebar.style.width = '16rem';
             mainContent.style.paddingLeft = '16rem';
-            document.body.classList.remove('sidebar-collapsed'); // Neue Zeile
+            document.body.classList.remove('sidebar-collapsed');
+
+            // Navbar-Content auf den ursprünglichen Wert zurücksetzen
+            if (navbarContent) {
+                navbarContent.style.justifyContent = 'space-between';
+            }
+
+            // Alle Sidebar-Links zurücksetzen
+            sidebarItems.forEach(link => {
+                link.style.justifyContent = 'flex-start';
+            });
 
             // Logos umschalten
             if (sidebarLogoIcon) sidebarLogoIcon.classList.add('hidden');
