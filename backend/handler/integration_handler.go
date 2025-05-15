@@ -216,31 +216,44 @@ func (h *IntegrationHandler) TestErfasst123Connection(c *gin.Context) {
 	})
 }
 
-// SyncErfasst123Employees synchronisiert 123erfasst-Mitarbeiter mit PeopleFlow-Mitarbeitern
-func (h *IntegrationHandler) SyncErfasst123Employees(c *gin.Context) {
-	// Prüfen, ob 123erfasst verbunden ist
+// SyncErfasst123Projects synchronizes 123erfasst project data with PeopleFlow employees
+func (h *IntegrationHandler) SyncErfasst123Projects(c *gin.Context) {
+	// Check if 123erfasst is connected
 	if !h.erfasst123Service.IsConnected() {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"message": "123erfasst ist nicht verbunden",
+			"message": "123erfasst is not connected",
 		})
 		return
 	}
 
-	// Synchronisierung durchführen
-	updatedCount, err := h.erfasst123Service.SyncErfasst123Employees()
+	// Get date range from request, default to current month
+	now := time.Now()
+	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	startDate := c.DefaultQuery("startDate", startOfMonth.Format("2006-01-02"))
+
+	// End date defaults to one month from start date
+	endDateDefault := startOfMonth.AddDate(0, 1, -1).Format("2006-01-02")
+	endDate := c.DefaultQuery("endDate", endDateDefault)
+
+	// Perform synchronization
+	updatedCount, err := h.erfasst123Service.SyncErfasst123Projects(startDate, endDate)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"message": "Fehler bei der Synchronisierung: " + err.Error(),
+			"message": "Error synchronizing projects: " + err.Error(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success":      true,
-		"message":      fmt.Sprintf("%d Mitarbeiter wurden synchronisiert", updatedCount),
+		"message":      fmt.Sprintf("%d employees were updated with project assignments", updatedCount),
 		"updatedCount": updatedCount,
+		"dateRange": gin.H{
+			"startDate": startDate,
+			"endDate":   endDate,
+		},
 	})
 }
 

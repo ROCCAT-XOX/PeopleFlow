@@ -334,8 +334,9 @@ func InitializeRoutes(router *gin.Engine) {
 		// API-Endpunkte für 123Erfasst
 		authorized.POST("/api/integrations/123erfasst/save", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.SaveErfasst123Credentials)
 		authorized.GET("/api/integrations/123erfasst/test", integrationHandler.TestErfasst123Connection)
-		authorized.POST("/api/integrations/123erfasst/sync/employees", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncErfasst123Employees)
+		authorized.POST("/api/integrations/123erfasst/sync/projects", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncErfasst123Projects)
 		authorized.POST("/api/integrations/123erfasst/remove", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.RemoveErfasst123Integration)
+
 		// Optionale API-Endpoints für AJAX-Anfragen
 		api := router.Group("/api")
 		api.Use(middleware.AuthMiddleware())

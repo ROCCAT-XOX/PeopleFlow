@@ -48,6 +48,9 @@
             <button class="tab-btn px-3 py-2 text-sm font-medium rounded-md" data-tab="development" onclick="showTab('development')">
                 Entwicklungsplan
             </button>
+            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="projects">
+                Projekte
+            </button>
         </nav>
     </div>
 
@@ -210,7 +213,6 @@
             </dl>
         </div>
     </div>
-
     <!-- 2. Dokumente -->
     <div id="documents-tab" class="tab-content hidden">
         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
@@ -299,7 +301,6 @@
             </div>
         </div>
     </div>
-
     <!-- 3. Weiterbildung -->
     <div id="training-tab" class="tab-content hidden">
         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
@@ -410,7 +411,6 @@
             </div>
         </div>
     </div>
-
     <!-- 4. Leistungsbeurteilungen -->
     <div id="evaluation-tab" class="tab-content hidden">
         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
@@ -873,6 +873,53 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+    <!-- 8. Projekte -->
+    <div id="projects-tab" class="tab-content hidden">
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                <div>
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Projektzuweisungen</h3>
+                    <p class="mt-1 max-w-2xl text-sm text-gray-500">Projekte, denen der Mitarbeiter zugewiesen ist.</p>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+                {{if .employee.ProjectAssignments}}
+                <div class="flow-root mt-6">
+                    <ul role="list" class="-my-5 divide-y divide-gray-200">
+                        {{range .employee.ProjectAssignments}}
+                        <li class="py-4">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex-shrink-0">
+                                    <div class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                                        <svg class="h-5 w-5 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 truncate">
+                                        {{.ProjectName}}
+                                    </p>
+                                    <p class="text-sm text-gray-500 truncate">
+                                        {{formatDate .StartDate}} - {{formatDate .EndDate}}
+                                    </p>
+                                </div>
+                                <div>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            {{.Source}}
+                                        </span>
+                                </div>
+                            </div>
+                        </li>
+                        {{end}}
+                    </ul>
+                </div>
+                {{else}}
+                <p class="text-sm text-gray-500">Keine Projektzuweisungen vorhanden.</p>
+                {{end}}
             </div>
         </div>
     </div>

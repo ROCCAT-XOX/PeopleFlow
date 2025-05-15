@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"strings"
 	"time"
@@ -289,6 +290,186 @@ func (s *Erfasst123Service) SyncErfasst123Employees() (int, error) {
 			}
 			updatedCount++
 			fmt.Printf("Erfolg: %s %s wurde aktualisiert\n", employee.FirstName, employee.LastName)
+		}
+	}
+
+	return updatedCount, nil
+}
+
+// Add to backend/service/erfasst123_service.go
+
+// GetProjectPlannings retrieves project planning data from 123erfasst
+func (s *Erfasst123Service) GetProjectPlannings(startDate, endDate string) ([]model.Erfasst123Planning, error) {
+	email, password, err := s.GetCredentials()
+	if err != nil {
+		return nil, err
+	}
+
+	// Basic Auth Token
+	auth := fmt.Sprintf("%s:%s", email, password)
+	encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
+
+	// GraphQL query for project planning data
+	query := fmt.Sprintf(`{
+		"query": "query GetPlanningsByDateRange($filter: PlanningFilter) { plannings(filter: $filter) { nodes { project { id name } persons { ident firstname lastname } dateStart dateEnd } totalCount } }",
+		"variables": {
+			"filter": {
+				"dateFrom": {
+					"_gte": "%sT00:00:00Z",
+					"_lte": "%sT23:59:59Z"
+				}
+			}
+		}
+	}`, startDate, endDate)
+
+	// HTTP request
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	req, err := http.NewRequest("POST", "https://server.123erfasst.de/api/graphql", bytes.NewBufferString(query))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Basic "+encodedAuth)
+
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("123erfasst API error: %s", res.Status)
+	}
+
+	// Parse response
+	var response model.Erfasst123PlanningResponse
+	decoder := json.NewDecoder(res.Body)
+	if err := decoder.Decode(&response); err != nil {
+		return nil, err
+	}
+
+	// Parse dates and mark the integration as active
+	for i, planning := range response.Data.Plannings.Nodes {
+		// Parse start date
+		if planning.DateStart != "" {
+			startDate, err := time.Parse("2006-01-02", planning.DateStart)
+			if err == nil {
+				response.Data.Plannings.Nodes[i].DateStartParsed = startDate
+			} else {
+				fmt.Printf("Warning: Error parsing start date %s: %v\n", planning.DateStart, err)
+			}
+		}
+
+		// Parse end date
+		if planning.DateEnd != "" {
+			endDate, err := time.Parse("2006-01-02", planning.DateEnd)
+			if err == nil {
+				response.Data.Plannings.Nodes[i].DateEndParsed = endDate
+			} else {
+				fmt.Printf("Warning: Error parsing end date %s: %v\n", planning.DateEnd, err)
+			}
+		}
+	}
+
+	// Mark integration as active
+	s.integrationRepo.SetIntegrationStatus("123erfasst", true)
+
+	return response.Data.Plannings.Nodes, nil
+}
+
+// SyncErfasst123Projects synchronizes 123erfasst project planning data with PeopleFlow employees
+func (s *Erfasst123Service) SyncErfasst123Projects(startDate, endDate string) (int, error) {
+	// Get project planning data
+	plannings, err := s.GetProjectPlannings(startDate, endDate)
+	if err != nil {
+		return 0, err
+	}
+
+	// Repository for employees
+	employeeRepo := repository.NewEmployeeRepository()
+
+	// Counter for updated employees
+	updatedCount := 0
+
+	// Process each planning
+	for _, planning := range plannings {
+		// Skip if dates not parsed correctly
+		if planning.DateStartParsed.IsZero() || planning.DateEndParsed.IsZero() {
+			continue
+		}
+
+		// Process each person in the planning
+		for _, person := range planning.Persons {
+			// Find the employee by 123erfasst ID
+			employee, err := employeeRepo.FindByErfasst123ID(person.Ident)
+			if err != nil {
+				// Employee not found, try by email
+				employees, err := employeeRepo.FindAll()
+				if err != nil {
+					continue
+				}
+
+				// Match by email or name
+				for _, emp := range employees {
+					if strings.EqualFold(emp.Email, person.Mail) ||
+						(strings.EqualFold(emp.FirstName, person.Firstname) &&
+							strings.EqualFold(emp.LastName, person.Lastname)) {
+						employee = emp
+						break
+					}
+				}
+
+				// If still not found, skip this person
+				if employee == nil {
+					continue
+				}
+			}
+
+			// Check if this project assignment already exists
+			projectExists := false
+			for _, assignment := range employee.ProjectAssignments {
+				// Check if the same project with overlapping dates exists
+				if assignment.ProjectID == planning.Project.ID &&
+					assignment.Source == "123erfasst" &&
+					assignment.StartDate.Equal(planning.DateStartParsed) &&
+					assignment.EndDate.Equal(planning.DateEndParsed) {
+					projectExists = true
+					break
+				}
+			}
+
+			// If project doesn't exist, add it
+			if !projectExists {
+				// Create a new project assignment
+				newAssignment := model.ProjectAssignment{
+					ID:          primitive.NewObjectID(),
+					ProjectID:   planning.Project.ID,
+					ProjectName: planning.Project.Name,
+					StartDate:   planning.DateStartParsed,
+					EndDate:     planning.DateEndParsed,
+					Source:      "123erfasst",
+				}
+
+				// Add to employee's project assignments
+				employee.ProjectAssignments = append(employee.ProjectAssignments, newAssignment)
+				employee.UpdatedAt = time.Now()
+
+				// Update employee in database
+				err = employeeRepo.Update(employee)
+				if err != nil {
+					fmt.Printf("Error updating employee %s %s: %v\n",
+						employee.FirstName, employee.LastName, err)
+					continue
+				}
+
+				updatedCount++
+				fmt.Printf("Updated employee %s %s with project assignment: %s\n",
+					employee.FirstName, employee.LastName, planning.Project.Name)
+			}
 		}
 	}
 

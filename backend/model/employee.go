@@ -81,7 +81,8 @@ type Employee struct {
 	TimebutlerUserID string `bson:"timebutlerUserId,omitempty" json:"timebutlerUserId,omitempty"`
 
 	// Integration 123erfasst
-	Erfasst123ID string `bson:"erfasst123Id,omitempty" json:"erfasst123Id,omitempty"`
+	Erfasst123ID       string              `bson:"erfasst123Id,omitempty" json:"erfasst123Id,omitempty"`
+	ProjectAssignments []ProjectAssignment `bson:"projectAssignments,omitempty" json:"projectAssignments,omitempty"`
 }
 
 // Document repräsentiert ein Dokument oder eine Datei im System
@@ -163,4 +164,16 @@ type Absence struct {
 	Reason       string             `bson:"reason" json:"reason"`
 	Notes        string             `bson:"notes" json:"notes"`
 	Documents    []Document         `bson:"documents,omitempty" json:"documents,omitempty"`
+}
+
+// ProjectAssignment represents an employee's assignment to a project
+type ProjectAssignment struct {
+	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	ProjectID   string             `bson:"projectId" json:"projectId"`
+	ProjectName string             `bson:"projectName" json:"projectName"`
+	StartDate   time.Time          `bson:"startDate" json:"startDate"`
+	EndDate     time.Time          `bson:"endDate" json:"endDate"`
+	Role        string             `bson:"role,omitempty" json:"role,omitempty"`
+	Notes       string             `bson:"notes,omitempty" json:"notes,omitempty"`
+	Source      string             `bson:"source" json:"source"` // e.g., "123erfasst"
 }
