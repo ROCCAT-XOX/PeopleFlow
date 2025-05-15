@@ -1,5 +1,26 @@
-<!-- frontend/templates/timetracking.html -->
+
 {{ template "head" . }}
+<style>
+  .employee-dropdown-toggle:focus-within {
+    outline: none;
+    border-color: #10B981;
+    box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2);
+  }
+
+  .employee-dropdown-toggle:focus-within {
+    outline: none;
+    border-color: #10B981;
+    box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2);
+  }
+
+  .employee-option label {
+    cursor: pointer;
+  }
+
+  .employee-option label {
+    cursor: pointer;
+  }
+</style>
 <body class="bg-gray-50 min-h-screen flex flex-col">
 <!-- Navigation -->
 {{ template "navigation" . }}
@@ -44,15 +65,43 @@
             </div>
           </div>
 
-          <!-- Mitarbeiter-Filter (mit Mehrfachauswahl) -->
+          <!-- Mitarbeiter-Filter mit Mehrfachauswahl -->
           <div class="sm:col-span-2 lg:col-span-1">
-            <label for="employee-filter" class="block text-sm font-medium text-gray-700">Mitarbeiter</label>
-            <select id="employee-filter" name="employee" multiple class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md multiselect">
-              <option value="">Alle Mitarbeiter</option>
-              {{range .employees}}
-              <option value="{{.ID.Hex}}">{{.FirstName}} {{.LastName}}</option>
-              {{end}}
-            </select>
+            <label for="employee-filter-container" class="block text-sm font-medium text-gray-700 mb-1">Mitarbeiter</label>
+            <div id="employee-filter-container" class="mt-1 relative">
+              <div class="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus-within:ring-1 focus-within:ring-green-500 focus-within:border-green-500 rounded-md bg-white cursor-pointer" id="employee-dropdown-toggle">
+                <div class="flex items-center justify-between">
+                  <span id="employee-selection-display" class="text-sm text-gray-500">Alle Mitarbeiter</span>
+                  <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Dropdown für Mitarbeiterauswahl -->
+              <div id="employee-dropdown" class="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm hidden">
+                <div class="sticky top-0 bg-white z-10 px-2 py-1 border-b border-gray-200">
+                  <div class="flex items-center">
+                    <input type="checkbox" id="select-all-employees" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                    <label for="select-all-employees" class="ml-2 block text-sm text-gray-900">
+                      Alle auswählen
+                    </label>
+                  </div>
+                </div>
+                <div class="employee-options py-1">
+                  {{range .employees}}
+                  <div class="employee-option px-2 py-1 hover:bg-gray-100 cursor-pointer">
+                    <div class="flex items-center">
+                      <input type="checkbox" id="employee-{{.ID.Hex}}" value="{{.ID.Hex}}" class="employee-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                      <label for="employee-{{.ID.Hex}}" class="ml-2 block text-sm text-gray-900 w-full cursor-pointer">
+                        {{.FirstName}} {{.LastName}}
+                      </label>
+                    </div>
+                  </div>
+                  {{end}}
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Projekt-Filter -->
@@ -201,22 +250,8 @@
 <!-- Footer -->
 {{ template "footer" . }}
 
-<script src="https://cdn.jsdelivr.net/npm/slim-select@2.0.0/dist/slimselect.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/slim-select@2.0.0/dist/slimselect.css" rel="stylesheet">
-
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Initialisierung des Select-Elements für Mehrfachauswahl
-    const employeeSelect = new SlimSelect({
-      select: '#employee-filter',
-      settings: {
-        placeholderText: 'Alle Mitarbeiter',
-        allowDeselect: true,
-        closeOnSelect: false,
-        showSearch: true,
-      }
-    });
-
     // Toggle für Mitarbeiterdetails
     document.querySelectorAll('.toggle-details').forEach(button => {
       button.addEventListener('click', function() {
@@ -253,6 +288,79 @@
     // Filter-Funktionalität
     const projectFilter = document.getElementById('project-filter');
     const applyFilterBtn = document.getElementById('apply-filter');
+    const employeeDropdownToggle = document.getElementById('employee-dropdown-toggle');
+    const employeeDropdown = document.getElementById('employee-dropdown');
+    const selectAllEmployees = document.getElementById('select-all-employees');
+    const employeeSelectionDisplay = document.getElementById('employee-selection-display');
+    let selectedEmployees = []; // Array to store selected employee IDs
+
+    // Mitarbeiter-Dropdown Funktionalität
+    employeeDropdownToggle.addEventListener('click', function() {
+      employeeDropdown.classList.toggle('hidden');
+    });
+
+    // Klick außerhalb des Dropdowns schließt es
+    document.addEventListener('click', function(event) {
+      if (!employeeDropdownToggle.contains(event.target) && !employeeDropdown.contains(event.target)) {
+        employeeDropdown.classList.add('hidden');
+      }
+    });
+
+    // "Alle auswählen" Checkbox Funktionalität
+    selectAllEmployees.addEventListener('change', function() {
+      const checkboxes = document.querySelectorAll('.employee-checkbox');
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+      });
+
+      updateEmployeeSelection();
+    });
+
+    // Einzelne Mitarbeiter-Checkboxen
+    document.querySelectorAll('.employee-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', function() {
+        updateEmployeeSelection();
+
+        // Überprüfen, ob alle Checkboxen ausgewählt sind
+        const allCheckboxes = document.querySelectorAll('.employee-checkbox');
+        const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+        selectAllEmployees.checked = allChecked;
+      });
+    });
+
+    // Auch das Klicken auf die Labels oder Zeilen sollte die Checkboxen umschalten
+    document.querySelectorAll('.employee-option').forEach(option => {
+      option.addEventListener('click', function(e) {
+        // Verhindern, dass das Klicken auf die Checkbox selbst doppelt registriert wird
+        if (e.target.type !== 'checkbox') {
+          const checkbox = this.querySelector('input[type="checkbox"]');
+          checkbox.checked = !checkbox.checked;
+
+          // Manuell das Change-Event auslösen
+          const event = new Event('change');
+          checkbox.dispatchEvent(event);
+        }
+      });
+    });
+
+    // Aktualisiert die Anzeige der ausgewählten Mitarbeiter
+    function updateEmployeeSelection() {
+      selectedEmployees = [];
+      const checkboxes = document.querySelectorAll('.employee-checkbox:checked');
+
+      checkboxes.forEach(checkbox => {
+        selectedEmployees.push(checkbox.value);
+      });
+
+      if (selectedEmployees.length === 0) {
+        employeeSelectionDisplay.textContent = 'Alle Mitarbeiter';
+      } else if (selectedEmployees.length === 1) {
+        const employeeName = document.querySelector(`label[for="employee-${selectedEmployees[0]}"]`).textContent.trim();
+        employeeSelectionDisplay.textContent = employeeName;
+      } else {
+        employeeSelectionDisplay.textContent = `${selectedEmployees.length} Mitarbeiter ausgewählt`;
+      }
+    }
 
     applyFilterBtn.addEventListener('click', function() {
       filterTimeEntries();
@@ -284,7 +392,8 @@
         // Diese Woche (Montag bis Sonntag)
         const day = today.getDay();
         const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Justierung für Sonntag
-        startDate = new Date(today.setDate(diff));
+        startDate = new Date(today);
+        startDate.setDate(diff);
         endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + 6);
         endDate.setHours(23, 59, 59, 999);
@@ -292,7 +401,8 @@
         // Letzte Woche
         const day = today.getDay();
         const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Justierung für Sonntag
-        startDate = new Date(today.setDate(diff - 7));
+        startDate = new Date(today);
+        startDate.setDate(diff - 7);
         endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + 6);
         endDate.setHours(23, 59, 59, 999);
@@ -308,12 +418,14 @@
         endDate.setHours(23, 59, 59, 999);
       }
 
+      console.log('Filter - Date Range:', { startDate, endDate });
+
       // Ausgewählte Mitarbeiter
-      const selectedValues = employeeSelect.getSelected();
-      const hasAllSelected = selectedValues.includes('') || selectedValues.length === 0;
+      console.log('Filter - Employees:', selectedEmployees);
 
       // Ausgewähltes Projekt
       const selectedProject = projectFilter.value;
+      console.log('Filter - Project:', selectedProject);
 
       // Alle Mitarbeiterzeilen durchgehen
       document.querySelectorAll('.employee-summary-item').forEach(employeeItem => {
@@ -321,7 +433,7 @@
         let showEmployee = true;
 
         // Mitarbeiterfilter anwenden
-        if (!hasAllSelected && !selectedValues.includes(employeeId)) {
+        if (selectedEmployees.length > 0 && !selectedEmployees.includes(employeeId)) {
           showEmployee = false;
         }
 
@@ -383,8 +495,10 @@
             detail.classList.add('hidden');
           } else if (projectHours[projectId]) {
             // Stunden aktualisieren falls gefiltert
-            detail.querySelector('.font-medium').textContent =
-                    projectHours[projectId].hours.toFixed(1) + ' Std.';
+            const hoursDisplay = detail.querySelector('.font-medium');
+            if (hoursDisplay) {
+              hoursDisplay.textContent = projectHours[projectId].hours.toFixed(1) + ' Std.';
+            }
             detail.classList.remove('hidden');
           } else {
             detail.classList.add('hidden');
@@ -393,8 +507,10 @@
 
         // Mitarbeiter gesamt-Stunden aktualisieren
         if (employeeHasFilteredEntries) {
-          employeeItem.querySelector('.font-semibold').textContent =
-                  employeeFilteredHours.toFixed(1) + ' Std.';
+          const hoursDisplay = employeeItem.querySelector('.font-semibold');
+          if (hoursDisplay) {
+            hoursDisplay.textContent = employeeFilteredHours.toFixed(1) + ' Std.';
+          }
         }
 
         // Falls der Mitarbeiter keine passenden Einträge hat oder ausgeblendet werden soll
@@ -413,7 +529,7 @@
     function parseStringToDate(dateStr) {
       const parts = dateStr.split('.');
       if (parts.length === 3) {
-        return new Date(parts[2], parts[1] - 1, parts[0]);
+        return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
       }
       return new Date(); // Fallback
     }
