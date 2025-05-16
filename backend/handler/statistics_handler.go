@@ -23,51 +23,6 @@ func NewStatisticsHandler() *StatisticsHandler {
 	}
 }
 
-// EmployeeProductivityData enthält Produktivitätsdaten für einen Mitarbeiter
-type EmployeeProductivityData struct {
-	ID               string  `json:"id"`
-	Name             string  `json:"name"`
-	Department       string  `json:"department"`
-	Hours            float64 `json:"hours"`
-	ProductivityRate float64 `json:"productivityRate"`
-	Trend            float64 `json:"trend"`           // Prozentuale Veränderung zum Vormonat
-	TrendFormatted   string  `json:"trendFormatted"`  // Vorformatierter Trend als String
-	IsTrendPositive  bool    `json:"isTrendPositive"` // Ob der Trend positiv ist
-	IsTrendNegative  bool    `json:"isTrendNegative"` // Ob der Trend negativ ist
-	HasProfileImage  bool    `json:"hasProfileImage"`
-}
-
-// ProjectStatData enthält Statistikdaten für ein Projekt
-type ProjectStatData struct {
-	ID                      string  `json:"id"`
-	Name                    string  `json:"name"`
-	Status                  string  `json:"status"`
-	TeamSize                int     `json:"teamSize"`
-	Hours                   float64 `json:"hours"`
-	HoursFormatted          string  `json:"hoursFormatted"`
-	TimeDeviation           float64 `json:"timeDeviation"` // Prozentuale Abweichung zum Plan
-	TimeDeviationFormatted  string  `json:"timeDeviationFormatted"`
-	IsTimeDeviationPositive bool    `json:"isTimeDeviationPositive"`
-	IsTimeDeviationNegative bool    `json:"isTimeDeviationNegative"`
-	Efficiency              float64 `json:"efficiency"` // Effizienzrate in Prozent
-	EfficiencyFormatted     string  `json:"efficiencyFormatted"`
-	EfficiencyClass         string  `json:"efficiencyClass"` // CSS-Klasse basierend auf Effizienz
-}
-
-// AbsenceStatData enthält Daten für Abwesenheiten
-type AbsenceStatData struct {
-	ID               string    `json:"id"`
-	EmployeeID       string    `json:"employeeId"`
-	EmployeeName     string    `json:"employeeName"`
-	Type             string    `json:"type"`
-	StartDate        time.Time `json:"startDate"`
-	EndDate          time.Time `json:"endDate"`
-	Days             float64   `json:"days"`
-	Status           string    `json:"status"`
-	HasProfileImage  bool      `json:"hasProfileImage"`
-	AffectedProjects []string  `json:"affectedProjects"`
-}
-
 // GetStatisticsView zeigt die Statistikübersicht an
 func (h *StatisticsHandler) GetStatisticsView(c *gin.Context) {
 	// Aktuellen Benutzer aus dem Context abrufen
@@ -87,10 +42,16 @@ func (h *StatisticsHandler) GetStatisticsView(c *gin.Context) {
 	}
 
 	// Projekte aus allen Mitarbeitern extrahieren und deduplizieren
-	projects := make(map[string]ProjectViewModel)
+	projects := make(map[string]struct {
+		ID   string
+		Name string
+	})
 	for _, emp := range employees {
 		for _, proj := range emp.ProjectAssignments {
-			projects[proj.ProjectID] = ProjectViewModel{
+			projects[proj.ProjectID] = struct {
+				ID   string
+				Name string
+			}{
 				ID:   proj.ProjectID,
 				Name: proj.ProjectName,
 			}
@@ -98,13 +59,16 @@ func (h *StatisticsHandler) GetStatisticsView(c *gin.Context) {
 	}
 
 	// Für die Dropdown-Liste sortiert aufbereiten
-	var projectsList []ProjectViewModel
+	var projectsList []gin.H
 	for _, p := range projects {
-		projectsList = append(projectsList, p)
+		projectsList = append(projectsList, gin.H{
+			"ID":   p.ID,
+			"Name": p.Name,
+		})
 	}
 
 	sort.Slice(projectsList, func(i, j int) bool {
-		return projectsList[i].Name < projectsList[j].Name
+		return projectsList[i]["Name"].(string) < projectsList[j]["Name"].(string)
 	})
 
 	// Berechnung der Gesamtarbeitszeit
@@ -126,12 +90,11 @@ func (h *StatisticsHandler) GetStatisticsView(c *gin.Context) {
 		}
 	}
 
-	// Beispielhafte Produktivitätsrate (in einer echten Anwendung würde dies
-	// auf tatsächlichen Leistungsdaten, Zielvereinbarungen, etc. basieren)
+	// Beispielhafte Produktivitätsrate
 	productivityRate := 85.3 // 85.3%
 
 	// Beispielhafte Mitarbeiter-Produktivitätsdaten
-	var productivityRanking []EmployeeProductivityData
+	var productivityRanking []gin.H
 	for _, emp := range employees {
 		// Berechnung der Gesamtstunden für diesen Mitarbeiter
 		var empHours float64
@@ -159,79 +122,89 @@ func (h *StatisticsHandler) GetStatisticsView(c *gin.Context) {
 			}
 			trendFormatted += "%"
 
-			productivityRanking = append(productivityRanking, EmployeeProductivityData{
-				ID:               emp.ID.Hex(),
-				Name:             emp.FirstName + " " + emp.LastName,
-				Department:       string(emp.Department),
-				Hours:            empHours,
-				ProductivityRate: prodRate,
-				Trend:            trend,
-				TrendFormatted:   trendFormatted,
-				IsTrendPositive:  trend > 0,
-				IsTrendNegative:  trend < 0,
-				HasProfileImage:  len(emp.ProfileImageData.Data) > 0,
+			productivityRanking = append(productivityRanking, gin.H{
+				"ID":               emp.ID.Hex(),
+				"Name":             emp.FirstName + " " + emp.LastName,
+				"Department":       string(emp.Department),
+				"Hours":            empHours,
+				"ProductivityRate": prodRate,
+				"Trend":            trend,
+				"TrendFormatted":   trendFormatted,
+				"IsTrendPositive":  trend > 0,
+				"IsTrendNegative":  trend < 0,
+				"HasProfileImage":  len(emp.ProfileImageData.Data) > 0,
 			})
 		}
 	}
 
 	// Nach Produktivitätsrate sortieren (absteigend)
 	sort.Slice(productivityRanking, func(i, j int) bool {
-		return productivityRanking[i].ProductivityRate > productivityRanking[j].ProductivityRate
+		return productivityRanking[i]["ProductivityRate"].(float64) > productivityRanking[j]["ProductivityRate"].(float64)
 	})
 
-	// Beispielhafte Projektdaten
-	projectDetails := []ProjectStatData{
+	// Beispielhafte Projektdaten - mit vorberechneten Feldern
+	projectDetails := []gin.H{
 		{
-			ID:            "proj-1",
-			Name:          "Website Redesign",
-			Status:        "In Arbeit",
-			TeamSize:      5,
-			Hours:         320,
-			TimeDeviation: 8.5,  // 8.5% über Plan
-			Efficiency:    87.2, // 87.2% Effizienz
+			"ID":                  "proj-1",
+			"Name":                "Website Redesign",
+			"Status":              "In Arbeit",
+			"TeamSize":            5,
+			"Hours":               320.0,
+			"HoursFormatted":      "320.0 Std",
+			"Efficiency":          87.2,
+			"EfficiencyFormatted": "87.2%",
+			"EfficiencyClass":     "bg-green-600",
 		},
 		{
-			ID:            "proj-2",
-			Name:          "Mobile App Entwicklung",
-			Status:        "In Arbeit",
-			TeamSize:      8,
-			Hours:         780,
-			TimeDeviation: -3.2, // 3.2% unter Plan
-			Efficiency:    92.5, // 92.5% Effizienz
+			"ID":                  "proj-2",
+			"Name":                "Mobile App Entwicklung",
+			"Status":              "In Arbeit",
+			"TeamSize":            8,
+			"Hours":               780.0,
+			"HoursFormatted":      "780.0 Std",
+			"Efficiency":          92.5,
+			"EfficiencyFormatted": "92.5%",
+			"EfficiencyClass":     "bg-green-600",
 		},
 		{
-			ID:            "proj-3",
-			Name:          "Datenmigration",
-			Status:        "Abgeschlossen",
-			TeamSize:      3,
-			Hours:         150,
-			TimeDeviation: 5.0,  // 5% über Plan
-			Efficiency:    89.0, // 89% Effizienz
+			"ID":                  "proj-3",
+			"Name":                "Datenmigration",
+			"Status":              "Abgeschlossen",
+			"TeamSize":            3,
+			"Hours":               150.0,
+			"HoursFormatted":      "150.0 Std",
+			"Efficiency":          89.0,
+			"EfficiencyFormatted": "89.0%",
+			"EfficiencyClass":     "bg-green-600",
 		},
 		{
-			ID:            "proj-4",
-			Name:          "Security Audit",
-			Status:        "Kritisch",
-			TeamSize:      2,
-			Hours:         95,
-			TimeDeviation: 15.0, // 15% über Plan
-			Efficiency:    65.0, // 65% Effizienz
+			"ID":                  "proj-4",
+			"Name":                "Security Audit",
+			"Status":              "Kritisch",
+			"TeamSize":            2,
+			"Hours":               95.0,
+			"HoursFormatted":      "95.0 Std",
+			"Efficiency":          65.0,
+			"EfficiencyFormatted": "65.0%",
+			"EfficiencyClass":     "bg-yellow-600",
 		},
 		{
-			ID:            "proj-5",
-			Name:          "CRM Implementation",
-			Status:        "Geplant",
-			TeamSize:      6,
-			Hours:         80,
-			TimeDeviation: 0.0,  // Noch keine Abweichung
-			Efficiency:    90.0, // Geschätzte Effizienz
+			"ID":                  "proj-5",
+			"Name":                "CRM Implementation",
+			"Status":              "Geplant",
+			"TeamSize":            6,
+			"Hours":               80.0,
+			"HoursFormatted":      "80.0 Std",
+			"Efficiency":          90.0,
+			"EfficiencyFormatted": "90.0%",
+			"EfficiencyClass":     "bg-green-600",
 		},
 	}
 
 	// Aktuelle Abwesenheiten identifizieren (für die nächsten 30 Tage)
 	now := time.Now()
 	endPeriod := now.AddDate(0, 0, 30)
-	var currentAbsences []AbsenceStatData
+	var currentAbsences []gin.H
 
 	for _, emp := range employees {
 		for _, absence := range emp.Absences {
@@ -240,8 +213,7 @@ func (h *StatisticsHandler) GetStatisticsView(c *gin.Context) {
 				absence.StartDate.Before(endPeriod) ||
 				(absence.EndDate.After(now) && absence.EndDate.Before(endPeriod)) {
 
-				// Betroffene Projekte identifizieren (in einer echten Anwendung würde
-				// dies auf tatsächlichen Zuordnungen basieren)
+				// Betroffene Projekte identifizieren
 				var affectedProjects []string
 				for _, proj := range emp.ProjectAssignments {
 					// Prüfen, ob Projekt während der Abwesenheit aktiv ist
@@ -251,17 +223,17 @@ func (h *StatisticsHandler) GetStatisticsView(c *gin.Context) {
 					}
 				}
 
-				currentAbsences = append(currentAbsences, AbsenceStatData{
-					ID:               absence.ID.Hex(),
-					EmployeeID:       emp.ID.Hex(),
-					EmployeeName:     emp.FirstName + " " + emp.LastName,
-					Type:             absence.Type,
-					StartDate:        absence.StartDate,
-					EndDate:          absence.EndDate,
-					Days:             absence.Days,
-					Status:           absence.Status,
-					HasProfileImage:  len(emp.ProfileImageData.Data) > 0,
-					AffectedProjects: affectedProjects,
+				currentAbsences = append(currentAbsences, gin.H{
+					"ID":               absence.ID.Hex(),
+					"EmployeeID":       emp.ID.Hex(),
+					"EmployeeName":     emp.FirstName + " " + emp.LastName,
+					"Type":             absence.Type,
+					"StartDate":        absence.StartDate,
+					"EndDate":          absence.EndDate,
+					"Days":             absence.Days,
+					"Status":           absence.Status,
+					"HasProfileImage":  len(emp.ProfileImageData.Data) > 0,
+					"AffectedProjects": affectedProjects,
 				})
 			}
 		}
@@ -269,7 +241,7 @@ func (h *StatisticsHandler) GetStatisticsView(c *gin.Context) {
 
 	// Nach Startdatum sortieren
 	sort.Slice(currentAbsences, func(i, j int) bool {
-		return currentAbsences[i].StartDate.Before(currentAbsences[j].StartDate)
+		return currentAbsences[i]["StartDate"].(time.Time).Before(currentAbsences[j]["StartDate"].(time.Time))
 	})
 
 	// Daten an das Template übergeben
@@ -289,46 +261,4 @@ func (h *StatisticsHandler) GetStatisticsView(c *gin.Context) {
 		"projectDetails":      projectDetails,
 		"currentAbsences":     currentAbsences,
 	})
-}
-
-// Hilfsfunktion zum Erstellen eines ProjectStatData-Objekts mit vorberechneten Werten
-// Hilfsfunktion zum Erstellen eines ProjectStatData-Objekts mit vorberechneten Werten
-func createProjectStatData(id, name, status string, teamSize int, hours, timeDeviation, efficiency float64) ProjectStatData {
-	// Stunden formatieren
-	hoursFormatted := fmt.Sprintf("%.1f Std", hours)
-
-	// Zeitabweichung formatieren
-	timeDeviationFormatted := fmt.Sprintf("%.1f%%", timeDeviation)
-	if timeDeviation > 0 {
-		timeDeviationFormatted = "+" + timeDeviationFormatted
-	}
-
-	// Effizienzklasse bestimmen
-	var efficiencyClass string
-	if efficiency >= 80 {
-		efficiencyClass = "bg-green-600"
-	} else if efficiency >= 50 {
-		efficiencyClass = "bg-yellow-600"
-	} else {
-		efficiencyClass = "bg-red-600"
-	}
-
-	// Effizienz formatieren
-	efficiencyFormatted := fmt.Sprintf("%.1f%%", efficiency)
-
-	return ProjectStatData{
-		ID:                      id,
-		Name:                    name,
-		Status:                  status,
-		TeamSize:                teamSize,
-		Hours:                   hours,
-		HoursFormatted:          hoursFormatted,
-		TimeDeviation:           timeDeviation,
-		TimeDeviationFormatted:  timeDeviationFormatted,
-		IsTimeDeviationPositive: timeDeviation > 0,
-		IsTimeDeviationNegative: timeDeviation < 0,
-		Efficiency:              efficiency,
-		EfficiencyFormatted:     efficiencyFormatted,
-		EfficiencyClass:         efficiencyClass,
-	}
 }
