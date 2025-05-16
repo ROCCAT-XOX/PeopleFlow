@@ -1,4 +1,4 @@
-// frontend/static/js/enhanced-statistics.js
+// frontend/static/js/statistics.js - Fixed version
 
 document.addEventListener('DOMContentLoaded', function() {
     // Tab functionality
@@ -178,9 +178,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     'error'
                 );
                 console.error('Error:', error);
-
-                // Update with dummy data in case of error
-                updateStatisticsDisplay(generateDummyData());
             });
     }
 
@@ -776,270 +773,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }, duration);
     }
 
-    // Generate dummy data for testing
-    function generateDummyData() {
-        return {
-            totalHours: 1425.5,
-            productivityRate: 87.2,
-            totalAbsenceDays: 45,
-            activeProjects: 5,
+    // Initialize charts with server data
+    initializeChartsWithServerData();
 
-            weekdayHours: {
-                'Montag': 8.2,
-                'Dienstag': 8.5,
-                'Mittwoch': 7.9,
-                'Donnerstag': 8.3,
-                'Freitag': 7.1,
-                'Samstag': 1.4,
-                'Sonntag': 0.3
-            },
+    // Function to initialize charts with real data from server
+    function initializeChartsWithServerData() {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-            projectHours: [
-                { id: 'proj-1', name: 'Website Redesign', hours: 320, share: 22.4 },
-                { id: 'proj-2', name: 'Mobile App', hours: 780, share: 54.7 },
-                { id: 'proj-3', name: 'Datenmigration', hours: 150, share: 10.5 },
-                { id: 'proj-4', name: 'Security Audit', hours: 95, share: 6.7 },
-                { id: 'proj-5', name: 'CRM Implementation', hours: 80, share: 5.7 }
-            ],
-
-            productivityTimeline: [
-                { month: 'Jan', rate: 82 },
-                { month: 'Feb', rate: 83 },
-                { month: 'Mär', rate: 80 },
-                { month: 'Apr', rate: 84 },
-                { month: 'Mai', rate: 87 },
-                { month: 'Jun', rate: 85 },
-                { month: 'Jul', rate: 88 },
-                { month: 'Aug', rate: 89 },
-                { month: 'Sep', rate: 86 },
-                { month: 'Okt', rate: 85 },
-                { month: 'Nov', rate: 87 },
-                { month: 'Dez', rate: 90 }
-            ],
-
-            absenceTypes: {
-                'Urlaub': 120,
-                'Krankheit': 45,
-                'Sonderurlaub': 15
-            },
-
-            projectProductivity: [
-                { id: 'proj-1', name: 'Website Redesign', rate: 87 },
-                { id: 'proj-2', name: 'Mobile App', rate: 92 },
-                { id: 'proj-3', name: 'Datenmigration', rate: 89 },
-                { id: 'proj-4', name: 'Security Audit', rate: 65 },
-                { id: 'proj-5', name: 'CRM Implementation', rate: 90 }
-            ],
-
-            employeeProductivity: [
-                { id: 'emp-1', name: 'Max Mustermann', rate: 95 },
-                { id: 'emp-2', name: 'Anna Schmidt', rate: 89 },
-                { id: 'emp-3', name: 'Timo Becker', rate: 87 },
-                { id: 'emp-4', name: 'Lisa Meier', rate: 92 },
-                { id: 'emp-5', name: 'Jan Weber', rate: 84 }
-            ],
-
-            productivityRanking: [
-                {
-                    id: 'emp-1',
-                    name: 'Max Mustermann',
-                    department: 'Entwicklung',
-                    hours: 160.5,
-                    productivityRate: 95,
-                    trend: 3,
-                    trendFormatted: '+3.0%',
-                    isTrendPositive: true,
-                    isTrendNegative: false,
-                    hasProfileImage: false
-                },
-                {
-                    id: 'emp-4',
-                    name: 'Lisa Meier',
-                    department: 'Design',
-                    hours: 145.2,
-                    productivityRate: 92,
-                    trend: 1.5,
-                    trendFormatted: '+1.5%',
-                    isTrendPositive: true,
-                    isTrendNegative: false,
-                    hasProfileImage: false
-                },
-                {
-                    id: 'emp-2',
-                    name: 'Anna Schmidt',
-                    department: 'Marketing',
-                    hours: 138.7,
-                    productivityRate: 89,
-                    trend: -1.2,
-                    trendFormatted: '-1.2%',
-                    isTrendPositive: false,
-                    isTrendNegative: true,
-                    hasProfileImage: false
-                },
-                {
-                    id: 'emp-3',
-                    name: 'Timo Becker',
-                    department: 'Entwicklung',
-                    hours: 152.8,
-                    productivityRate: 87,
-                    trend: 2.3,
-                    trendFormatted: '+2.3%',
-                    isTrendPositive: true,
-                    isTrendNegative: false,
-                    hasProfileImage: false
-                },
-                {
-                    id: 'emp-5',
-                    name: 'Jan Weber',
-                    department: 'Vertrieb',
-                    hours: 130.5,
-                    productivityRate: 84,
-                    trend: -2.5,
-                    trendFormatted: '-2.5%',
-                    isTrendPositive: false,
-                    isTrendNegative: true,
-                    hasProfileImage: false
-                }
-            ],
-
-            projectProgress: [
-                { id: 'proj-1', name: 'Website Redesign', progress: 65 },
-                { id: 'proj-2', name: 'Mobile App', progress: 40 },
-                { id: 'proj-3', name: 'Datenmigration', progress: 100 },
-                { id: 'proj-4', name: 'Security Audit', progress: 30 },
-                { id: 'proj-5', name: 'CRM Implementation', progress: 10 }
-            ],
-
-            resourceAllocation: [
-                { id: 'proj-1', name: 'Website Redesign', teamSize: 5 },
-                { id: 'proj-2', name: 'Mobile App', teamSize: 8 },
-                { id: 'proj-3', name: 'Datenmigration', teamSize: 3 },
-                { id: 'proj-4', name: 'Security Audit', teamSize: 2 },
-                { id: 'proj-5', name: 'CRM Implementation', teamSize: 6 }
-            ],
-
-            projectDetails: [
-                {
-                    id: 'proj-1',
-                    name: 'Website Redesign',
-                    status: 'In Arbeit',
-                    teamSize: 5,
-                    hours: 320,
-                    hoursFormatted: '320.0 Std',
-                    efficiency: 87.2,
-                    efficiencyFormatted: '87.2%',
-                    efficiencyClass: 'bg-green-600'
-                },
-                {
-                    id: 'proj-2',
-                    name: 'Mobile App',
-                    status: 'In Arbeit',
-                    teamSize: 8,
-                    hours: 780,
-                    hoursFormatted: '780.0 Std',
-                    efficiency: 92.5,
-                    efficiencyFormatted: '92.5%',
-                    efficiencyClass: 'bg-green-600'
-                },
-                {
-                    id: 'proj-3',
-                    name: 'Datenmigration',
-                    status: 'Abgeschlossen',
-                    teamSize: 3,
-                    hours: 150,
-                    hoursFormatted: '150.0 Std',
-                    efficiency: 89.0,
-                    efficiencyFormatted: '89.0%',
-                    efficiencyClass: 'bg-green-600'
-                },
-                {
-                    id: 'proj-4',
-                    name: 'Security Audit',
-                    status: 'Kritisch',
-                    teamSize: 2,
-                    hours: 95,
-                    hoursFormatted: '95.0 Std',
-                    efficiency: 65.0,
-                    efficiencyFormatted: '65.0%',
-                    efficiencyClass: 'bg-yellow-600'
-                },
-                {
-                    id: 'proj-5',
-                    name: 'CRM Implementation',
-                    status: 'Geplant',
-                    teamSize: 6,
-                    hours: 80,
-                    hoursFormatted: '80.0 Std',
-                    efficiency: 90.0,
-                    efficiencyFormatted: '90.0%',
-                    efficiencyClass: 'bg-green-600'
-                }
-            ],
-
-            absenceTypeDetail: {
-                'Urlaub': 150,
-                'Krankheit': 75,
-                'Sonderurlaub': 25,
-                'Elternzeit': 30,
-                'Fortbildung': 40
-            },
-
-            absenceTimeline: [
-                { month: 'Jan', vacation: 5, sick: 8, other: 2 },
-                { month: 'Feb', vacation: 7, sick: 10, other: 3 },
-                { month: 'Mär', vacation: 10, sick: 6, other: 4 },
-                { month: 'Apr', vacation: 8, sick: 5, other: 5 },
-                { month: 'Mai', vacation: 12, sick: 4, other: 3 },
-                { month: 'Jun', vacation: 25, sick: 3, other: 2 },
-                { month: 'Jul', vacation: 30, sick: 4, other: 3 },
-                { month: 'Aug', vacation: 35, sick: 5, other: 4 },
-                { month: 'Sep', vacation: 15, sick: 7, other: 2 },
-                { month: 'Okt', vacation: 8, sick: 9, other: 3 },
-                { month: 'Nov', vacation: 7, sick: 12, other: 4 },
-                { month: 'Dez', vacation: 20, sick: 10, other: 3 }
-            ],
-
-            currentAbsences: [
-                {
-                    id: 'abs-1',
-                    employeeId: 'emp-1',
-                    employeeName: 'Max Mustermann',
-                    type: 'vacation',
-                    startDate: '2023-06-15T00:00:00Z',
-                    endDate: '2023-06-30T00:00:00Z',
-                    days: 12,
-                    status: 'approved',
-                    hasProfileImage: false,
-                    affectedProjects: ['Website Redesign', 'Mobile App']
-                },
-                {
-                    id: 'abs-2',
-                    employeeId: 'emp-3',
-                    employeeName: 'Timo Becker',
-                    type: 'sick',
-                    startDate: '2023-06-10T00:00:00Z',
-                    endDate: '2023-06-12T00:00:00Z',
-                    days: 3,
-                    status: 'approved',
-                    hasProfileImage: false,
-                    affectedProjects: ['Security Audit']
-                },
-                {
-                    id: 'abs-3',
-                    employeeId: 'emp-2',
-                    employeeName: 'Anna Schmidt',
-                    type: 'vacation',
-                    startDate: '2023-07-05T00:00:00Z',
-                    endDate: '2023-07-15T00:00:00Z',
-                    days: 9,
-                    status: 'requested',
-                    hasProfileImage: false,
-                    affectedProjects: ['Mobile App', 'CRM Implementation']
-                }
-            ]
-        };
+        // Fetch initial data for charts
+        fetchFilteredStatistics({
+            dateRangeKey: 'this-month',
+            startDate: startOfMonth.toISOString(),
+            endDate: endOfMonth.toISOString(),
+            projectId: '',
+            employeeIds: []
+        });
     }
-
-    // Initialize the page with dummy data
-    updateStatisticsDisplay(generateDummyData());
 });
