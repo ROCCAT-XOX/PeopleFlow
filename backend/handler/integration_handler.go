@@ -520,3 +520,30 @@ func (h *IntegrationHandler) TriggerErfasst123FullSync(c *gin.Context) {
 		},
 	})
 }
+
+func (h *IntegrationHandler) SyncErfasst123Employees(c *gin.Context) {
+	// Prüfen, ob 123erfasst verbunden ist
+	if !h.erfasst123Service.IsConnected() {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "123erfasst is not connected",
+		})
+		return
+	}
+
+	// Synchronisierung durchführen
+	updatedCount, err := h.erfasst123Service.SyncErfasst123Employees()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Error synchronizing employees: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":      true,
+		"message":      fmt.Sprintf("%d employees were updated", updatedCount),
+		"updatedCount": updatedCount,
+	})
+}

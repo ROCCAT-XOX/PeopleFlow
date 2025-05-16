@@ -954,6 +954,7 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 
 	fmt.Printf("Sync complete. Updated %d time entries across employees.\n", updatedCount)
 	return updatedCount, nil
+
 }
 
 // GetSyncStatus returns the synchronization status and settings
@@ -990,4 +991,5 @@ func (s *Erfasst123Service) GetSyncStatus() (gin.H, error) {
 		"lastSync":  lastSyncFormatted,
 		"startDate": startDate,
 	}, nil
+
 }

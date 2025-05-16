@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"PeopleFlow/backend"
-	"PeopleFlow/backend/background"
+	"PeopleFlow/backend/background" // Neuer Import für das Background-Paket
 	"PeopleFlow/backend/db"
 	"PeopleFlow/backend/repository"
 	"PeopleFlow/backend/utils"
