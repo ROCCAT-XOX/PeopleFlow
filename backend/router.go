@@ -269,6 +269,7 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.GET("/timetracking/export", timeTrackingHandler.ExportTimeTracking)
 		authorized.GET("/statistics", statisticsHandler.GetStatisticsView)
 		authorized.POST("/api/statistics/filter", statisticsAPIHandler.GetFilteredStatistics)
+		authorized.POST("/api/statistics/extended", statisticsAPIHandler.GetExtendedStatistics)
 
 		// Benutzerprofilrouten
 		authorized.GET("/profile", userHandler.ShowUserProfile)

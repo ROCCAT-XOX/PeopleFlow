@@ -54,6 +54,17 @@
                             {{end}}
                         </select>
                     </div>
+
+                    <!-- Mitarbeiter-Filter -->
+                    <div>
+                        <label for="employee-filter" class="block text-sm font-medium text-gray-700">Mitarbeiter</label>
+                        <select id="employee-filter" name="employee" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
+                            <option value="">Alle Mitarbeiter</option>
+                            {{range .employees}}
+                            <option value="{{.ID.Hex}}">{{.FirstName}} {{.LastName}}</option>
+                            {{end}}
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Filter-Button -->
@@ -70,7 +81,7 @@
     </div>
 
     <!-- Übersichtskarten -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <!-- Gesamtarbeitszeit Karte -->
         <div class="bg-white overflow-hidden shadow rounded-lg">
             <div class="px-4 py-5 sm:p-6">
@@ -100,6 +111,16 @@
                 </dl>
             </div>
         </div>
+
+        <!-- Projekte -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <dl>
+                    <dt class="text-sm font-medium text-gray-500 truncate">Aktive Projekte</dt>
+                    <dd id="active-projects-card" class="mt-1 text-3xl font-semibold text-gray-900">{{len .projectDetails}}</dd>
+                </dl>
+            </div>
+        </div>
     </div>
 
     <!-- Hauptcontent mit Tabs -->
@@ -124,7 +145,7 @@
         <!-- Tab-Inhalte -->
         <!-- Übersichts-Tab -->
         <div id="overview-tab" class="tab-content px-4 py-5 sm:p-6">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <!-- Arbeitszeit nach Wochentag -->
                 <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Arbeitszeit nach Wochentag</h3>
@@ -141,10 +162,46 @@
                     </div>
                 </div>
             </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Produktivität im Zeitverlauf -->
+                <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Produktivität im Zeitverlauf</h3>
+                    <div class="h-80">
+                        <canvas id="productivityTimelineChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Abwesenheitstage nach Typ -->
+                <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Abwesenheitstage nach Typ</h3>
+                    <div class="h-80">
+                        <canvas id="absenceTypesChart"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Produktivitäts-Tab -->
         <div id="productivity-tab" class="tab-content px-4 py-5 sm:p-6 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Produktivität nach Projekt -->
+                <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Produktivität nach Projekt</h3>
+                    <div class="h-80">
+                        <canvas id="projectProductivityChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Produktivität nach Mitarbeiter -->
+                <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Produktivität nach Mitarbeiter</h3>
+                    <div class="h-80">
+                        <canvas id="employeeProductivityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
             <!-- Produktivitätsranking -->
             <div class="mt-6 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Mitarbeiter-Produktivitätsranking</h3>
@@ -209,6 +266,24 @@
 
     <!-- Projekte-Tab -->
     <div id="projects-tab" class="tab-content px-4 py-5 sm:p-6 hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Projektfortschritt -->
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Projektfortschritt</h3>
+                <div class="h-80">
+                    <canvas id="projectProgressChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Ressourcenverteilung -->
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Ressourcenverteilung nach Projekt</h3>
+                <div class="h-80">
+                    <canvas id="resourceAllocationChart"></canvas>
+                </div>
+            </div>
+        </div>
+
         <!-- Projekttabelle -->
         <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Projektdetails</h3>
@@ -263,6 +338,24 @@
 
     <!-- Abwesenheiten-Tab -->
     <div id="absence-tab" class="tab-content px-4 py-5 sm:p-6 hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Abwesenheiten nach Typ -->
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Abwesenheiten nach Typ</h3>
+                <div class="h-80">
+                    <canvas id="absenceTypeDetailChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Abwesenheiten im Zeitverlauf -->
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Abwesenheiten im Zeitverlauf</h3>
+                <div class="h-80">
+                    <canvas id="absenceTimelineChart"></canvas>
+                </div>
+            </div>
+        </div>
+
         <!-- Abwesenheitstabelle -->
         <div class="mt-6 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Aktuelle Abwesenheiten</h3>
