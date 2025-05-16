@@ -115,7 +115,7 @@
             <div class="px-4 py-5 sm:p-6">
                 <dl>
                     <dt class="text-sm font-medium text-gray-500 truncate">Erfasste Gesamtzeit</dt>
-                    <dd id="total-hours-card" class="mt-1 text-3xl font-semibold text-gray-900">{{.totalHours}} Std</dd>
+                    <dd id="total-hours-card" class="mt-1 text-3xl font-semibold text-gray-900">{{printf "%.1f" .totalHours}} Std</dd>
                 </dl>
             </div>
         </div>
@@ -125,7 +125,7 @@
             <div class="px-4 py-5 sm:p-6">
                 <dl>
                     <dt class="text-sm font-medium text-gray-500 truncate">Produktivitätsrate</dt>
-                    <dd id="productivity-rate-card" class="mt-1 text-3xl font-semibold text-gray-900">{{.productivityRate}}%</dd>
+                    <dd id="productivity-rate-card" class="mt-1 text-3xl font-semibold text-gray-900">{{printf "%.1f" .productivityRate}}%</dd>
                 </dl>
             </div>
         </div>
@@ -135,7 +135,7 @@
             <div class="px-4 py-5 sm:p-6">
                 <dl>
                     <dt class="text-sm font-medium text-gray-500 truncate">Abwesenheitstage</dt>
-                    <dd id="absence-days-card" class="mt-1 text-3xl font-semibold text-gray-900">{{.totalAbsenceDays}} Tage</dd>
+                    <dd id="absence-days-card" class="mt-1 text-3xl font-semibold text-gray-900">{{printf "%.0f" .totalAbsenceDays}} Tage</dd>
                 </dl>
             </div>
         </div>
@@ -271,929 +271,249 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{$employee.Department}}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{$employee.Hours}} Std</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{printf "%.1f" $employee.Hours}} Std</td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
                                     <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                        <div class="bg-green-600 h-2.5 rounded-full" style="width: {{$employee.ProductivityRate}}%"></div>
-                                    </div>
-                                    <span class="ml-2 text-sm text-gray-900">{{$employee.ProductivityRate}}%</span>
+                                        <div class="bg-green-600 h-2.5 rounded-full" style="width: {{printf "%.1f" $employee.ProductivityRate}}%"></div>
                                 </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{if gt $employee.Trend 0}}
-                                <span class="inline-flex items-center text-green-600">
-    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
-    </svg>
-    {{printf "%.1f" $employee.Trend}}%
-  </span>
-                                {{else if lt $employee.Trend 0}}
-                                <span class="inline-flex items-center text-red-600">
-    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-    </svg>
-    {{printf "%.1f" (abs $employee.Trend)}}%
-  </span>
-                                {{else}}
-                                <span class="inline-flex items-center text-gray-500">
-    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14"></path>
-    </svg>
-    0%
-  </span>
-                                {{end}}
-                            </td>
-                        </tr>
-                        {{end}}
-                        </tbody>
-                    </table>
+                                <span class="ml-2 text-sm text-gray-900">{{printf "%.1f" $employee.ProductivityRate}}%</span>
+                </div>
+                </td>
+                <!-- DIESER TEIL WURDE STARK VEREINFACHT -->
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                    {{ if $employee.IsTrendPositive }}
+                    <span class="text-green-600">{{$employee.TrendFormatted}}</span>
+                    {{ else if $employee.IsTrendNegative }}
+                    <span class="text-red-600">{{$employee.TrendFormatted}}</span>
+                    {{ else }}
+                    <span class="text-gray-500">0.0%</span>
+                    {{ end }}
+                </td>
+                </tr>
+                {{end}}
+                </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projekte-Tab -->
+    <div id="projects-tab" class="tab-content px-4 py-5 sm:p-6 hidden">
+        <!-- Projektübersicht -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Projektfortschritt -->
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Projektfortschritt</h3>
+                <div class="h-80">
+                    <canvas id="projectProgressChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Projekt-Ressourcenverteilung -->
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Ressourcenverteilung nach Projekt</h3>
+                <div class="h-80">
+                    <canvas id="resourceAllocationChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Projektzeitaufwand vs. Budget -->
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Zeitaufwand vs. Budget</h3>
+                <div class="h-80">
+                    <canvas id="timeVsBudgetChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Projektzeitentwicklung -->
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Projektzeitentwicklung</h3>
+                <div class="h-80">
+                    <canvas id="projectTimelineChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <!-- Projekte-Tab -->
-        <div id="projects-tab" class="tab-content px-4 py-5 sm:p-6 hidden">
-            <!-- Projektübersicht -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Projektfortschritt -->
-                <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Projektfortschritt</h3>
-                    <div class="h-80">
-                        <canvas id="projectProgressChart"></canvas>
-                    </div>
-                </div>
+        <!-- Projekttabelle -->
+        <div class="mt-6 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Projektdetails</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Projekt</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beteiligung</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Erfasste Stunden</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zeitabweichung</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Effizienz</th>
+                    </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="projects-table-body">
+                    {{range .projectDetails}}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{.Name}}</div>
+                            <div class="text-sm text-gray-500">ID: {{.ID}}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                    {{if eq .Status "Abgeschlossen"}}bg-green-100 text-green-800
+                            {{else if eq .Status "In Arbeit"}}bg-blue-100 text-blue-800
+                            {{else if eq .Status "Kritisch"}}bg-red-100 text-red-800
+                            {{else}}bg-yellow-100 text-yellow-800{{end}}">
+                            {{.Status}}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{.TeamSize}} Mitarbeiter
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{printf "%.1f" .Hours}} Std
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm
+                                {{if gt .TimeDeviation 0}}text-red-600
+                                {{else if lt .TimeDeviation 0}}text-green-600
+                                {{else}}text-gray-500{{end}}">
+                            {{if gt .TimeDeviation 0}}+{{end}}{{printf "%.1f" .TimeDeviation}}%
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="{{if ge .Efficiency 80}}bg-green-600{{else if ge .Efficiency 50}}bg-yellow-600{{else}}bg-red-600{{end}} h-2.5 rounded-full" style="width: {{printf "%.1f" .Efficiency}}%"></div>
+                            </div>
+                            <span class="ml-2 text-sm text-gray-900">{{printf "%.1f" .Efficiency}}%</span>
+            </div>
+            </td>
+            </tr>
+            {{end}}
+            </tbody>
+            </table>
+        </div>
+    </div>
+    </div>
 
-                <!-- Projekt-Ressourcenverteilung -->
-                <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Ressourcenverteilung nach Projekt</h3>
-                    <div class="h-80">
-                        <canvas id="resourceAllocationChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Projektzeitaufwand vs. Budget -->
-                <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Zeitaufwand vs. Budget</h3>
-                    <div class="h-80">
-                        <canvas id="timeVsBudgetChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Projektzeitentwicklung -->
-                <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Projektzeitentwicklung</h3>
-                    <div class="h-80">
-                        <canvas id="projectTimelineChart"></canvas>
-                    </div>
+    <!-- Abwesenheiten-Tab -->
+    <div id="absence-tab" class="tab-content px-4 py-5 sm:p-6 hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Abwesenheitsarten -->
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Abwesenheitsarten</h3>
+                <div class="h-80">
+                    <canvas id="absenceTypesChart"></canvas>
                 </div>
             </div>
 
-            <!-- Projekttabelle -->
-            <div class="mt-6 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Projektdetails</h3>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Projekt</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beteiligung</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Erfasste Stunden</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zeitabweichung</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Effizienz</th>
-                        </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200" id="projects-table-body">
-                        {{range .projectDetails}}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900">{{.Name}}</div>
-                                <div class="text-sm text-gray-500">ID: {{.ID}}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                    {{if eq .Status "Abgeschlossen"}}bg-green-100 text-green-800
-                                {{else if eq .Status "In Arbeit"}}bg-blue-100 text-blue-800
-                                {{else if eq .Status "Kritisch"}}bg-red-100 text-red-800
-                                {{else}}bg-yellow-100 text-yellow-800{{end}}">
-                                {{.Status}}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{.TeamSize}} Mitarbeiter
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{.Hours}} Std
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm
-                  {{if gt .TimeDeviation 0}}text-red-600
-                  {{else if lt .TimeDeviation 0}}text-green-600
-                  {{else}}text-gray-500{{end}}">
-                                {{if gt .TimeDeviation 0}}+{{end}}{{.TimeDeviation}}%
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                        <div class="{{if ge .Efficiency 80}}bg-green-600{{else if ge .Efficiency 50}}bg-yellow-600{{else}}bg-red-600{{end}} h-2.5 rounded-full" style="width: {{.Efficiency}}%"></div>
-                                    </div>
-                                    <span class="ml-2 text-sm text-gray-900">{{.Efficiency}}%</span>
-                                </div>
-                            </td>
-                        </tr>
-                        {{end}}
-                        </tbody>
-                    </table>
+            <!-- Abwesenheit nach Abteilung -->
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Abwesenheit nach Abteilung</h3>
+                <div class="h-80">
+                    <canvas id="absenceByDeptChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Abwesenheitstendenz -->
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Abwesenheitstendenz</h3>
+                <div class="h-80">
+                    <canvas id="absenceTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Auswirkung auf Projekte -->
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Auswirkung auf Projekte</h3>
+                <div class="h-80">
+                    <canvas id="absenceImpactChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <!-- Abwesenheiten-Tab -->
-        <div id="absence-tab" class="tab-content px-4 py-5 sm:p-6 hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Abwesenheitsarten -->
-                <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Abwesenheitsarten</h3>
-                    <div class="h-80">
-                        <canvas id="absenceTypesChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Abwesenheit nach Abteilung -->
-                <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Abwesenheit nach Abteilung</h3>
-                    <div class="h-80">
-                        <canvas id="absenceByDeptChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Abwesenheitstendenz -->
-                <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Abwesenheitstendenz</h3>
-                    <div class="h-80">
-                        <canvas id="absenceTrendChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Auswirkung auf Projekte -->
-                <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Auswirkung auf Projekte</h3>
-                    <div class="h-80">
-                        <canvas id="absenceImpactChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Abwesenheitstabelle -->
-            <div class="mt-6 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Aktuelle Abwesenheiten</h3>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mitarbeiter</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typ</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Von</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bis</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dauer</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Betroffene Projekte</th>
-                        </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200" id="absence-table-body">
-                        {{range .currentAbsences}}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0 h-10 w-10">
-                                        {{if .HasProfileImage}}
-                                        <img class="h-10 w-10 rounded-full" src="/employees/{{.EmployeeID}}/profile-image" alt="">
-                                        {{else}}
-                                        <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-800 font-medium">
-                                            {{ getInitials .EmployeeName }}
-                                        </div>
-                                        {{end}}
+        <!-- Abwesenheitstabelle -->
+        <div class="mt-6 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Aktuelle Abwesenheiten</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mitarbeiter</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typ</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Von</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bis</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dauer</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Betroffene Projekte</th>
+                    </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="absence-table-body">
+                    {{range .currentAbsences}}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    {{if .HasProfileImage}}
+                                    <img class="h-10 w-10 rounded-full" src="/employees/{{.EmployeeID}}/profile-image" alt="">
+                                    {{else}}
+                                    <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-800 font-medium">
+                                        {{ getInitials .EmployeeName }}
                                     </div>
-                                    <div class="ml-4">
-                                        <div class="text-sm font-medium text-gray-900">{{.EmployeeName}}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                    {{if eq .Type "vacation"}}bg-green-100 text-green-800
-                                {{else if eq .Type "sick"}}bg-red-100 text-red-800
-                                {{else}}bg-blue-100 text-blue-800{{end}}">
-                                {{if eq .Type "vacation"}}Urlaub
-                                {{else if eq .Type "sick"}}Krank
-                                {{else}}Sonderurlaub{{end}}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatDate .StartDate}}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatDate .EndDate}}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.Days}} Tage</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                    {{if eq .Status "approved"}}bg-green-100 text-green-800
-                                {{else if eq .Status "rejected"}}bg-red-100 text-red-800
-                                {{else if eq .Status "requested"}}bg-yellow-100 text-yellow-800
-                                {{else}}bg-gray-100 text-gray-800{{end}}">
-                                {{if eq .Status "approved"}}Genehmigt
-                                {{else if eq .Status "rejected"}}Abgelehnt
-                                {{else if eq .Status "requested"}}Beantragt
-                                {{else}}Storniert{{end}}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{if .AffectedProjects}}
-                                <div class="flex flex-wrap gap-1">
-                                    {{range .AffectedProjects}}
-                                    <span class="px-2 py-0.5 bg-gray-100 text-gray-800 rounded text-xs">{{.}}</span>
                                     {{end}}
                                 </div>
-                                {{else}}
-                                Keine
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">{{.EmployeeName}}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                    {{if eq .Type "vacation"}}bg-green-100 text-green-800
+                            {{else if eq .Type "sick"}}bg-red-100 text-red-800
+                            {{else}}bg-blue-100 text-blue-800{{end}}">
+                            {{if eq .Type "vacation"}}Urlaub
+                            {{else if eq .Type "sick"}}Krank
+                            {{else}}Sonderurlaub{{end}}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatDate .StartDate}}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatDate .EndDate}}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{printf "%.1f" .Days}} Tage</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                    {{if eq .Status "approved"}}bg-green-100 text-green-800
+                            {{else if eq .Status "rejected"}}bg-red-100 text-red-800
+                            {{else if eq .Status "requested"}}bg-yellow-100 text-yellow-800
+                            {{else}}bg-gray-100 text-gray-800{{end}}">
+                            {{if eq .Status "approved"}}Genehmigt
+                            {{else if eq .Status "rejected"}}Abgelehnt
+                            {{else if eq .Status "requested"}}Beantragt
+                            {{else}}Storniert{{end}}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{if .AffectedProjects}}
+                            <div class="flex flex-wrap gap-1">
+                                {{range .AffectedProjects}}
+                                <span class="px-2 py-0.5 bg-gray-100 text-gray-800 rounded text-xs">{{.}}</span>
                                 {{end}}
-                            </td>
-                        </tr>
-                        {{end}}
-                        </tbody>
-                    </table>
-                </div>
+                            </div>
+                            {{else}}
+                            Keine
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{end}}
+                    </tbody>
+                </table>
             </div>
         </div>
+    </div>
     </div>
 </main>
 
 <!-- Footer -->
 {{ template "footer" . }}
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Tab-Funktionalität
-        const tabButtons = document.querySelectorAll('.tab-btn');
-        const tabContents = document.querySelectorAll('.tab-content');
-
-        tabButtons.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const tabId = this.getAttribute('data-tab');
-
-                // Aktiven Button-Zustand ändern
-                tabButtons.forEach(button => {
-                    button.classList.remove('bg-green-100', 'text-green-700', 'border-green-500');
-                    button.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
-                });
-
-                this.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
-                this.classList.add('bg-green-100', 'text-green-700', 'border-green-500');
-
-                // Tab-Inhalte ein-/ausblenden
-                tabContents.forEach(content => {
-                    content.classList.add('hidden');
-                });
-
-                document.getElementById(tabId + '-tab').classList.remove('hidden');
-            });
-        });
-
-        // Filter-Funktionalität
-        const dateRange = document.getElementById('date-range');
-        const customDateRange = document.getElementById('custom-date-range');
-
-        dateRange.addEventListener('change', function() {
-            if (this.value === 'custom') {
-                customDateRange.classList.remove('hidden');
-            } else {
-                customDateRange.classList.add('hidden');
-            }
-        });
-
-        // Mitarbeiter-Dropdown Funktionalität
-        const employeeDropdownToggle = document.getElementById('employee-dropdown-toggle');
-        const employeeDropdown = document.getElementById('employee-dropdown');
-        const selectAllEmployees = document.getElementById('select-all-employees');
-        const employeeSelectionDisplay = document.getElementById('employee-selection-display');
-
-        employeeDropdownToggle.addEventListener('click', function() {
-            employeeDropdown.classList.toggle('hidden');
-        });
-
-        document.addEventListener('click', function(event) {
-            if (!employeeDropdownToggle.contains(event.target) && !employeeDropdown.contains(event.target)) {
-                employeeDropdown.classList.add('hidden');
-            }
-        });
-
-        selectAllEmployees.addEventListener('change', function() {
-            const checkboxes = document.querySelectorAll('.employee-checkbox');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-            });
-
-            updateEmployeeSelection();
-        });
-
-        document.querySelectorAll('.employee-checkbox').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                updateEmployeeSelection();
-
-                const allCheckboxes = document.querySelectorAll('.employee-checkbox');
-                const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
-                selectAllEmployees.checked = allChecked;
-            });
-        });
-
-        document.querySelectorAll('.employee-option').forEach(option => {
-            option.addEventListener('click', function(e) {
-                if (e.target.type !== 'checkbox') {
-                    const checkbox = this.querySelector('input[type="checkbox"]');
-                    checkbox.checked = !checkbox.checked;
-
-                    const event = new Event('change');
-                    checkbox.dispatchEvent(event);
-                }
-            });
-        });
-
-        function updateEmployeeSelection() {
-            const selectedEmployees = [];
-            const checkboxes = document.querySelectorAll('.employee-checkbox:checked');
-
-            checkboxes.forEach(checkbox => {
-                selectedEmployees.push(checkbox.value);
-            });
-
-            if (selectedEmployees.length === 0) {
-                employeeSelectionDisplay.textContent = 'Alle Mitarbeiter';
-            } else if (selectedEmployees.length === 1) {
-                const employeeName = document.querySelector(`label[for="employee-${selectedEmployees[0]}"]`).textContent.trim();
-                employeeSelectionDisplay.textContent = employeeName;
-            } else {
-                employeeSelectionDisplay.textContent = `${selectedEmployees.length} Mitarbeiter ausgewählt`;
-            }
-        }
-
-        // Filter anwenden
-        const applyFilterBtn = document.getElementById('apply-filter');
-
-        applyFilterBtn.addEventListener('click', function() {
-            // AJAX-Anfrage hier implementieren
-            console.log('Filter angewendet');
-        });
-
-        // Chart-Definitionen
-        const chartColors = [
-            '#15803D', // Dunkelgrün
-            '#22C55E', // Grün
-            '#86EFAC', // Hellgrün
-            '#C3E657', // Gelbgrün
-            '#EFE176'  // Gelb
-        ];
-
-        // Arbeitszeit nach Wochentag Chart
-        const weekdayHoursCtx = document.getElementById('weekdayHoursChart').getContext('2d');
-        new Chart(weekdayHoursCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'],
-                datasets: [{
-                    label: 'Durchschnittliche Stunden',
-                    data: [8.2, 8.5, 7.9, 8.3, 7.1, 1.4, 0.3],
-                    backgroundColor: chartColors[1],
-                    borderRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Stunden'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Arbeitszeit nach Projekt Chart
-        const projectHoursCtx = document.getElementById('projectHoursChart').getContext('2d');
-        new Chart(projectHoursCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Projekt A', 'Projekt B', 'Projekt C', 'Projekt D', 'Andere'],
-                datasets: [{
-                    data: [35, 25, 15, 10, 15],
-                    backgroundColor: chartColors,
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right'
-                    }
-                }
-            }
-        });
-
-        // Monatliche Abwesenheitstage Chart
-        const absenceCtx = document.getElementById('absenceChart').getContext('2d');
-        new Chart(absenceCtx, {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
-                datasets: [
-                    {
-                        label: 'Urlaub',
-                        data: [5, 7, 12, 10, 8, 15, 22, 18, 10, 8, 6, 12],
-                        borderColor: chartColors[0],
-                        backgroundColor: 'transparent',
-                        tension: 0.4
-                    },
-                    {
-                        label: 'Krankheit',
-                        data: [8, 10, 6, 5, 4, 3, 2, 5, 7, 9, 12, 10],
-                        borderColor: chartColors[3],
-                        backgroundColor: 'transparent',
-                        tension: 0.4
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Tage'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Produktivität nach Mitarbeiter Chart
-        const employeeProductivityCtx = document.getElementById('employeeProductivityChart').getContext('2d');
-        new Chart(employeeProductivityCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Max Mustermann', 'Anna Schmidt', 'Thomas Weber', 'Sarah Becker', 'Michael Schulz'],
-                datasets: [{
-                    label: 'Produktivität (%)',
-                    data: [92, 87, 85, 83, 80],
-                    backgroundColor: chartColors[0],
-                    borderRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                indexAxis: 'y',
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        max: 100,
-                        title: {
-                            display: true,
-                            text: 'Produktivität (%)'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Produktivität im Zeitverlauf Chart
-        const productivityTimeCtx = document.getElementById('productivityTimeChart').getContext('2d');
-        new Chart(productivityTimeCtx, {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
-                datasets: [{
-                    label: 'Produktivitätsrate (%)',
-                    data: [75, 78, 77, 80, 82, 85, 86, 85, 87, 88, 87, 89],
-                    borderColor: chartColors[1],
-                    backgroundColor: `${chartColors[1]}20`,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        min: 70,
-                        max: 100,
-                        title: {
-                            display: true,
-                            text: 'Produktivität (%)'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Produktivität nach Abteilung Chart
-        const deptProductivityCtx = document.getElementById('deptProductivityChart').getContext('2d');
-        new Chart(deptProductivityCtx, {
-            type: 'radar',
-            data: {
-                labels: ['Entwicklung', 'Design', 'Marketing', 'Vertrieb', 'Support', 'HR'],
-                datasets: [{
-                    label: 'Produktivität',
-                    data: [85, 78, 82, 87, 76, 80],
-                    backgroundColor: `${chartColors[0]}40`,
-                    borderColor: chartColors[0],
-                    borderWidth: 2,
-                    pointBackgroundColor: chartColors[0],
-                    pointRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    r: {
-                        beginAtZero: true,
-                        max: 100,
-                        ticks: {
-                            stepSize: 20
-                        }
-                    }
-                }
-            }
-        });
-
-        // Produktivität nach Tageszeit Chart
-        const daytimeProductivityCtx = document.getElementById('daytimeProductivityChart').getContext('2d');
-        new Chart(daytimeProductivityCtx, {
-            type: 'line',
-            data: {
-                labels: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'],
-                datasets: [{
-                    label: 'Durchschnittliche Produktivität',
-                    data: [75, 85, 90, 88, 65, 70, 87, 85, 80, 70],
-                    borderColor: chartColors[2],
-                    backgroundColor: `${chartColors[2]}20`,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        min: 60,
-                        max: 100,
-                        title: {
-                            display: true,
-                            text: 'Produktivität (%)'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Produktivitätsverbesserung Chart
-        const productivityYoYCtx = document.getElementById('productivityYoYChart').getContext('2d');
-        new Chart(productivityYoYCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Q1', 'Q2', 'Q3', 'Q4'],
-                datasets: [
-                    {
-                        label: 'Vorjahr',
-                        data: [72, 75, 78, 80],
-                        backgroundColor: chartColors[3],
-                        borderRadius: 6
-                    },
-                    {
-                        label: 'Aktuell',
-                        data: [78, 82, 85, 88],
-                        backgroundColor: chartColors[0],
-                        borderRadius: 6
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        min: 70,
-                        max: 100,
-                        title: {
-                            display: true,
-                            text: 'Produktivität (%)'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Projektfortschritt Chart
-        const projectProgressCtx = document.getElementById('projectProgressChart').getContext('2d');
-        new Chart(projectProgressCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Projekt A', 'Projekt B', 'Projekt C', 'Projekt D', 'Projekt E'],
-                datasets: [
-                    {
-                        label: 'Fortschritt (%)',
-                        data: [65, 85, 42, 97, 30],
-                        backgroundColor: chartColors[1],
-                        borderRadius: 6
-                    },
-                    {
-                        label: 'Geplant (%)',
-                        data: [70, 80, 50, 90, 40],
-                        backgroundColor: 'rgba(200, 200, 200, 0.5)',
-                        borderRadius: 6
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        title: {
-                            display: true,
-                            text: 'Fortschritt (%)'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Ressourcenverteilung Chart
-        const resourceAllocationCtx = document.getElementById('resourceAllocationChart').getContext('2d');
-        new Chart(resourceAllocationCtx, {
-            type: 'pie',
-            data: {
-                labels: ['Projekt A', 'Projekt B', 'Projekt C', 'Projekt D', 'Andere'],
-                datasets: [{
-                    data: [30, 25, 20, 15, 10],
-                    backgroundColor: chartColors,
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right'
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return `${context.label}: ${context.parsed}% der Ressourcen`;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        // Zeitaufwand vs Budget Chart
-        const timeVsBudgetCtx = document.getElementById('timeVsBudgetChart').getContext('2d');
-        new Chart(timeVsBudgetCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Projekt A', 'Projekt B', 'Projekt C', 'Projekt D', 'Projekt E'],
-                datasets: [
-                    {
-                        label: 'Geplante Stunden',
-                        data: [300, 450, 200, 600, 350],
-                        backgroundColor: chartColors[3],
-                        borderRadius: 6
-                    },
-                    {
-                        label: 'Tatsächliche Stunden',
-                        data: [320, 420, 240, 580, 300],
-                        backgroundColor: chartColors[1],
-                        borderRadius: 6
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Stunden'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Projektzeitentwicklung Chart
-        const projectTimelineCtx = document.getElementById('projectTimelineChart').getContext('2d');
-        new Chart(projectTimelineCtx, {
-            type: 'line',
-            data: {
-                labels: ['Woche 1', 'Woche 2', 'Woche 3', 'Woche 4', 'Woche 5', 'Woche 6', 'Woche 7', 'Woche 8'],
-                datasets: [
-                    {
-                        label: 'Projekt A',
-                        data: [20, 35, 40, 45, 50, 65, 70, 85],
-                        borderColor: chartColors[0],
-                        backgroundColor: 'transparent',
-                        tension: 0.4
-                    },
-                    {
-                        label: 'Projekt B',
-                        data: [10, 25, 30, 45, 50, 60, 70, 75],
-                        borderColor: chartColors[1],
-                        backgroundColor: 'transparent',
-                        tension: 0.4
-                    },
-                    {
-                        label: 'Projekt C',
-                        data: [5, 10, 15, 25, 30, 35, 40, 42],
-                        borderColor: chartColors[2],
-                        backgroundColor: 'transparent',
-                        tension: 0.4
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Fortschritt (%)'
-                        },
-                        max: 100
-                    }
-                }
-            }
-        });
-
-        // Abwesenheitsarten Chart
-        const absenceTypesCtx = document.getElementById('absenceTypesChart').getContext('2d');
-        new Chart(absenceTypesCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Urlaub', 'Krankheit', 'Sonderurlaub', 'Fortbildung', 'Andere'],
-                datasets: [{
-                    data: [60, 25, 8, 5, 2],
-                    backgroundColor: chartColors,
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right'
-                    }
-                }
-            }
-        });
-
-        // Abwesenheit nach Abteilung Chart
-        const absenceByDeptCtx = document.getElementById('absenceByDeptChart').getContext('2d');
-        new Chart(absenceByDeptCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Entwicklung', 'Design', 'Marketing', 'Vertrieb', 'Support', 'HR'],
-                datasets: [
-                    {
-                        label: 'Durchschnittliche Abwesenheitstage',
-                        data: [12, 15, 10, 8, 14, 9],
-                        backgroundColor: chartColors[1],
-                        borderRadius: 6
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Tage'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Abwesenheitstendenz Chart
-        const absenceTrendCtx = document.getElementById('absenceTrendChart').getContext('2d');
-        new Chart(absenceTrendCtx, {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
-                datasets: [
-                    {
-                        label: 'Letztes Jahr',
-                        data: [10, 12, 15, 10, 8, 18, 25, 22, 15, 12, 8, 16],
-                        borderColor: chartColors[3],
-                        backgroundColor: 'transparent',
-                        borderDash: [5, 5],
-                        tension: 0.4
-                    },
-                    {
-                        label: 'Aktuelles Jahr',
-                        data: [8, 10, 11, 9, 7, 15, 20, 18, 12, 10, 8, 14],
-                        borderColor: chartColors[0],
-                        backgroundColor: `${chartColors[0]}20`,
-                        fill: true,
-                        tension: 0.4
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Tage'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Auswirkung auf Projekte Chart
-        const absenceImpactCtx = document.getElementById('absenceImpactChart').getContext('2d');
-        new Chart(absenceImpactCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Projekt A', 'Projekt B', 'Projekt C', 'Projekt D', 'Projekt E'],
-                datasets: [
-                    {
-                        label: 'Betroffene Projekttage',
-                        data: [8, 12, 5, 15, 3],
-                        backgroundColor: chartColors[2],
-                        borderRadius: 6
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Tage'
-                        }
-                    }
-                }
-            }
-        });
-    });
-</script>
+<script src="/static/js/statistics.js"></script>
 </body>
 </html>

@@ -3,6 +3,7 @@ package handler
 import (
 	"PeopleFlow/backend/model"
 	"PeopleFlow/backend/repository"
+	"fmt"
 	"net/http"
 	"sort"
 	"time"
@@ -29,19 +30,28 @@ type EmployeeProductivityData struct {
 	Department       string  `json:"department"`
 	Hours            float64 `json:"hours"`
 	ProductivityRate float64 `json:"productivityRate"`
-	Trend            float64 `json:"trend"` // Prozentuale Veränderung zum Vormonat
+	Trend            float64 `json:"trend"`           // Prozentuale Veränderung zum Vormonat
+	TrendFormatted   string  `json:"trendFormatted"`  // Vorformatierter Trend als String
+	IsTrendPositive  bool    `json:"isTrendPositive"` // Ob der Trend positiv ist
+	IsTrendNegative  bool    `json:"isTrendNegative"` // Ob der Trend negativ ist
 	HasProfileImage  bool    `json:"hasProfileImage"`
 }
 
 // ProjectStatData enthält Statistikdaten für ein Projekt
 type ProjectStatData struct {
-	ID            string  `json:"id"`
-	Name          string  `json:"name"`
-	Status        string  `json:"status"`
-	TeamSize      int     `json:"teamSize"`
-	Hours         float64 `json:"hours"`
-	TimeDeviation float64 `json:"timeDeviation"` // Prozentuale Abweichung zum Plan
-	Efficiency    float64 `json:"efficiency"`    // Effizienzrate in Prozent
+	ID                      string  `json:"id"`
+	Name                    string  `json:"name"`
+	Status                  string  `json:"status"`
+	TeamSize                int     `json:"teamSize"`
+	Hours                   float64 `json:"hours"`
+	HoursFormatted          string  `json:"hoursFormatted"`
+	TimeDeviation           float64 `json:"timeDeviation"` // Prozentuale Abweichung zum Plan
+	TimeDeviationFormatted  string  `json:"timeDeviationFormatted"`
+	IsTimeDeviationPositive bool    `json:"isTimeDeviationPositive"`
+	IsTimeDeviationNegative bool    `json:"isTimeDeviationNegative"`
+	Efficiency              float64 `json:"efficiency"` // Effizienzrate in Prozent
+	EfficiencyFormatted     string  `json:"efficiencyFormatted"`
+	EfficiencyClass         string  `json:"efficiencyClass"` // CSS-Klasse basierend auf Effizienz
 }
 
 // AbsenceStatData enthält Daten für Abwesenheiten
@@ -142,6 +152,13 @@ func (h *StatisticsHandler) GetStatisticsView(c *gin.Context) {
 			// Trend berechnen (Beispieldaten)
 			trend := -5.0 + float64(emp.ID.Hex()[2]%15)
 
+			// Trend formatieren für die Anzeige
+			trendFormatted := fmt.Sprintf("%.1f", trend)
+			if trend > 0 {
+				trendFormatted = "+" + trendFormatted
+			}
+			trendFormatted += "%"
+
 			productivityRanking = append(productivityRanking, EmployeeProductivityData{
 				ID:               emp.ID.Hex(),
 				Name:             emp.FirstName + " " + emp.LastName,
@@ -149,6 +166,9 @@ func (h *StatisticsHandler) GetStatisticsView(c *gin.Context) {
 				Hours:            empHours,
 				ProductivityRate: prodRate,
 				Trend:            trend,
+				TrendFormatted:   trendFormatted,
+				IsTrendPositive:  trend > 0,
+				IsTrendNegative:  trend < 0,
 				HasProfileImage:  len(emp.ProfileImageData.Data) > 0,
 			})
 		}
@@ -269,4 +289,46 @@ func (h *StatisticsHandler) GetStatisticsView(c *gin.Context) {
 		"projectDetails":      projectDetails,
 		"currentAbsences":     currentAbsences,
 	})
+}
+
+// Hilfsfunktion zum Erstellen eines ProjectStatData-Objekts mit vorberechneten Werten
+// Hilfsfunktion zum Erstellen eines ProjectStatData-Objekts mit vorberechneten Werten
+func createProjectStatData(id, name, status string, teamSize int, hours, timeDeviation, efficiency float64) ProjectStatData {
+	// Stunden formatieren
+	hoursFormatted := fmt.Sprintf("%.1f Std", hours)
+
+	// Zeitabweichung formatieren
+	timeDeviationFormatted := fmt.Sprintf("%.1f%%", timeDeviation)
+	if timeDeviation > 0 {
+		timeDeviationFormatted = "+" + timeDeviationFormatted
+	}
+
+	// Effizienzklasse bestimmen
+	var efficiencyClass string
+	if efficiency >= 80 {
+		efficiencyClass = "bg-green-600"
+	} else if efficiency >= 50 {
+		efficiencyClass = "bg-yellow-600"
+	} else {
+		efficiencyClass = "bg-red-600"
+	}
+
+	// Effizienz formatieren
+	efficiencyFormatted := fmt.Sprintf("%.1f%%", efficiency)
+
+	return ProjectStatData{
+		ID:                      id,
+		Name:                    name,
+		Status:                  status,
+		TeamSize:                teamSize,
+		Hours:                   hours,
+		HoursFormatted:          hoursFormatted,
+		TimeDeviation:           timeDeviation,
+		TimeDeviationFormatted:  timeDeviationFormatted,
+		IsTimeDeviationPositive: timeDeviation > 0,
+		IsTimeDeviationNegative: timeDeviation < 0,
+		Efficiency:              efficiency,
+		EfficiencyFormatted:     efficiencyFormatted,
+		EfficiencyClass:         efficiencyClass,
+	}
 }

@@ -103,11 +103,21 @@ func TemplateHelpers() template.FuncMap {
 			_, week := t.ISOWeek()
 			return week
 		},
-		"abs": func(x float64) float64 {
-			if x < 0 {
-				return -x
+		"abs": func(x interface{}) interface{} {
+			switch v := x.(type) {
+			case int:
+				if v < 0 {
+					return -v
+				}
+				return v
+			case float64:
+				if v < 0 {
+					return -v
+				}
+				return v
+			default:
+				return x
 			}
-			return x
 		},
 
 		"getInitials": GetInitials, // Neue Hilfsfunktion hinzugefügt
