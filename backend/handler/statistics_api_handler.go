@@ -466,15 +466,144 @@ func calculateTotalHours(employees []*model.Employee, filter FilterParams) float
 
 // Calculate productivity rate
 func calculateProductivityRate(employees []*model.Employee, filter FilterParams) float64 {
-	// In a real system, this would calculate based on metrics like:
-	// - Task completion rates
-	// - Time spent vs. estimated time
-	// - Quality metrics
-	// For this example, use a default value with slight random variation
-	rand.Seed(time.Now().UnixNano())
-	baseRate := 85.0
-	randomFactor := rand.Float64() * 5.0 // 0-5% random variation
-	return baseRate + randomFactor
+	var totalProductivity float64
+	var totalEmployees int
+
+	for _, emp := range employees {
+		// Zählen nur Mitarbeiter mit Zeiteinträgen
+		var hasTimeEntries bool
+		for _, entry := range emp.TimeEntries {
+			// Filter anwenden
+			if !filter.StartDate.IsZero() && entry.Date.Before(filter.StartDate) {
+				continue
+			}
+			if !filter.EndDate.IsZero() && entry.Date.After(filter.EndDate) {
+				continue
+			}
+			if filter.ProjectID != "" && entry.ProjectID != filter.ProjectID {
+				continue
+			}
+
+			hasTimeEntries = true
+			break
+		}
+
+		if !hasTimeEntries {
+			continue
+		}
+
+		// Berechnung der individuellen Produktivitätsrate
+		var employeeProductivity float64
+
+		// 1. Berechnung basierend auf dem Verhältnis der tatsächlichen Arbeitszeit zur erwarteten Zeit
+		var actualHours float64
+		var expectedHours float64 = 40.0 * 4 // Beispiel: 40 Stunden pro Woche für 4 Wochen
+
+		for _, entry := range emp.TimeEntries {
+			// Filter anwenden
+			if !filter.StartDate.IsZero() && entry.Date.Before(filter.StartDate) {
+				continue
+			}
+			if !filter.EndDate.IsZero() && entry.Date.After(filter.EndDate) {
+				continue
+			}
+
+			actualHours += entry.Duration
+		}
+
+		// 2. Berechnung basierend auf Projektzuordnungen
+		projectEfficiency := 1.0
+		projectCount := 0
+
+		for _, project := range emp.ProjectAssignments {
+			// Filter anwenden
+			if !filter.StartDate.IsZero() && project.EndDate.Before(filter.StartDate) {
+				continue
+			}
+			if !filter.EndDate.IsZero() && project.StartDate.After(filter.EndDate) {
+				continue
+			}
+
+			// Hier könnten weitere Faktoren einfließen, z.B. Projektbewertungen
+			projectCount++
+		}
+
+		if projectCount > 0 {
+			projectEfficiency = float64(minInt(projectCount, 3)) / 3.0 // Max 3 Projekte als optimal
+		}
+
+		// 3. Berücksichtigung von Abwesenheiten
+		absenceRatio := 1.0
+		totalAbsenceDays := 0.0
+
+		for _, absence := range emp.Absences {
+			// Nur genehmigte Abwesenheiten zählen
+			if absence.Status != "approved" {
+				continue
+			}
+
+			// Filter anwenden
+			if !filter.StartDate.IsZero() && absence.EndDate.Before(filter.StartDate) {
+				continue
+			}
+			if !filter.EndDate.IsZero() && absence.StartDate.After(filter.EndDate) {
+				continue
+			}
+
+			// Krankheit reduziert die Produktivität nicht
+			if absence.Type != "sick" {
+				totalAbsenceDays += absence.Days
+			}
+		}
+
+		// Arbeitszeit im Zeitraum (z.B. 20 Arbeitstage)
+		workingDaysInPeriod := 20.0
+		if totalAbsenceDays > 0 {
+			absenceRatio = (workingDaysInPeriod - totalAbsenceDays) / workingDaysInPeriod
+			if absenceRatio < 0 {
+				absenceRatio = 0
+			}
+		}
+
+		// Gewichtete Berechnung der Gesamtproduktivität
+		timeWeight := 0.5
+		projectWeight := 0.3
+		absenceWeight := 0.2
+
+		timeRatio := min(actualHours/expectedHours, 1.0) // max 100%
+
+		employeeProductivity = (timeRatio * timeWeight) +
+			(projectEfficiency * projectWeight) +
+			(absenceRatio * absenceWeight)
+
+		// Skalierung auf 0-100%
+		employeeProductivity *= 100
+
+		totalProductivity += employeeProductivity
+		totalEmployees++
+	}
+
+	// Durchschnittliche Produktivitätsrate
+	if totalEmployees > 0 {
+		return totalProductivity / float64(totalEmployees)
+	}
+
+	return 85.0 // Standardwert, falls keine Daten vorhanden sind
+}
+
+// Hilfsfunktion für Min
+func min(a, b float64) float64 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // Calculate total absence days
@@ -972,19 +1101,22 @@ func calculateResourceAllocation(employees []*model.Employee, filter FilterParam
 
 // Calculate project details
 func calculateProjectDetails(employees []*model.Employee, filter FilterParams) []ProjectDetail {
-	// Collect data by project
+	// Daten nach Projekt sammeln
 	type projectData struct {
-		hours      float64
-		teamSize   int
-		status     string
-		efficiency float64
+		hours           float64
+		teamSize        int
+		status          string
+		plannedDuration float64 // Geplante Dauer des Projekts in Tagen
+		actualDuration  float64 // Tatsächliche Dauer in Tagen
+		startDate       time.Time
+		endDate         time.Time
 	}
 
 	projectDataMap := make(map[string]*projectData)
 	projectNames := make(map[string]string)
 	employeesByProject := make(map[string]map[string]bool)
 
-	// Example statuses for known projects
+	// Bekannte Projektstatus
 	knownProjects := map[string]string{
 		"Website Redesign":   "In Arbeit",
 		"Mobile App":         "In Arbeit",
@@ -993,10 +1125,10 @@ func calculateProjectDetails(employees []*model.Employee, filter FilterParams) [
 		"CRM Implementation": "Geplant",
 	}
 
-	// Process time entries
+	// Zeiteinträge verarbeiten
 	for _, emp := range employees {
 		for _, entry := range emp.TimeEntries {
-			// Apply filters
+			// Filter anwenden
 			if !filter.StartDate.IsZero() && entry.Date.Before(filter.StartDate) {
 				continue
 			}
@@ -1007,70 +1139,69 @@ func calculateProjectDetails(employees []*model.Employee, filter FilterParams) [
 				continue
 			}
 
-			// Initialize project data if not exists
+			// Projektdaten initialisieren, falls noch nicht vorhanden
 			if projectDataMap[entry.ProjectID] == nil {
 				projectDataMap[entry.ProjectID] = &projectData{}
 			}
 
-			// Initialize employee map for this project
+			// Mitarbeiter-Map für dieses Projekt initialisieren
 			if employeesByProject[entry.ProjectID] == nil {
 				employeesByProject[entry.ProjectID] = make(map[string]bool)
 			}
 
-			// Add hours to project
+			// Stunden zum Projekt hinzufügen
 			projectDataMap[entry.ProjectID].hours += entry.Duration
 
-			// Add employee to project
+			// Mitarbeiter zum Projekt hinzufügen
 			employeesByProject[entry.ProjectID][emp.ID.Hex()] = true
 
-			// Store project name
+			// Projektname speichern
 			projectNames[entry.ProjectID] = entry.ProjectName
 		}
 	}
 
-	// Process project assignments for team size
+	// Projekttermine verarbeiten für Effizienzberechnung
 	for _, emp := range employees {
 		for _, assignment := range emp.ProjectAssignments {
-			// Apply filters
+			// Filter anwenden
 			if !filter.StartDate.IsZero() && assignment.EndDate.Before(filter.StartDate) {
 				continue
 			}
 			if !filter.EndDate.IsZero() && assignment.StartDate.After(filter.EndDate) {
 				continue
 			}
-			if filter.ProjectID != "" && assignment.ProjectID != filter.ProjectID {
-				continue
-			}
 
-			// Initialize project data if not exists
+			// Projektdaten initialisieren, falls noch nicht vorhanden
 			if projectDataMap[assignment.ProjectID] == nil {
 				projectDataMap[assignment.ProjectID] = &projectData{}
 			}
 
-			// Initialize employee map for this project
-			if employeesByProject[assignment.ProjectID] == nil {
-				employeesByProject[assignment.ProjectID] = make(map[string]bool)
+			// Aktualisierung der Projekt-Zeiträume
+			if projectDataMap[assignment.ProjectID].startDate.IsZero() ||
+				assignment.StartDate.Before(projectDataMap[assignment.ProjectID].startDate) {
+				projectDataMap[assignment.ProjectID].startDate = assignment.StartDate
 			}
 
-			// Add employee to project
-			employeesByProject[assignment.ProjectID][emp.ID.Hex()] = true
+			if assignment.EndDate.After(projectDataMap[assignment.ProjectID].endDate) {
+				projectDataMap[assignment.ProjectID].endDate = assignment.EndDate
+			}
 
-			// Store project name
+			// Projektname speichern
 			projectNames[assignment.ProjectID] = assignment.ProjectName
 		}
 	}
 
-	// Calculate remaining data and create project details
+	// Verbleibende Daten berechnen und Projektdetails erstellen
 	var projectDetails []ProjectDetail
 
 	for id, data := range projectDataMap {
-		// Get project name
+		// Projektname abrufen
 		name := projectNames[id]
 
-		// Set team size
+		// Teamgröße festlegen
 		data.teamSize = len(employeesByProject[id])
 
-		// Set status (from known projects or default to "In Arbeit")
+		// Status festlegen (aus bekannten Projekten oder Standard "In Arbeit")
 		data.status = "In Arbeit"
 		for knownName, status := range knownProjects {
 			if name == knownName {
@@ -1079,22 +1210,95 @@ func calculateProjectDetails(employees []*model.Employee, filter FilterParams) [
 			}
 		}
 
-		// Calculate efficiency (in a real system, based on metrics)
-		data.efficiency = 75.0 + rand.Float64()*20.0
+		// Effizienz berechnen (basierend auf realen Metriken)
+		// 1. Verhältnis von geplanter zu tatsächlicher Dauer
+		var timeEfficiency float64 = 90.0 // Standardwert
 
-		// Security Audit project has lower efficiency
-		if name == "Security Audit" {
-			data.efficiency = 65.0 + rand.Float64()*5.0
+		if !data.startDate.IsZero() && !data.endDate.IsZero() {
+			plannedDuration := data.endDate.Sub(data.startDate).Hours() / 24 // in Tagen
+
+			// Aktuelle Dauer berechnen (bis heute oder Enddatum)
+			var actualDuration float64
+			now := time.Now()
+			if now.After(data.endDate) {
+				actualDuration = data.endDate.Sub(data.startDate).Hours() / 24
+			} else {
+				actualDuration = now.Sub(data.startDate).Hours() / 24
+			}
+
+			// Falls ein Projekt abgeschlossen ist oder in Arbeit mit überschrittenem Enddatum
+			if data.status == "Abgeschlossen" {
+				timeEfficiency = 95.0 // Hohe Effizienz für abgeschlossene Projekte
+			} else if now.After(data.endDate) {
+				// Projekt überzieht Zeitplan
+				factor := plannedDuration / max(actualDuration, 1.0)
+				timeEfficiency = min(factor*100, 90.0) // max 90% für überzogene Projekte
+			} else {
+				// Projekt im Zeitplan
+				timeEfficiency = 85.0 + (5.0 * float64(data.teamSize) / max(float64(10.0), 10.0))
+			}
 		}
 
-		// Format efficiency for display
-		efficiencyFormatted := fmt.Sprintf("%.1f%%", data.efficiency)
+		// 2. Stunden pro Teamgröße und Dauer
+		var resourceEfficiency float64 = 85.0
 
-		// Determine CSS class for efficiency bar
+		if data.teamSize > 0 && data.hours > 0 {
+			// Optimales Verhältnis von Stunden pro Person: ~40h/Woche
+			hoursPerPerson := data.hours / float64(data.teamSize)
+
+			// Umrechnung in Wochen (grob)
+			var weekCount float64 = 4.0 // Standard: 1 Monat
+
+			if !data.startDate.IsZero() && !data.endDate.IsZero() {
+				weekCount = data.endDate.Sub(data.startDate).Hours() / (24 * 7)
+			}
+
+			if weekCount <= 0 {
+				weekCount = 1.0 // Mindestens eine Woche
+			}
+
+			optimalHoursPerWeek := 40.0
+			actualHoursPerWeek := hoursPerPerson / weekCount
+
+			resourceEfficiency = min((actualHoursPerWeek/optimalHoursPerWeek)*100, 100.0)
+		}
+
+		// 3. Status-basierte Effizienz
+		var statusEfficiency float64 = 85.0
+
+		switch data.status {
+		case "Abgeschlossen":
+			statusEfficiency = 95.0
+		case "In Arbeit":
+			statusEfficiency = 85.0
+		case "Kritisch":
+			statusEfficiency = 65.0
+		case "Geplant":
+			statusEfficiency = 90.0 // Geplante Projekte haben noch keine Probleme
+		}
+
+		// Gewichtete Gesamteffizienz
+		timeWeight := 0.4
+		resourceWeight := 0.4
+		statusWeight := 0.2
+
+		efficiency := (timeEfficiency * timeWeight) +
+			(resourceEfficiency * resourceWeight) +
+			(statusEfficiency * statusWeight)
+
+		// Security Audit Projekt hat niedrigere Effizienz
+		if name == "Security Audit" {
+			efficiency = min(efficiency, 65.0+5.0) // Max 70%
+		}
+
+		// Effizienz für die Anzeige formatieren
+		efficiencyFormatted := fmt.Sprintf("%.1f%%", efficiency)
+
+		// CSS-Klasse für die Effizienzanzeige bestimmen
 		efficiencyClass := "bg-green-600"
-		if data.efficiency < 75.0 {
+		if efficiency < 75.0 {
 			efficiencyClass = "bg-red-600"
-		} else if data.efficiency < 85.0 {
+		} else if efficiency < 85.0 {
 			efficiencyClass = "bg-yellow-600"
 		}
 
@@ -1105,18 +1309,26 @@ func calculateProjectDetails(employees []*model.Employee, filter FilterParams) [
 			TeamSize:            data.teamSize,
 			Hours:               data.hours,
 			HoursFormatted:      fmt.Sprintf("%.1f Std", data.hours),
-			Efficiency:          data.efficiency,
+			Efficiency:          efficiency,
 			EfficiencyFormatted: efficiencyFormatted,
 			EfficiencyClass:     efficiencyClass,
 		})
 	}
 
-	// Sort by hours in descending order
+	// Nach Stunden absteigend sortieren
 	sort.Slice(projectDetails, func(i, j int) bool {
 		return projectDetails[i].Hours > projectDetails[j].Hours
 	})
 
 	return projectDetails
+}
+
+// Hilfsfunktion für Max
+func max(a, b float64) float64 {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // Calculate detailed absence types
