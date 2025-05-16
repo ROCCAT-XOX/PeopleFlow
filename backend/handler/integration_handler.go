@@ -1,4 +1,3 @@
-// backend/handler/integration_handler.go
 package handler
 
 import (
@@ -70,6 +69,21 @@ func (h *IntegrationHandler) GetIntegrationStatus(c *gin.Context) {
 		hasErfasst123Credentials = true
 	}
 
+	// Status der automatischen Synchronisierung für 123erfasst abrufen
+	autoSync, err := h.erfasst123Service.IsAutoSyncEnabled()
+	if err != nil {
+		autoSync = false
+	}
+
+	// Letzte Synchronisierung für 123erfasst abrufen
+	lastSync, err := h.erfasst123Service.GetLastSyncTime()
+	var lastSyncFormatted string
+	if err != nil || lastSync.IsZero() {
+		lastSyncFormatted = "Nie"
+	} else {
+		lastSyncFormatted = lastSync.Format("02.01.2006 15:04:05")
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"timebutler": gin.H{
 			"connected": timebutlerConnected,
@@ -80,6 +94,8 @@ func (h *IntegrationHandler) GetIntegrationStatus(c *gin.Context) {
 			"connected": erfasst123Connected,
 			"name":      "123erfasst",
 			"hasApiKey": hasErfasst123Credentials,
+			"autoSync":  autoSync,
+			"lastSync":  lastSyncFormatted,
 		},
 		"awork": gin.H{
 			"connected": false,
@@ -106,6 +122,7 @@ func (h *IntegrationHandler) GetIntegrationSettings(c *gin.Context) {
 	userRole, _ := c.Get("userRole")
 
 	timebutlerConnected := h.timebutlerService.IsConnected()
+	erfasst123Connected := h.erfasst123Service.IsConnected()
 
 	c.HTML(http.StatusOK, "integration_settings.html", gin.H{
 		"title":               "Integration Einstellungen",
@@ -115,6 +132,7 @@ func (h *IntegrationHandler) GetIntegrationSettings(c *gin.Context) {
 		"year":                time.Now().Year(),
 		"userRole":            userRole,
 		"timebutlerConnected": timebutlerConnected,
+		"erfasst123Connected": erfasst123Connected,
 	})
 }
 
@@ -214,6 +232,7 @@ func (h *IntegrationHandler) SyncTimebutlerHolidayEntitlements(c *gin.Context) {
 func (h *IntegrationHandler) SaveErfasst123Credentials(c *gin.Context) {
 	email := c.PostForm("erfasst123-email")
 	password := c.PostForm("erfasst123-password")
+	syncStartDate := c.PostForm("erfasst123-sync-start-date")
 
 	if email == "" || password == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -223,7 +242,7 @@ func (h *IntegrationHandler) SaveErfasst123Credentials(c *gin.Context) {
 		return
 	}
 
-	err := h.erfasst123Service.SaveCredentials(email, password)
+	err := h.erfasst123Service.SaveCredentials(email, password, syncStartDate)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -345,6 +364,159 @@ func (h *IntegrationHandler) SyncErfasst123TimeEntries(c *gin.Context) {
 		"dateRange": gin.H{
 			"startDate": startDate,
 			"endDate":   endDate,
+		},
+	})
+}
+
+// GetErfasst123SyncStatus returns the synchronization status for 123erfasst
+func (h *IntegrationHandler) GetErfasst123SyncStatus(c *gin.Context) {
+	// Check if 123erfasst is connected
+	if !h.erfasst123Service.IsConnected() {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "123erfasst is not connected",
+		})
+		return
+	}
+
+	// Get sync status
+	status, err := h.erfasst123Service.GetSyncStatus()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Error getting sync status: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    status,
+	})
+}
+
+// SetErfasst123AutoSync enables or disables automatic synchronization for 123erfasst
+func (h *IntegrationHandler) SetErfasst123AutoSync(c *gin.Context) {
+	// Get enabled status from request
+	enabledStr := c.PostForm("enabled")
+	enabled := enabledStr == "true"
+
+	// Set auto-sync status
+	err := h.erfasst123Service.SetAutoSync(enabled)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Error setting auto-sync: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": fmt.Sprintf("Auto-Sync %s", map[bool]string{true: "aktiviert", false: "deaktiviert"}[enabled]),
+	})
+}
+
+// SetErfasst123SyncStartDate sets the start date for data synchronization
+func (h *IntegrationHandler) SetErfasst123SyncStartDate(c *gin.Context) {
+	// Get start date from request
+	startDate := c.PostForm("startDate")
+	if startDate == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "Startdatum ist erforderlich",
+		})
+		return
+	}
+
+	// Validate date format
+	_, err := time.Parse("2006-01-02", startDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "Ungültiges Datumsformat. Bitte verwende YYYY-MM-DD",
+		})
+		return
+	}
+
+	// Set sync start date
+	err = h.erfasst123Service.SetSyncStartDate(startDate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Error setting sync start date: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Synchronisierungsstartdatum wurde aktualisiert",
+	})
+}
+
+// TriggerErfasst123FullSync triggers a full synchronization of 123erfasst data
+func (h *IntegrationHandler) TriggerErfasst123FullSync(c *gin.Context) {
+	// Check if 123erfasst is connected
+	if !h.erfasst123Service.IsConnected() {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "123erfasst is not connected",
+		})
+		return
+	}
+
+	// Get sync start date
+	startDate, err := h.erfasst123Service.GetSyncStartDate()
+	if err != nil {
+		startDate = time.Date(time.Now().Year(), 1, 1, 0, 0, 0, 0, time.UTC).Format("2006-01-02")
+	}
+
+	// Current date as end date
+	endDate := time.Now().Format("2006-01-02")
+
+	// Sync employees
+	empCount, err := h.erfasst123Service.SyncErfasst123Employees()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Error synchronizing employees: " + err.Error(),
+		})
+		return
+	}
+
+	// Sync projects
+	projCount, err := h.erfasst123Service.SyncErfasst123Projects(startDate, endDate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Error synchronizing projects: " + err.Error(),
+		})
+		return
+	}
+
+	// Sync time entries
+	timeCount, err := h.erfasst123Service.SyncErfasst123TimeEntries(startDate, endDate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Error synchronizing time entries: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": fmt.Sprintf("Synchronisierung abgeschlossen: %d Mitarbeiter, %d Projekte, %d Zeiteinträge",
+			empCount, projCount, timeCount),
+		"data": gin.H{
+			"employeeCount": empCount,
+			"projectCount":  projCount,
+			"timeCount":     timeCount,
+			"dateRange": gin.H{
+				"startDate": startDate,
+				"endDate":   endDate,
+			},
 		},
 	})
 }

@@ -344,11 +344,18 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.POST("/api/integrations/timebutler/sync/absences", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncTimebutlerAbsences)
 		authorized.POST("/api/integrations/timebutler/sync/holidayentitlements", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncTimebutlerHolidayEntitlements)
 		// API-Endpunkte für 123Erfasst
+		// API-Endpunkte für 123Erfasst erweitern
 		authorized.POST("/api/integrations/123erfasst/save", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.SaveErfasst123Credentials)
 		authorized.GET("/api/integrations/123erfasst/test", integrationHandler.TestErfasst123Connection)
 		authorized.POST("/api/integrations/123erfasst/sync/projects", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncErfasst123Projects)
 		authorized.POST("/api/integrations/123erfasst/remove", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.RemoveErfasst123Integration)
 		authorized.POST("/api/integrations/123erfasst/sync/times", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncErfasst123TimeEntries)
+		// Neue API-Endpunkte für automatische Synchronisierung
+		authorized.GET("/api/integrations/123erfasst/sync-status", integrationHandler.GetErfasst123SyncStatus)
+		authorized.POST("/api/integrations/123erfasst/set-auto-sync", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.SetErfasst123AutoSync)
+		authorized.POST("/api/integrations/123erfasst/set-sync-start-date", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.SetErfasst123SyncStartDate)
+		authorized.POST("/api/integrations/123erfasst/full-sync", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.TriggerErfasst123FullSync)
+		authorized.POST("/api/integrations/123erfasst/sync/employees", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncErfasst123Employees)
 
 		// Optionale API-Endpoints für AJAX-Anfragen
 		api := router.Group("/api")

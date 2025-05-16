@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"net/http"
@@ -30,7 +31,7 @@ func NewErfasst123Service() *Erfasst123Service {
 }
 
 // SaveCredentials speichert die 123erfasst Anmeldedaten und testet die Verbindung
-func (s *Erfasst123Service) SaveCredentials(email, password string) error {
+func (s *Erfasst123Service) SaveCredentials(email, password, syncStartDate string) error {
 	// Testen, ob die Anmeldedaten funktionieren
 	if err := s.testConnection(email, password); err != nil {
 		return err
@@ -40,6 +41,30 @@ func (s *Erfasst123Service) SaveCredentials(email, password string) error {
 	credentials := fmt.Sprintf("%s:%s", email, password)
 	if err := s.integrationRepo.SaveApiKey("123erfasst", credentials); err != nil {
 		return err
+	}
+
+	// Automatische Synchronisierung aktivieren
+	if err := s.integrationRepo.SetMetadata("123erfasst", "auto_sync", "true"); err != nil {
+		return err
+	}
+
+	// Startdatum für die Synchronisierung speichern, falls angegeben
+	if syncStartDate != "" {
+		// Validiere das Datumsformat (YYYY-MM-DD)
+		_, err := time.Parse("2006-01-02", syncStartDate)
+		if err != nil {
+			return fmt.Errorf("ungültiges Startdatum format, verwende YYYY-MM-DD: %v", err)
+		}
+
+		if err := s.integrationRepo.SetMetadata("123erfasst", "sync_start_date", syncStartDate); err != nil {
+			return err
+		}
+	} else {
+		// Falls kein Startdatum angegeben, Beginn des aktuellen Jahres verwenden
+		startOfYear := time.Date(time.Now().Year(), 1, 1, 0, 0, 0, 0, time.UTC).Format("2006-01-02")
+		if err := s.integrationRepo.SetMetadata("123erfasst", "sync_start_date", startOfYear); err != nil {
+			return err
+		}
 	}
 
 	// Integration als aktiv markieren
@@ -127,6 +152,53 @@ func (s *Erfasst123Service) IsConnected() bool {
 	return active
 }
 
+// IsAutoSyncEnabled prüft, ob die automatische Synchronisierung aktiviert ist
+func (s *Erfasst123Service) IsAutoSyncEnabled() (bool, error) {
+	autoSync, err := s.integrationRepo.GetMetadata("123erfasst", "auto_sync")
+	if err != nil {
+		return false, err
+	}
+
+	return autoSync == "true", nil
+}
+
+// SetAutoSync aktiviert oder deaktiviert die automatische Synchronisierung
+func (s *Erfasst123Service) SetAutoSync(enabled bool) error {
+	value := "false"
+	if enabled {
+		value = "true"
+	}
+
+	return s.integrationRepo.SetMetadata("123erfasst", "auto_sync", value)
+}
+
+// GetSyncStartDate holt das gespeicherte Startdatum für die Synchronisierung
+func (s *Erfasst123Service) GetSyncStartDate() (string, error) {
+	date, err := s.integrationRepo.GetMetadata("123erfasst", "sync_start_date")
+	if err != nil || date == "" {
+		// Falls kein Datum gespeichert ist, Beginn des aktuellen Jahres zurückgeben
+		return time.Date(time.Now().Year(), 1, 1, 0, 0, 0, 0, time.UTC).Format("2006-01-02"), nil
+	}
+
+	return date, nil
+}
+
+// SetSyncStartDate setzt das Startdatum für die Synchronisierung
+func (s *Erfasst123Service) SetSyncStartDate(date string) error {
+	// Validiere das Datumsformat (YYYY-MM-DD)
+	_, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return fmt.Errorf("ungültiges Startdatum format, verwende YYYY-MM-DD: %v", err)
+	}
+
+	return s.integrationRepo.SetMetadata("123erfasst", "sync_start_date", date)
+}
+
+// GetLastSyncTime holt den Zeitstempel der letzten Synchronisierung
+func (s *Erfasst123Service) GetLastSyncTime() (time.Time, error) {
+	return s.integrationRepo.GetLastSync("123erfasst")
+}
+
 // GetEmployees ruft Mitarbeiter von 123erfasst ab
 func (s *Erfasst123Service) GetEmployees() ([]model.Erfasst123Person, error) {
 	email, password, err := s.GetCredentials()
@@ -202,6 +274,9 @@ func (s *Erfasst123Service) GetEmployees() ([]model.Erfasst123Person, error) {
 
 	// Integration als aktiv markieren
 	s.integrationRepo.SetIntegrationStatus("123erfasst", true)
+
+	// Letzte Synchronisierung aktualisieren
+	s.integrationRepo.SetLastSync("123erfasst", time.Now())
 
 	return response.Data.Persons.Nodes, nil
 }
@@ -298,8 +373,6 @@ func (s *Erfasst123Service) SyncErfasst123Employees() (int, error) {
 	return updatedCount, nil
 }
 
-// Add to backend/service/erfasst123_service.go
-
 // GetProjectPlannings retrieves project planning data from 123erfasst
 func (s *Erfasst123Service) GetProjectPlannings(startDate, endDate string) ([]model.Erfasst123Planning, error) {
 	email, password, err := s.GetCredentials()
@@ -377,8 +450,9 @@ func (s *Erfasst123Service) GetProjectPlannings(startDate, endDate string) ([]mo
 		}
 	}
 
-	// Mark integration as active
+	// Mark integration as active and update last sync time
 	s.integrationRepo.SetIntegrationStatus("123erfasst", true)
+	s.integrationRepo.SetLastSync("123erfasst", time.Now())
 
 	return response.Data.Plannings.Nodes, nil
 }
@@ -409,7 +483,7 @@ func (s *Erfasst123Service) SyncErfasst123Projects(startDate, endDate string) (i
 			// Find the employee by 123erfasst ID
 			employee, err := employeeRepo.FindByErfasst123ID(person.Ident)
 			if err != nil {
-				// Employee not found, try by email
+				// Employee not found, try by email or name
 				employees, err := employeeRepo.FindAll()
 				if err != nil {
 					continue
@@ -477,8 +551,6 @@ func (s *Erfasst123Service) SyncErfasst123Projects(startDate, endDate string) (i
 
 	return updatedCount, nil
 }
-
-// Add to backend/service/erfasst123_service.go
 
 // GetTimeEntries retrieves time entry data from 123erfasst
 func (s *Erfasst123Service) GetTimeEntries(startDate, endDate string) ([]model.Erfasst123Time, error) {
@@ -718,6 +790,7 @@ func (s *Erfasst123Service) GetTimeEntries(startDate, endDate string) ([]model.E
 
 	// Mark integration as active
 	s.integrationRepo.SetIntegrationStatus("123erfasst", true)
+	s.integrationRepo.SetLastSync("123erfasst", time.Now())
 
 	return response.Data.Times.Nodes, nil
 }
@@ -881,4 +954,40 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 
 	fmt.Printf("Sync complete. Updated %d time entries across employees.\n", updatedCount)
 	return updatedCount, nil
+}
+
+// GetSyncStatus returns the synchronization status and settings
+func (s *Erfasst123Service) GetSyncStatus() (gin.H, error) {
+	// Get auto-sync status
+	autoSync, err := s.IsAutoSyncEnabled()
+	if err != nil {
+		autoSync = false
+	}
+
+	// Get last sync time
+	lastSync, err := s.GetLastSyncTime()
+	if err != nil {
+		lastSync = time.Time{}
+	}
+
+	// Get sync start date
+	startDate, err := s.GetSyncStartDate()
+	if err != nil {
+		// Default to start of current year
+		startDate = time.Date(time.Now().Year(), 1, 1, 0, 0, 0, 0, time.UTC).Format("2006-01-02")
+	}
+
+	// Format last sync time for display
+	var lastSyncFormatted string
+	if lastSync.IsZero() {
+		lastSyncFormatted = "Nie"
+	} else {
+		lastSyncFormatted = lastSync.Format("02.01.2006 15:04:05")
+	}
+
+	return gin.H{
+		"autoSync":  autoSync,
+		"lastSync":  lastSyncFormatted,
+		"startDate": startDate,
+	}, nil
 }

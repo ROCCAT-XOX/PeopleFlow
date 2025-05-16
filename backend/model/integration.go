@@ -16,4 +16,7 @@ type Integration struct {
 	LastSync  time.Time          `bson:"lastSync,omitempty" json:"lastSync,omitempty"`
 	CreatedAt time.Time          `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time          `bson:"updatedAt" json:"updatedAt"`
+	Metadata  map[string]string  `bson:"metadata,omitempty" json:"metadata,omitempty"`
+	// Synchronisierungseinstellungen
+	AutoSync bool `bson:"autoSync" json:"autoSync"` // Automatische Synchronisierung aktiviert
 }

@@ -1,5 +1,3 @@
-// Datei: frontend/static/js/123erfasst.js
-
 // Status-Aktualisierung
 function updateErfasst123Status() {
     fetch('/api/integrations/status')
@@ -10,6 +8,8 @@ function updateErfasst123Status() {
             const removeBtn = document.getElementById('removeErfasst123Btn');
             const emailInput = document.getElementById('erfasst123-email');
             const passwordInput = document.getElementById('erfasst123-password');
+            const configForm = document.getElementById('erfasst123ConfigForm');
+            const syncSettings = document.getElementById('erfasst123SyncSettings');
 
             if (data['123erfasst']) {
                 const erfasst123 = data['123erfasst'];
@@ -23,6 +23,17 @@ function updateErfasst123Status() {
                     // Synchronisierungsbuttons anzeigen
                     if (syncButtons) {
                         syncButtons.style.display = 'flex';
+                    }
+
+                    // Konfigurationsformular ausblenden
+                    if (configForm) {
+                        configForm.style.display = 'none';
+                    }
+
+                    // Synchronisierungseinstellungen anzeigen
+                    if (syncSettings) {
+                        syncSettings.style.display = 'block';
+                        loadErfasst123SyncSettings();
                     }
 
                     // Remove-Button aktivieren
@@ -51,6 +62,16 @@ function updateErfasst123Status() {
                         syncButtons.style.display = 'none';
                     }
 
+                    // Konfigurationsformular anzeigen
+                    if (configForm) {
+                        configForm.style.display = 'block';
+                    }
+
+                    // Synchronisierungseinstellungen ausblenden
+                    if (syncSettings) {
+                        syncSettings.style.display = 'none';
+                    }
+
                     // Remove-Button aktivieren
                     if (removeBtn) {
                         removeBtn.disabled = false;
@@ -75,6 +96,16 @@ function updateErfasst123Status() {
                     // Synchronisierungsbuttons verstecken
                     if (syncButtons) {
                         syncButtons.style.display = 'none';
+                    }
+
+                    // Konfigurationsformular anzeigen
+                    if (configForm) {
+                        configForm.style.display = 'block';
+                    }
+
+                    // Synchronisierungseinstellungen ausblenden
+                    if (syncSettings) {
+                        syncSettings.style.display = 'none';
                     }
 
                     // Remove-Button deaktivieren
@@ -104,6 +135,13 @@ function updateErfasst123Status() {
 document.addEventListener('DOMContentLoaded', function() {
     updateErfasst123Status();
 
+    // Set default start date to beginning of current year
+    const startDateInput = document.getElementById('erfasst123-sync-start-date');
+    if (startDateInput) {
+        const yearStart = new Date(new Date().getFullYear(), 0, 1);
+        startDateInput.value = yearStart.toISOString().split('T')[0];
+    }
+
     // Event-Listener für Remove-Button
     const removeBtn = document.getElementById('removeErfasst123Btn');
     if (removeBtn) {
@@ -132,48 +170,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Anmeldedaten speichern
-function saveErfasst123Credentials() {
-    const email = document.getElementById('erfasst123-email').value;
-    const password = document.getElementById('erfasst123-password').value;
-
-    // Überprüfen, ob es sich um die maskierten Werte handelt
-    if ((email === '********' && password === '********') || (!email || !password)) {
-        alert('Bitte geben Sie E-Mail und Passwort ein.');
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('erfasst123-email', email);
-    formData.append('erfasst123-password', password);
-
-    fetch('/api/integrations/123erfasst/save', {
-        method: 'POST',
-        body: formData
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('123erfasst-Integration erfolgreich konfiguriert!');
-                // Status aktualisieren
-                updateErfasst123Status();
-            } else {
-                alert('Fehler: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Fehler beim Speichern der Anmeldedaten:', error);
-            alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
-        });
-}
-
 // Function to save 123erfasst credentials
 function saveErfasst123Credentials() {
     const email = document.getElementById('erfasst123-email').value;
     const password = document.getElementById('erfasst123-password').value;
+    const syncStartDate = document.getElementById('erfasst123-sync-start-date').value;
 
     if (!email || !password) {
-        showNotification('Fehler', 'Bitte geben Sie E-Mail und Passwort ein.', 'error');
+        showNotification('error', 'Bitte geben Sie E-Mail und Passwort ein.');
         return;
     }
 
@@ -185,7 +189,7 @@ function saveErfasst123Credentials() {
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        Speichern...
+        Integration einrichten...
     `;
     button.disabled = true;
 
@@ -193,6 +197,9 @@ function saveErfasst123Credentials() {
     const formData = new FormData();
     formData.append('erfasst123-email', email);
     formData.append('erfasst123-password', password);
+    if (syncStartDate) {
+        formData.append('erfasst123-sync-start-date', syncStartDate);
+    }
 
     // Save credentials
     fetch('/api/integrations/123erfasst/save', {
@@ -207,38 +214,25 @@ function saveErfasst123Credentials() {
 
             if (data.success) {
                 // Show success notification
-                showNotification(
-                    'Anmeldedaten gespeichert',
-                    'Die 123erfasst Anmeldedaten wurden erfolgreich gespeichert.',
-                    'success'
-                );
+                showNotification('success', 'Die 123erfasst Integration wurde erfolgreich eingerichtet. Die erste Synchronisierung wurde gestartet.');
 
                 // Update status and enable sync buttons
-                document.getElementById('erfasst123Status').innerHTML = 'Verbunden';
-                document.getElementById('erfasst123Status').className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800';
-                document.getElementById('removeErfasst123Btn').disabled = false;
-                document.getElementById('erfasst123SyncButtons').style.display = 'flex';
+                updateErfasst123Status();
 
-                // Check if 123erfasst integration is connected
-                loadIntegrationStatus();
+                // Trigger initial full sync
+                setTimeout(() => {
+                    triggerErfasst123FullSync();
+                }, 1000);
             } else {
                 // Show error notification
-                showNotification(
-                    'Fehler beim Speichern',
-                    data.message || 'Die Anmeldedaten konnten nicht gespeichert werden.',
-                    'error'
-                );
+                showNotification('error', data.message || 'Die Anmeldedaten konnten nicht gespeichert werden.');
             }
         })
         .catch(error => {
             // Restore button state and show error
             button.innerHTML = originalText;
             button.disabled = false;
-            showNotification(
-                'Fehler beim Speichern',
-                'Beim Speichern der Anmeldedaten ist ein Fehler aufgetreten.',
-                'error'
-            );
+            showNotification('error', 'Beim Speichern der Anmeldedaten ist ein Fehler aufgetreten.');
             console.error('Error:', error);
         });
 }
@@ -252,19 +246,19 @@ function removeErfasst123Integration() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('123erfasst-Integration erfolgreich entfernt!');
+                    showNotification('success', '123erfasst-Integration erfolgreich entfernt!');
                     // Felder zurücksetzen
                     document.getElementById('erfasst123-email').value = '';
                     document.getElementById('erfasst123-password').value = '';
                     // Status aktualisieren
                     updateErfasst123Status();
                 } else {
-                    alert('Fehler: ' + data.message);
+                    showNotification('error', data.message || 'Fehler beim Entfernen der Integration');
                 }
             })
             .catch(error => {
                 console.error('Fehler beim Entfernen der Integration:', error);
-                alert('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+                showNotification('error', 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
             });
     }
 }
@@ -303,65 +297,69 @@ function syncErfasst123Projects() {
 
             if (data.success) {
                 // Show success notification
-                showNotification(
-                    'Synchronisierung erfolgreich',
-                    `Es wurden ${data.updatedCount} Mitarbeiter mit Projektdaten aktualisiert.`,
-                    'success'
-                );
+                showNotification('success', `Es wurden ${data.updatedCount} Mitarbeiter mit Projektdaten aktualisiert.`);
+
+                // Refresh the last sync time
+                loadErfasst123SyncSettings();
             } else {
                 // Show error notification
-                showNotification(
-                    'Fehler bei der Synchronisierung',
-                    data.message || 'Die Projektdaten konnten nicht synchronisiert werden.',
-                    'error'
-                );
+                showNotification('error', data.message || 'Die Projektdaten konnten nicht synchronisiert werden.');
             }
         })
         .catch(error => {
             // Restore button state and show error
             button.innerHTML = originalText;
             button.disabled = false;
-            showNotification(
-                'Fehler bei der Synchronisierung',
-                'Bei der Synchronisierung ist ein unerwarteter Fehler aufgetreten.',
-                'error'
-            );
+            showNotification('error', 'Bei der Synchronisierung ist ein unerwarteter Fehler aufgetreten.');
             console.error('Error:', error);
         });
 }
 
-// Helper function to show notifications (if not already defined)
-function showNotification(type, message) {
-    // Create notification element if it doesn't exist
-    let notification = document.getElementById('notification');
-    if (!notification) {
-        notification = document.createElement('div');
-        notification.id = 'notification';
-        notification.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-md shadow-lg transform transition-all duration-300 opacity-0 translate-y-2';
-        document.body.appendChild(notification);
-    }
+// Function to synchronize employees from 123erfasst
+function syncErfasst123Employees() {
+    // Show loading state
+    const button = event.currentTarget;
+    const originalText = button.innerHTML;
+    button.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Synchronisiere...
+    `;
+    button.disabled = true;
 
-    // Set notification type
-    if (type === 'success') {
-        notification.className = 'fixed bottom-4 right-4 px-4 py-2 bg-green-50 text-green-800 border border-green-200 rounded-md shadow-lg transform transition-all duration-300 opacity-0 translate-y-2';
-    } else {
-        notification.className = 'fixed bottom-4 right-4 px-4 py-2 bg-red-50 text-red-800 border border-red-200 rounded-md shadow-lg transform transition-all duration-300 opacity-0 translate-y-2';
-    }
+    // Call API to sync employees
+    fetch('/api/integrations/123erfasst/sync/employees', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            // Restore button state
+            button.innerHTML = originalText;
+            button.disabled = false;
 
-    // Set message
-    notification.textContent = message;
+            if (data.success) {
+                // Show success notification
+                showNotification('success', `Es wurden ${data.updatedCount} Mitarbeiter aktualisiert.`);
 
-    // Show notification
-    setTimeout(() => {
-        notification.style.opacity = '1';
-        notification.style.transform = 'translateY(0)';
-    }, 10);
-
-    // Hide notification after 3 seconds
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        notification.style.transform = 'translateY(2px)';
-    }, 3000);
+                // Refresh the last sync time
+                loadErfasst123SyncSettings();
+            } else {
+                // Show error notification
+                showNotification('error', data.message || 'Die Mitarbeiterdaten konnten nicht synchronisiert werden.');
+            }
+        })
+        .catch(error => {
+            // Restore button state and show error
+            button.innerHTML = originalText;
+            button.disabled = false;
+            showNotification('error', 'Bei der Synchronisierung ist ein unerwarteter Fehler aufgetreten.');
+            console.error('Error:', error);
+        });
 }
 
 // Function to synchronize time entries from 123erfasst
@@ -398,29 +396,180 @@ function syncErfasst123TimeEntries() {
 
             if (data.success) {
                 // Show success notification with the number of updated records
-                showNotification(
-                    'Synchronisierung erfolgreich',
-                    `Es wurden ${data.updatedCount} Mitarbeiter mit Zeiterfassungsdaten aktualisiert.`,
-                    'success'
-                );
+                showNotification('success', `Es wurden ${data.updatedCount} Mitarbeiter mit Zeiterfassungsdaten aktualisiert.`);
+
+                // Refresh the last sync time
+                loadErfasst123SyncSettings();
             } else {
                 // Show error notification
-                showNotification(
-                    'Fehler bei der Synchronisierung',
-                    data.message || 'Die Zeiterfassungsdaten konnten nicht synchronisiert werden.',
-                    'error'
-                );
+                showNotification('error', data.message || 'Die Zeiterfassungsdaten konnten nicht synchronisiert werden.');
             }
         })
         .catch(error => {
             // Restore button state and show error
             button.innerHTML = originalText;
             button.disabled = false;
-            showNotification(
-                'Fehler bei der Synchronisierung',
-                'Bei der Synchronisierung ist ein unerwarteter Fehler aufgetreten.',
-                'error'
-            );
+            showNotification('error', 'Bei der Synchronisierung ist ein unerwarteter Fehler aufgetreten.');
             console.error('Error:', error);
         });
+}
+
+// Load sync settings for 123erfasst
+function loadErfasst123SyncSettings() {
+    fetch('/api/integrations/123erfasst/sync-status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const settings = data.data;
+
+                // Update auto-sync checkbox
+                const autoSyncCheckbox = document.getElementById('erfasst123-auto-sync');
+                if (autoSyncCheckbox) {
+                    autoSyncCheckbox.checked = settings.autoSync;
+                }
+
+                // Update start date
+                const startDateInput = document.getElementById('erfasst123-start-date');
+                if (startDateInput && settings.startDate) {
+                    startDateInput.value = settings.startDate;
+                }
+
+                // Update last sync display
+                const lastSyncElem = document.getElementById('erfasst123-last-sync');
+                if (lastSyncElem) {
+                    lastSyncElem.textContent = settings.lastSync;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error loading sync settings:', error);
+        });
+}
+
+// Update 123erfasst sync settings
+function updateErfasst123SyncSettings() {
+    const autoSync = document.getElementById('erfasst123-auto-sync').checked;
+    const startDate = document.getElementById('erfasst123-start-date').value;
+
+    // Update auto-sync setting
+    const formData = new FormData();
+    formData.append('enabled', autoSync.toString());
+
+    fetch('/api/integrations/123erfasst/set-auto-sync', {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                showNotification('error', data.message || 'Fehler beim Aktualisieren der Auto-Sync-Einstellung');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating auto-sync:', error);
+            showNotification('error', 'Fehler beim Aktualisieren der Auto-Sync-Einstellung');
+        });
+
+    // Update start date if provided
+    if (startDate) {
+        const startDateFormData = new FormData();
+        startDateFormData.append('startDate', startDate);
+
+        fetch('/api/integrations/123erfasst/set-sync-start-date', {
+            method: 'POST',
+            body: startDateFormData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('success', 'Synchronisierungseinstellungen wurden aktualisiert');
+                } else {
+                    showNotification('error', data.message || 'Fehler beim Aktualisieren des Startdatums');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating start date:', error);
+                showNotification('error', 'Fehler beim Aktualisieren des Startdatums');
+            });
+    } else {
+        showNotification('success', 'Auto-Sync-Einstellung wurde aktualisiert');
+    }
+}
+
+// Trigger a full sync for 123erfasst
+function triggerErfasst123FullSync() {
+    // Show notification
+    showNotification('info', 'Vollständige Synchronisierung wurde gestartet. Dies kann einige Minuten dauern...');
+
+    // Call API to trigger full sync
+    fetch('/api/integrations/123erfasst/full-sync', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success notification
+                showNotification('success', data.message || 'Synchronisierung erfolgreich abgeschlossen');
+
+                // Refresh last sync time
+                loadErfasst123SyncSettings();
+            } else {
+                // Show error notification
+                showNotification('error', data.message || 'Fehler bei der Synchronisierung');
+            }
+        })
+        .catch(error => {
+            console.error('Error during full sync:', error);
+            showNotification('error', 'Bei der Synchronisierung ist ein unerwarteter Fehler aufgetreten');
+        });
+}
+
+// Helper function to show notifications
+function showNotification(type, message) {
+    const notificationContainer = document.getElementById('notification-container');
+    if (!notificationContainer) {
+        console.warn('Notification container not found');
+        return;
+    }
+
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.classList.add('mb-2', 'p-4', 'rounded-md', 'shadow-md', 'transform', 'transition-all', 'duration-300');
+
+    // Set notification style based on type
+    switch(type) {
+        case 'success':
+            notification.classList.add('bg-green-50', 'text-green-800', 'border', 'border-green-200');
+            break;
+        case 'error':
+            notification.classList.add('bg-red-50', 'text-red-800', 'border', 'border-red-200');
+            break;
+        case 'info':
+            notification.classList.add('bg-blue-50', 'text-blue-800', 'border', 'border-blue-200');
+            break;
+        default:
+            notification.classList.add('bg-gray-50', 'text-gray-800', 'border', 'border-gray-200');
+    }
+
+    // Set notification content
+    notification.textContent = message;
+
+    // Add notification to container
+    notificationContainer.appendChild(notification);
+
+    // Animate in
+    setTimeout(() => {
+        notification.classList.add('opacity-100');
+    }, 10);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        notification.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 5000);
 }

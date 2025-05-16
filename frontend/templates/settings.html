@@ -314,7 +314,9 @@
                                 <p class="text-sm text-gray-500">Digitale Zeiterfassung und Baustellendokumentation</p>
                             </div>
                         </div>
-                        <div class="mt-2">
+
+                        <!-- Configuration form - only shown when not connected -->
+                        <div id="erfasst123ConfigForm" class="mt-2">
                             <form id="erfasst123Form" action="/api/integrations/123erfasst/save" method="POST">
                                 <div class="space-y-3">
                                     <div>
@@ -331,28 +333,81 @@
                                             <input type="password" name="erfasst123-password" id="erfasst123-password"
                                                    class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                                                    placeholder="Passwort eingeben">
-                                            <button type="button" onclick="saveErfasst123Credentials()"
-                                                    class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                                                Speichern
-                                            </button>
                                         </div>
+                                    </div>
+                                    <div>
+                                        <label for="erfasst123-sync-start-date" class="block text-sm font-medium text-gray-700">Daten synchronisieren ab</label>
+                                        <div class="mt-1 flex rounded-md shadow-sm">
+                                            <input type="date" name="erfasst123-sync-start-date" id="erfasst123-sync-start-date"
+                                                   class="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                                        </div>
+                                        <p class="mt-1 text-xs text-gray-500">Leer lassen für den Beginn des aktuellen Jahres.</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <button type="button" onclick="saveErfasst123Credentials()"
+                                                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                            Integration einrichten
+                                        </button>
                                     </div>
                                 </div>
                                 <p class="mt-2 text-xs text-gray-500">Geben Sie Ihre 123erfasst-Anmeldedaten ein.</p>
                             </form>
                         </div>
+
+                        <!-- Sync Settings Panel - shown when connected -->
+                        <div id="erfasst123SyncSettings" class="mt-2" style="display: none;">
+                            <div class="bg-gray-50 p-4 rounded-md border border-gray-200 mb-4">
+                                <h4 class="text-sm font-medium text-gray-700 mb-2">Synchronisierungseinstellungen</h4>
+
+                                <div class="flex items-start mb-3">
+                                    <div class="flex items-center h-5">
+                                        <input id="erfasst123-auto-sync" name="erfasst123-auto-sync" type="checkbox"
+                                               class="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300 rounded">
+                                    </div>
+                                    <div class="ml-3 text-sm">
+                                        <label for="erfasst123-auto-sync" class="font-medium text-gray-700">Automatische Synchronisierung</label>
+                                        <p class="text-gray-500">Daten alle 5 Minuten im Hintergrund aktualisieren</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                                    <div class="flex-grow">
+                                        <label for="erfasst123-start-date" class="block text-sm font-medium text-gray-700">Daten ab</label>
+                                        <input type="date" id="erfasst123-start-date" name="erfasst123-start-date"
+                                               class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                                    </div>
+                                    <div class="flex-shrink-0 self-end">
+                                        <button type="button" onclick="updateErfasst123SyncSettings()"
+                                                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                            Speichern
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="mt-3 text-xs text-gray-500">
+                                    <div class="flex items-center mb-1">
+                                        <span class="font-medium">Letzte Synchronisierung:</span>
+                                        <span id="erfasst123-last-sync" class="ml-1">wird geladen...</span>
+                                    </div>
+                                    <button type="button" onclick="triggerErfasst123FullSync()"
+                                            class="text-green-600 hover:text-green-800 font-medium">
+                                        Jetzt synchronisieren →
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="mt-4 flex justify-between items-center">
         <span id="erfasst123Status" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
             Wird geladen...
         </span>
-                            <button type="button" id="removeErfasst123Btn" class="text-sm text-red-600 hover:text-red-900" disabled>
+                            <button type="button" id="removeErfasst123Btn" class="text-sm text-red-600 hover:text-red-900" disabled onclick="removeErfasst123Integration()">
                                 Entfernen
                             </button>
                         </div>
 
                         <!-- Synchronisierungsbuttons mit display:none am Anfang -->
                         <div id="erfasst123SyncButtons" class="mt-4 flex flex-col space-y-2" style="display: none;">
-                            <!-- Existing buttons -->
                             <button type="button" onclick="syncErfasst123Employees()"
                                     class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                                 <svg class="mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -361,7 +416,7 @@
                                 Mitarbeiterdaten synchronisieren
                             </button>
 
-                            <button type="button"  onclick="syncErfasst123Projects()"
+                            <button type="button" onclick="syncErfasst123Projects()"
                                     class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                                 <svg class="mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -369,7 +424,6 @@
                                 Projektdaten synchronisieren
                             </button>
 
-                            <!-- New button for time entries synchronization -->
                             <button type="button" onclick="syncErfasst123TimeEntries()"
                                     class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                                 <svg class="mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -378,8 +432,6 @@
                                 Zeiterfassungsdaten synchronisieren
                             </button>
                         </div>
-
-
                     </div>
                 </div>
             </div>

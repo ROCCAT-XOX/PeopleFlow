@@ -10,10 +10,13 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"PeopleFlow/backend"
+	"PeopleFlow/backend/background"
 	"PeopleFlow/backend/db"
 	"PeopleFlow/backend/repository"
 	"PeopleFlow/backend/utils"
 )
+
+var backgroundWorker *background.Worker
 
 func main() {
 	// Set Gin to release mode in production
@@ -38,6 +41,11 @@ func main() {
 	if err := utils.EnsureUploadDirExists(); err != nil {
 		log.Printf("Warnung: Upload-Verzeichnis konnte nicht erstellt werden: %v", err)
 	}
+
+	// Initialize and start the background worker
+	backgroundWorker = background.NewWorker()
+	backgroundWorker.Start()
+	defer backgroundWorker.Stop()
 
 	// Initialize router
 	router := setupRouter()
