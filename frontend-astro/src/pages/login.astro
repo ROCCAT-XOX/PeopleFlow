@@ -1,0 +1,222 @@
+---
+// Login.astro
+import Layout from '../layouts/Layout.astro';
+
+// Hier können serverseitige Daten gehandhabt werden
+// In Astro.js kannst du auf dem Server Code ausführen und Daten an die Komponente übergeben
+const { error } = Astro.props;
+const year = new Date().getFullYear();
+---
+
+<Layout title="Login - PeopleFlow">
+    <div class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        <!-- Particles.js Container -->
+        <div id="particles-js" class="absolute inset-0 z-0 bg-[#F3F4F6]"></div>
+
+        <div class="w-full max-w-md z-10 relative">
+            <!-- Login Card -->
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden transition-transform duration-300 hover:shadow-2xl transform hover:-translate-y-1 backdrop-blur-sm bg-opacity-95">
+                <!-- Logo Section mit Farbverlauf -->
+                <div class="bg-gradient-to-br from-[#D9FBE5]/80 via-[#D9FBE5]/80 to-[#F7FDE6]/80 p-8 flex flex-col items-center justify-center border-b border-gray-200">
+                    <img src="/images/PeopleFlow-Logoschrift.svg" alt="PeopleFlow" class="h-10">
+                    <p class="text-[#15803D] opacity-90 mt-2">HR Management System</p>
+                </div>
+
+                <!-- Form Section -->
+                <div class="p-8">
+                    {error && (
+                            <div class="mb-4 p-3 bg-red-100 border border-red-200 text-red-600 rounded-lg animate-pulse">
+                                <p class="text-sm">{error}</p>
+                            </div>
+                    )}
+
+                    <form class="space-y-5" action="/auth" method="POST">
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-[#0F151C] mb-1">E-Mail</label>
+                            <div class="relative transition-all duration-200">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                  </svg>
+                </span>
+                                <input type="email" name="email" id="email"
+                                       class="pl-10 w-full py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#22C55E] transition-all duration-200"
+                                       placeholder="E-Mail-Adresse eingeben" required>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-[#0F151C] mb-1">Passwort</label>
+                            <div class="relative transition-all duration-200">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+                                <input type="password" name="password" id="password"
+                                       class="pl-10 w-full py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#22C55E] transition-all duration-200"
+                                       placeholder="Passwort eingeben" required>
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="submit"
+                                    class="w-full bg-[#22C55E] hover:bg-[#15803D] text-white font-medium py-3 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#22C55E] focus:ring-offset-2 transform hover:-translate-y-1 active:translate-y-0">
+                                Anmelden
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="mt-6 text-center text-[#0F151C] text-sm bg-white bg-opacity-70 py-2 rounded-lg">
+                <p>&copy; {year} PeopleFlow - HR Management System</p>
+            </div>
+        </div>
+    </div>
+</Layout>
+
+<script>
+    // Client-side JavaScript wird hier ausgeführt
+    import 'particles.js';
+
+    // Particles.js Konfiguration
+    document.addEventListener('DOMContentLoaded', function() {
+        // Particles.js initialisieren
+        if (typeof particlesJS !== 'undefined') {
+            particlesJS('particles-js', {
+                "particles": {
+                    "number": {
+                        "value": 80,
+                        "density": {
+                            "enable": true,
+                            "value_area": 800
+                        }
+                    },
+                    "color": {
+                        "value": "#22C55E"
+                    },
+                    "shape": {
+                        "type": "circle",
+                        "stroke": {
+                            "width": 0,
+                            "color": "#000000"
+                        },
+                        "polygon": {
+                            "nb_sides": 5
+                        }
+                    },
+                    "opacity": {
+                        "value": 0.5,
+                        "random": false,
+                        "anim": {
+                            "enable": false,
+                            "speed": 1,
+                            "opacity_min": 0.1,
+                            "sync": false
+                        }
+                    },
+                    "size": {
+                        "value": 3,
+                        "random": true,
+                        "anim": {
+                            "enable": false,
+                            "speed": 40,
+                            "size_min": 0.1,
+                            "sync": false
+                        }
+                    },
+                    "line_linked": {
+                        "enable": true,
+                        "distance": 150,
+                        "color": "#15803D",
+                        "opacity": 0.4,
+                        "width": 1
+                    },
+                    "move": {
+                        "enable": true,
+                        "speed": 2,
+                        "direction": "none",
+                        "random": false,
+                        "straight": false,
+                        "out_mode": "out",
+                        "bounce": false,
+                        "attract": {
+                            "enable": false,
+                            "rotateX": 600,
+                            "rotateY": 1200
+                        }
+                    }
+                },
+                "interactivity": {
+                    "detect_on": "canvas",
+                    "events": {
+                        "onhover": {
+                            "enable": true,
+                            "mode": "grab"
+                        },
+                        "onclick": {
+                            "enable": true,
+                            "mode": "push"
+                        },
+                        "resize": true
+                    },
+                    "modes": {
+                        "grab": {
+                            "distance": 140,
+                            "line_linked": {
+                                "opacity": 1
+                            }
+                        },
+                        "bubble": {
+                            "distance": 400,
+                            "size": 40,
+                            "duration": 2,
+                            "opacity": 8,
+                            "speed": 3
+                        },
+                        "repulse": {
+                            "distance": 200,
+                            "duration": 0.4
+                        },
+                        "push": {
+                            "particles_nb": 4
+                        },
+                        "remove": {
+                            "particles_nb": 2
+                        }
+                    }
+                },
+                "retina_detect": true
+            });
+        }
+
+        // Animiere Formular-Inputs bei Fokus
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.classList.add('scale-105');
+                this.classList.add('border-[#22C55E]');
+            });
+
+            input.addEventListener('blur', function() {
+                this.parentElement.classList.remove('scale-105');
+                if (!this.value) {
+                    this.classList.remove('border-[#22C55E]');
+                }
+            });
+        });
+
+        // Animation für Login-Button
+        const loginButton = document.querySelector('button[type="submit"]');
+        loginButton.addEventListener('mouseenter', function() {
+            this.classList.add('animate-pulse');
+        });
+
+        loginButton.addEventListener('mouseleave', function() {
+            this.classList.remove('animate-pulse');
+        });
+    });
+</script>

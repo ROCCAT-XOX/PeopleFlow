@@ -1,0 +1,16 @@
+
+---
+// index.astro - Haupteinstiegspunkt der Anwendung
+import { requireAuth } from '../lib/auth';
+
+// Prüfen, ob der Benutzer angemeldet ist
+const authRedirect = requireAuth(Astro);
+
+// Wenn nicht angemeldet, zur Login-Seite umleiten
+if (authRedirect) {
+	return authRedirect;
+}
+
+// Wenn angemeldet, zum Dashboard umleiten
+return Astro.redirect('/dashboard');
+---
