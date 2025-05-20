@@ -1,5 +1,5 @@
 // auth.js - Authentifizierungslogik für Astro.js
-import { createCookie } from 'astro:cookies';
+// Die Cookies-API wird nur in .astro-Dateien verwendet, nicht hier
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -100,19 +100,19 @@ export function validateToken(token) {
 }
 
 // Middleware zum Überprüfen der Authentifizierung
-export function requireAuth({ cookies, redirect }) {
-    const token = cookies.get('token')?.value;
+export function requireAuth(Astro) {
+    const token = Astro.cookies.get('token')?.value;
 
     if (!token) {
-        return redirect('/login');
+        return Astro.redirect('/login');
     }
 
     const { valid } = validateToken(token);
 
     if (!valid) {
         // Token-Cookie löschen
-        cookies.delete('token', { path: '/' });
-        return redirect('/login');
+        Astro.cookies.delete('token', { path: '/' });
+        return Astro.redirect('/login');
     }
 
     // Authentifizierung erfolgreich, weitermachen

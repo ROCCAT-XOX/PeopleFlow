@@ -8,7 +8,7 @@ const authRedirect = requireAuth(Astro);
 
 // Wenn nicht angemeldet, zur Login-Seite umleiten
 if (authRedirect) {
-	return authRedirect;
+    return authRedirect;
 }
 
 // Wenn angemeldet, zum Dashboard umleiten
