@@ -1,0 +1,44 @@
+---
+// dashboard.astro - Vorläufige Dashboard-Seite
+import Layout from '../layouts/Layout.astro';
+import { requireAuth, validateToken } from '../lib/auth';
+
+// Authentifizierung prüfen
+const authRedirect = requireAuth(Astro);
+if (authRedirect) {
+    return authRedirect;
+}
+
+// Benutzerinformationen aus Token abrufen
+const token = Astro.cookies.get('token')?.value;
+const tokenData = validateToken(token);
+---
+
+<Layout title="Dashboard - PeopleFlow">
+    <div class="min-h-screen bg-gray-100">
+        <!-- Header -->
+        <header class="bg-white shadow">
+            <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
+                <h1 class="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-600">Angemeldet als {tokenData?.role}</span>
+                    <a href="/logout" class="text-sm text-[#22C55E] hover:text-[#15803D]">Abmelden</a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Hauptinhalt -->
+        <main>
+            <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+                <div class="px-4 py-6 sm:px-0">
+                    <div class="rounded-lg border-4 border-dashed border-gray-200 p-6 h-96 flex items-center justify-center">
+                        <div class="text-center">
+                            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Willkommen im PeopleFlow Dashboard</h2>
+                            <p class="text-gray-600">Diese Seite wird noch entwickelt. Weitere Komponenten werden bald hinzugefügt.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</Layout>
