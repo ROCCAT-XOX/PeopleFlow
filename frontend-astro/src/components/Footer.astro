@@ -1,0 +1,17 @@
+---
+// Footer.astro - Fußzeile der Anwendung
+const { year = new Date().getFullYear() } = Astro.props;
+---
+
+<script>
+    // Footer-Skript-Funktionalität
+</script>
+
+<!-- Notification/Alert Container -->
+<div id="notification-container" class="fixed bottom-4 right-4 z-50 flex flex-col space-y-2 max-w-md w-full"></div>
+
+<footer class="bg-white py-4 mt-auto border-t border-gray-200">
+    <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+        <p>&copy; {year} PeopleFlow - HR Management System</p>
+    </div>
+</footer>

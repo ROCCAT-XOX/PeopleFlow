@@ -1,0 +1,320 @@
+---
+// Navigation.astro - Hauptnavigation der Anwendung
+const { active, user, email, userRole, year } = Astro.props;
+
+// Hilfsfunktion zum Erzeugen von Initialen
+function getInitials(fullName) {
+    const parts = fullName.split(' ');
+    if (parts.length === 0) return "?";
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+const currentDate = new Date().toLocaleDateString('de-DE', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+});
+---
+
+<!-- Gesamtcontainer -->
+<div class="flex h-full">
+    <!-- Seitliche Navigation für Desktop -->
+    <div id="sidebar" class="hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col sidebar-transition" style="width: 16rem;">
+        <div class="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-gradient-to-br from-[#D9FBE5]/80 via-[#D9FBE5]/80 to-[#F7FDE6]/80 px-6 pb-4">
+            <!-- Logo -->
+            <div class="flex h-16 shrink-0 items-center justify-center pt-4">
+                <div class="flex items-center">
+                    <!-- Logo für ausgefahrene Sidebar -->
+                    <img id="sidebar-logo-full" src="/images/PeopleFlow-Logoschrift.svg" alt="PeopleFlow" class="h-8">
+                    <!-- Logo für eingeklappte Sidebar -->
+                    <img id="sidebar-logo-icon" src="/images/PeopleFlow-Logo-Symbol.svg" alt="PeopleFlow" class="h-8 hidden">
+                </div>
+            </div>
+
+            <!-- Hauptnavigation -->
+            <nav class="flex flex-1 flex-col">
+                <ul role="list" class="flex flex-1 flex-col gap-y-7">
+                    <li>
+                        <ul role="list" class="-mx-2 space-y-1">
+                            <!-- Dashboard -->
+                            <li class="sidebar-item relative">
+                                <a href="/dashboard" class={`group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold ${active === "dashboard" ? "bg-[#22C55E]/20 text-[#16A34A]" : "text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]"}`}>
+                                    <svg class={`h-6 w-6 shrink-0 ${active === "dashboard" ? "text-[#16A34A]" : "text-[#5F5F5F] group-hover:text-[#16A34A]"}`} fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                                    </svg>
+                                    <span class="menu-text">Dashboard</span>
+                                </a>
+                            </li>
+
+                            <!-- Mitarbeiter - nur für berechtigte Rollen -->
+                            {(userRole === "admin" || userRole === "manager" || userRole === "hr") && (
+                                    <li class="sidebar-item relative">
+                                        <a href="/employees" class={`group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold ${active === "employees" ? "bg-[#22C55E]/20 text-[#16A34A]" : "text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]"}`}>
+                                            <svg class="h-6 w-6 shrink-0 text-[#16A34A]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"></path>
+                                            </svg>
+                                            <span class="menu-text">Mitarbeiter</span>
+                                        </a>
+                                    </li>
+                            )}
+
+                            <!-- Zeiterfassung -->
+                            <li class="sidebar-item relative">
+                                <a href="/timetracking" class={`group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold ${active === "timetracking" ? "bg-[#22C55E]/20 text-[#16A34A]" : "text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]"}`}>
+                                    <svg class={`h-6 w-6 shrink-0 ${active === "timetracking" ? "text-[#16A34A]" : "text-[#5F5F5F] group-hover:text-[#16A34A]"}`} fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="menu-text">Zeiterfassung</span>
+                                </a>
+                            </li>
+
+                            <!-- Planung -->
+                            <li class="sidebar-item relative">
+                                <a href="/planning" class={`group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold ${active === "planning" ? "bg-[#22C55E]/20 text-[#16A34A]" : "text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]"}`}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                                         class={`h-6 w-6 shrink-0 ${active === "planning" ? "text-[#16A34A]" : "text-[#5F5F5F] group-hover:text-[#16A34A]"}`}>
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z" />
+                                    </svg>
+                                    <span class="menu-text">Planung</span>
+                                </a>
+                            </li>
+
+                            <!-- Abwesenheiten/Urlaub -->
+                            <li class="sidebar-item relative">
+                                <a href="/absence" class={`group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold ${active === "absences" ? "bg-[#22C55E]/20 text-[#16A34A]" : "text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]"}`}>
+                                    <svg class={`h-6 w-6 shrink-0 ${active === "absences" ? "text-[#16A34A]" : "text-[#5F5F5F] group-hover:text-[#16A34A]"}`} fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                                    </svg>
+                                    <span class="menu-text">Abwesenheiten</span>
+                                </a>
+                            </li>
+
+                            <!-- Statistiken -->
+                            <li class="sidebar-item relative">
+                                <a href="/statistics" class={`group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold ${active === "statistics" ? "bg-[#22C55E]/20 text-[#16A34A]" : "text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]"}`}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                                         class={`h-6 w-6 shrink-0 ${active === "statistics" ? "text-[#16A34A]" : "text-[#5F5F5F] group-hover:text-[#16A34A]"}`}>
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                                    </svg>
+                                    <span class="menu-text">Statistiken</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Footer-Navigationselemente -->
+                    <li class="mt-auto space-y-3">
+                        <!-- Toggle Button für Sidebar -->
+                        <div class="sidebar-item relative">
+                            <button id="toggle-sidebar" class="w-full group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]">
+                                <!-- Pfeil nach links (Einklappen) -->
+                                <svg id="collapse-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M15.707 15.707a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414l5-5a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                                </svg>
+                                <!-- Pfeil nach rechts (Ausklappen, versteckt) -->
+                                <svg id="expand-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L14.586 10l-4.293-4.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                </svg>
+                                <span class="menu-text">Sidebar</span>
+                            </button>
+                        </div>
+
+                        <!-- Einstellungen -->
+                        <div class="sidebar-item relative">
+                            <a href="/settings" class={`group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold ${active === "settings" ? "bg-[#22C55E]/20 text-[#16A34A]" : "text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]"}`}>
+                                <svg class={`h-6 w-6 shrink-0 ${active === "settings" ? "text-[#16A34A]" : "text-[#5F5F5F] group-hover:text-[#16A34A]"}`} fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                </svg>
+                                <span class="menu-text">Einstellungen</span>
+                            </a>
+                        </div>
+
+                        <!-- Logout -->
+                        <div class="sidebar-item relative">
+                            <a href="/api/logout" class={`group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold ${active === "logout" ? "bg-[#22C55E]/20 text-[#16A34A]" : "text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]"}`}>
+                                <svg class={`h-6 w-6 shrink-0 ${active === "logout" ? "text-[#16A34A]" : "text-[#5F5F5F] group-hover:text-[#16A34A]"}`} fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                                </svg>
+                                <span class="menu-text">Abmelden</span>
+                            </a>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Mobile Menü (off-canvas) mit denselben Farbanpassungen -->
+    <div id="mobile-menu" class="relative z-50 lg:hidden" role="dialog" aria-modal="true" style="display: none;">
+        <div class="fixed inset-0 bg-gray-900/80" aria-hidden="true"></div>
+
+        <div class="fixed inset-0 flex">
+            <div class="relative mr-16 flex w-full max-w-xs flex-1">
+                <!-- Schließen-Button -->
+                <div class="absolute top-0 right-0 -mr-12 pt-2">
+                    <button id="close-sidebar-button" type="button" class="ml-1 flex h-10 w-10 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+                        <span class="sr-only">Menü schließen</span>
+                        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Mobile Sidebar Inhalt mit angepassten Farben -->
+                <div class="flex grow flex-col gap-y-5 overflow-y-auto bg-gradient-to-br from-[#D9FBE5]/80 via-[#D9FBE5]/80 to-[#F7FDE6]/80 px-6 pb-4">
+                    <div class="flex h-16 shrink-0 items-center">
+                        <h1 class="text-xl font-semibold text-green-600">PeopleFlow</h1>
+                    </div>
+
+                    <!-- Mobile Navigation -->
+                    <nav class="flex flex-1 flex-col">
+                        <ul role="list" class="flex flex-1 flex-col gap-y-7">
+                            <!-- Navigation Items -->
+                            <!-- [Mobile Navigation Items hier einfügen, ähnlich wie oben] -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hauptinhalt-Bereich -->
+    <div id="main-content" class="lg:pl-64 flex flex-col min-h-screen w-full">
+        <!-- Obere Leiste -->
+        <div class="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+            <!-- Mobile Menü-Button - nur für mobile Geräte -->
+            <button id="mobile-sidebar-button" type="button" class="-m-2.5 p-2.5 text-[#5F5F5F] lg:hidden">
+                <span class="sr-only">Menü öffnen</span>
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+            </button>
+
+            <!-- Expand-Sidebar-Button - nur für Desktop, wenn Sidebar eingeklappt -->
+            <button id="expand-sidebar-button" type="button" class="-m-2.5 p-2.5 text-[#5F5F5F] hidden">
+                <!-- Burger-Menü durch Logo ersetzen -->
+                <span class="sr-only">Menü erweitern</span>
+                <img src="/images/PeopleFlow-Logo-Symbol.svg" alt="PeopleFlow" class="h-6 w-6">
+            </button>
+
+            <!-- Linker Bereich: Datum und Willkommen -->
+            <div class="flex items-center flex-1">
+                <div>
+                    <p class="text-sm text-[#5F5F5F]">{currentDate}</p>
+                    <p class="text-base font-medium text-gray-900">Willkommen zurück, {user}</p>
+                </div>
+            </div>
+
+            <!-- Rechter Bereich: Benachrichtigungen -->
+            <div class="flex items-center">
+                <button type="button" class="-m-2.5 p-2.5 text-[#5F5F5F] hover:text-[#16A34A]">
+                    <span class="sr-only">Benachrichtigungen anzeigen</span>
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                    </svg>
+                </button>
+
+                <!-- Profil-Anzeige mit Link zu /profile -->
+                <a href="/profile" class="flex items-center ml-4 hover:opacity-80">
+                    <div class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-sm font-medium">
+                        {getInitials(user)}
+                    </div>
+                    <span class="hidden lg:ml-4 lg:flex lg:items-center">
+                        <span class="text-sm font-semibold text-gray-900" aria-hidden="true">{user}</span>
+                    </span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Hier kommt der Hauptinhalt der jeweiligen Seite -->
+        <slot />
+    </div>
+</div>
+
+<script>
+    // Toggle Sidebar Funktion
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('main-content');
+        const toggleButton = document.getElementById('toggle-sidebar');
+        const collapseIcon = document.getElementById('collapse-icon');
+        const expandIcon = document.getElementById('expand-icon');
+        const logoFull = document.getElementById('sidebar-logo-full');
+        const logoIcon = document.getElementById('sidebar-logo-icon');
+        const menuTexts = document.querySelectorAll('.menu-text');
+        const mobileMenuButton = document.getElementById('mobile-sidebar-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const closeSidebarButton = document.getElementById('close-sidebar-button');
+        const expandSidebarButton = document.getElementById('expand-sidebar-button');
+
+        // Toggle Sidebar-Funktion für Desktop
+        if (toggleButton) {
+            toggleButton.addEventListener('click', function() {
+                document.body.classList.toggle('sidebar-collapsed');
+
+                if (document.body.classList.contains('sidebar-collapsed')) {
+                    sidebar.style.width = '4rem';
+                    mainContent.classList.remove('lg:pl-64');
+                    mainContent.classList.add('lg:pl-16');
+                    collapseIcon.classList.add('hidden');
+                    expandIcon.classList.remove('hidden');
+                    logoFull.classList.add('hidden');
+                    logoIcon.classList.remove('hidden');
+                    expandSidebarButton.classList.remove('hidden');
+
+                    menuTexts.forEach(text => {
+                        text.style.display = 'none';
+                    });
+                } else {
+                    sidebar.style.width = '16rem';
+                    mainContent.classList.remove('lg:pl-16');
+                    mainContent.classList.add('lg:pl-64');
+                    collapseIcon.classList.remove('hidden');
+                    expandIcon.classList.add('hidden');
+                    logoFull.classList.remove('hidden');
+                    logoIcon.classList.add('hidden');
+                    expandSidebarButton.classList.add('hidden');
+
+                    menuTexts.forEach(text => {
+                        text.style.display = 'block';
+                    });
+                }
+            });
+        }
+
+        // Mobile Menu Toggle
+        if (mobileMenuButton) {
+            mobileMenuButton.addEventListener('click', function() {
+                mobileMenu.style.display = 'block';
+            });
+        }
+
+        if (closeSidebarButton) {
+            closeSidebarButton.addEventListener('click', function() {
+                mobileMenu.style.display = 'none';
+            });
+        }
+
+        // Expand Sidebar Button (wenn Sidebar eingeklappt ist)
+        if (expandSidebarButton) {
+            expandSidebarButton.addEventListener('click', function() {
+                document.body.classList.remove('sidebar-collapsed');
+                sidebar.style.width = '16rem';
+                mainContent.classList.remove('lg:pl-16');
+                mainContent.classList.add('lg:pl-64');
+                collapseIcon.classList.remove('hidden');
+                expandIcon.classList.add('hidden');
+                logoFull.classList.remove('hidden');
+                logoIcon.classList.add('hidden');
+                expandSidebarButton.classList.add('hidden');
+
+                menuTexts.forEach(text => {
+                    text.style.display = 'block';
+                });
+            });
+        }
+    });
+</script>

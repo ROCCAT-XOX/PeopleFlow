@@ -1,23 +1,13 @@
 ---
 // login.astro - Login-Seite
 import Layout from '../layouts/Layout.astro';
-import { validateToken } from '../lib/auth';
-
-// Prüfen, ob bereits eingeloggt
-const token = Astro.cookies.get('token')?.value;
-if (token) {
-    const { valid } = validateToken(token);
-    if (valid) {
-        return Astro.redirect('/dashboard');
-    }
-
-    // Ungültiges Token: Cookie löschen
-    Astro.cookies.delete('token', { path: '/' });
-}
 
 // Fehler aus der URL lesen, falls vorhanden
 const error = Astro.url.searchParams.get('error');
 const year = new Date().getFullYear();
+
+// Backend-URL definieren
+const backendUrl = "http://localhost:8080";
 ---
 
 <Layout title="Login - PeopleFlow">
@@ -42,7 +32,8 @@ const year = new Date().getFullYear();
                             </div>
                     )}
 
-                    <form class="space-y-5" action="/auth" method="POST">
+                    <!-- Hier wird das Formular direkt an das Go-Backend gesendet -->
+                    <form class="space-y-5" action={`${backendUrl}/auth`} method="POST">
                         <div>
                             <label for="email" class="block text-sm font-medium text-[#0F151C] mb-1">E-Mail</label>
                             <div class="relative transition-all duration-200">
@@ -89,6 +80,7 @@ const year = new Date().getFullYear();
         </div>
     </div>
 </Layout>
+
 
 <script>
     // Lade particles.js von einem CDN
