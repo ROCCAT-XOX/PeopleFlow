@@ -30,7 +30,7 @@ const year = new Date().getFullYear();
                     )}
 
                     <!-- Formular an den Astro-API-Endpunkt senden -->
-                    <form class="space-y-5" action="/api/auth" method="POST">
+                    <form id="login-form" class="space-y-5" action="/api/auth" method="POST">
                         <div>
                             <label for="email" class="block text-sm font-medium text-[#0F151C] mb-1">E-Mail</label>
                             <div class="relative transition-all duration-200">
@@ -60,8 +60,12 @@ const year = new Date().getFullYear();
                             </div>
                         </div>
 
+                        <div id="login-error" class="hidden p-3 bg-red-100 border border-red-200 text-red-600 rounded-lg">
+                            <p class="text-sm">Fehler bei der Anmeldung</p>
+                        </div>
+
                         <div class="pt-2">
-                            <button type="submit"
+                            <button type="submit" id="login-button"
                                     class="w-full bg-[#22C55E] hover:bg-[#15803D] text-white font-medium py-3 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#22C55E] focus:ring-offset-2 transform hover:-translate-y-1 active:translate-y-0">
                                 Anmelden
                             </button>
@@ -86,6 +90,69 @@ const year = new Date().getFullYear();
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js';
         script.onload = initParticlesJS;
         document.head.appendChild(script);
+
+        // Login-Formular abfangen und AJAX verwenden
+        const form = document.getElementById('login-form');
+        const loginError = document.getElementById('login-error');
+        const loginButton = document.getElementById('login-button');
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Login-Button deaktivieren und Ladeindikator anzeigen
+            loginButton.disabled = true;
+            loginButton.innerText = 'Anmelden...';
+            loginButton.classList.add('opacity-70');
+
+            // Fehlermeldung verstecken
+            loginError.classList.add('hidden');
+
+            // Formular-Daten sammeln
+            const formData = new FormData(form);
+
+            try {
+                // Manuell an den Astro-API-Endpunkt senden
+                const response = await fetch('/api/auth', {
+                    method: 'POST',
+                    body: formData,
+                    redirect: 'follow'
+                });
+
+                // Antwort verarbeiten
+                if (response.redirected) {
+                    // Wenn die Antwort eine Umleitung enthält, folgen wir dieser
+                    window.location.href = response.url;
+                } else {
+                    // Antwort als JSON verarbeiten
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // Bei erfolgreicher Anmeldung zum Dashboard umleiten
+                        window.location.href = '/dashboard';
+                    } else {
+                        // Fehlermeldung anzeigen
+                        loginError.querySelector('p').innerText = data.message || 'Fehler bei der Anmeldung';
+                        loginError.classList.remove('hidden');
+
+                        // Login-Button zurücksetzen
+                        loginButton.disabled = false;
+                        loginButton.innerText = 'Anmelden';
+                        loginButton.classList.remove('opacity-70');
+                    }
+                }
+            } catch (error) {
+                console.error('Login-Fehler:', error);
+
+                // Fehlermeldung anzeigen
+                loginError.querySelector('p').innerText = 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.';
+                loginError.classList.remove('hidden');
+
+                // Login-Button zurücksetzen
+                loginButton.disabled = false;
+                loginButton.innerText = 'Anmelden';
+                loginButton.classList.remove('opacity-70');
+            }
+        });
     });
 
     function initParticlesJS() {

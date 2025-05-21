@@ -8,46 +8,44 @@ export async function post({ request, cookies, redirect }) {
         const email = formData.get('email');
         const password = formData.get('password');
 
+        console.log(`Sende Anmeldeanfrage an: ${BACKEND_URL}/auth`);
+
         // Backend-Anfrage vorbereiten
         const response = await fetch(`${BACKEND_URL}/auth`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
             },
-            body: new URLSearchParams({
+            body: JSON.stringify({
                 email,
                 password,
             }),
-            // Nicht automatisch Cookies folgen
-            redirect: 'manual',
         });
 
-        // Erfolgreiche Anmeldung - Cookie extrahieren
-        if (response.status === 302) {
-            // Cookie-Header aus der Antwort lesen
-            const cookieHeader = response.headers.get('set-cookie');
-            if (cookieHeader) {
-                // Token extrahieren
-                const tokenMatch = cookieHeader.match(/token=([^;]+)/);
-                if (tokenMatch && tokenMatch[1]) {
-                    // Token in den Astro-Cookies speichern
-                    cookies.set('token', tokenMatch[1], {
-                        path: '/',
-                        httpOnly: true,
-                        sameSite: 'strict',
-                        secure: process.env.NODE_ENV === 'production',
-                    });
+        console.log('Antwort vom Backend erhalten:', response.status);
 
-                    // Zum Astro-Dashboard umleiten
-                    return redirect('/dashboard');
-                }
-            }
+        // JSON-Antwort abrufen
+        const data = await response.json();
+
+        // Erfolgreiche Anmeldung
+        if (response.ok && data.token) {
+            // Token in den Astro-Cookies speichern
+            cookies.set('token', data.token, {
+                path: '/',
+                httpOnly: true,
+                sameSite: 'lax',
+                secure: process.env.NODE_ENV === 'production',
+                maxAge: 60 * 60 * 24, // 1 Tag
+            });
+
+            // Zum Astro-Dashboard umleiten
+            return redirect('/dashboard');
         }
 
         // Bei Fehler zurück zur Login-Seite mit Fehlermeldung
-        return redirect('/login?error=Anmeldung fehlgeschlagen. Bitte überprüfen Sie Ihre Zugangsdaten.');
+        return redirect('/login?error=' + encodeURIComponent(data.message || 'Anmeldung fehlgeschlagen. Bitte überprüfen Sie Ihre Zugangsdaten.'));
     } catch (error) {
         console.error('Authentication error:', error);
-        return redirect('/login?error=Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+        return redirect('/login?error=' + encodeURIComponent('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.'));
     }
 }

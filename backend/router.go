@@ -22,20 +22,6 @@ func InitializeRoutes(router *gin.Engine) {
 		panic("Fehler beim Verbinden zur Datenbank")
 	}
 
-	router.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:4321")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	})
-
 	// Public routes (keine Authentifizierung erforderlich)
 	router.GET("/login", func(c *gin.Context) {
 		// Token aus dem Cookie extrahieren
@@ -56,6 +42,8 @@ func InitializeRoutes(router *gin.Engine) {
 			"year":  time.Now().Year(),
 		})
 	})
+
+	router.Use(middleware.CORSMiddleware())
 
 	// Auth-Handler erstellen
 	authHandler := handler.NewAuthHandler()
