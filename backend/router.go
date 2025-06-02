@@ -450,6 +450,10 @@ func InitializeRoutes(router *gin.Engine) {
 
 		// Profilbil hinzufügen
 		authorized.POST("/employees/:id/profile-image", employeeHandler.UploadProfileImage)
+		// Überstunden Routen
+		authorized.POST("/api/timetracking/recalculate-overtime", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), timeTrackingHandler.RecalculateOvertime)
+		authorized.GET("/api/timetracking/employee/:id/overtime", timeTrackingHandler.GetEmployeeOvertimeDetails)
+		authorized.POST("/api/timetracking/employee/:id/overtime", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.RecalculateEmployeeOvertime)
 
 		// Dokument-Routen
 		authorized.POST("/employees/:id/documents", documentHandler.UploadDocument)

@@ -27,222 +27,257 @@
 
 <!-- Main Content -->
 <main class="container mx-auto px-4 py-6 flex-grow">
-  <div class="mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">Zeiterfassung</h1>
-    <p class="mt-1 text-sm text-gray-500">Übersicht aller Zeiterfassungen der Mitarbeiter.</p>
+  <div class="sm:flex sm:items-center sm:justify-between">
+    <div>
+      <div class="flex items-center gap-x-3">
+        <h2 class="text-lg font-medium text-gray-800">Zeiterfassung</h2>
+        <span class="px-3 py-1 text-xs text-blue-600 bg-blue-100 rounded-full">{{.totalEmployees}} Mitarbeiter</span>
+      </div>
+      <p class="mt-1 text-sm text-gray-500">Übersicht über erfasste Arbeitszeiten und Projekte.</p>
+    </div>
+
+    <div class="flex items-center mt-4 gap-x-3">
+      <!-- Link zu Überstunden-Seite -->
+      <a href="/overtime" class="flex items-center justify-center px-5 py-2 text-sm text-white bg-green-600 rounded-lg gap-x-2 hover:bg-green-500">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" fill="currentColor"/>
+        </svg>
+        <span>Überstunden</span>
+      </a>
+
+      <button id="exportTimeDataBtn" class="flex items-center justify-center px-5 py-2 text-sm text-gray-700 bg-white border rounded-lg gap-x-2 hover:bg-gray-100">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" fill="currentColor"/>
+        </svg>
+        <span>Export</span>
+      </button>
+    </div>
   </div>
 
-  <!-- Filter-Bereich -->
-  <div class="bg-white shadow rounded-lg mb-6">
+  <!-- Statistik-Karten -->
+  <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <!-- Gesamt erfasste Stunden -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Gesamt erfasste Stunden</dt>
+              <dd class="text-lg font-medium text-gray-900">{{printf "%.1f" .totalHours}} Std</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aktive Mitarbeiter -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Mitarbeiter mit Zeiten</dt>
+              <dd class="text-lg font-medium text-gray-900">{{.totalEmployees}}</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aktive Projekte -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Aktive Projekte</dt>
+              <dd class="text-lg font-medium text-gray-900">{{.totalProjects}}</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Durchschnittsstunden pro Mitarbeiter -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Ø Stunden/Mitarbeiter</dt>
+              <dd class="text-lg font-medium text-gray-900">
+                {{if gt .totalEmployees 0}}
+                {{printf "%.1f" (divide .totalHours .totalEmployees)}} Std
+                {{else}}
+                0.0 Std
+                {{end}}
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter und Suche -->
+  <div class="mt-6 bg-white shadow sm:rounded-lg">
     <div class="px-4 py-5 sm:p-6">
-      <form id="filter-form" class="space-y-6">
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <!-- Zeitraum-Filter -->
-          <div>
-            <label for="date-range" class="block text-sm font-medium text-gray-700">Zeitraum</label>
-            <div class="mt-1">
-              <select id="date-range" name="date-range" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
-                <option value="this-week">Diese Woche</option>
-                <option value="last-week">Letzte Woche</option>
-                <option value="this-month" selected>Dieser Monat</option>
-                <option value="last-month">Letzter Monat</option>
-                <option value="custom">Benutzerdefiniert</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Benutzerdefinierter Zeitraum -->
-          <div class="sm:col-span-2 hidden" id="custom-date-range">
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label for="start-date" class="block text-sm font-medium text-gray-700">Von</label>
-                <input type="date" name="start-date" id="start-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
-              </div>
-              <div>
-                <label for="end-date" class="block text-sm font-medium text-gray-700">Bis</label>
-                <input type="date" name="end-date" id="end-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
-              </div>
-            </div>
-          </div>
-
-          <!-- Mitarbeiter-Filter mit Mehrfachauswahl -->
-          <div class="sm:col-span-2 lg:col-span-1">
-            <label for="employee-filter-container" class="block text-sm font-medium text-gray-700 mb-1">Mitarbeiter</label>
-            <div id="employee-filter-container" class="mt-1 relative">
-              <div class="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus-within:ring-1 focus-within:ring-green-500 focus-within:border-green-500 rounded-md bg-white cursor-pointer" id="employee-dropdown-toggle">
-                <div class="flex items-center justify-between">
-                  <span id="employee-selection-display" class="text-sm text-gray-500">Alle Mitarbeiter</span>
-                  <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                  </svg>
-                </div>
-              </div>
-
-              <!-- Dropdown für Mitarbeiterauswahl -->
-              <div id="employee-dropdown" class="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm hidden">
-                <div class="sticky top-0 bg-white z-10 px-2 py-1 border-b border-gray-200">
-                  <div class="flex items-center">
-                    <input type="checkbox" id="select-all-employees" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
-                    <label for="select-all-employees" class="ml-2 block text-sm text-gray-900">
-                      Alle auswählen
-                    </label>
-                  </div>
-                </div>
-                <div class="employee-options py-1">
-                  {{range .employees}}
-                  <div class="employee-option px-2 py-1 hover:bg-gray-100 cursor-pointer">
-                    <div class="flex items-center">
-                      <input type="checkbox" id="employee-{{.ID.Hex}}" value="{{.ID.Hex}}" class="employee-checkbox h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
-                      <label for="employee-{{.ID.Hex}}" class="ml-2 block text-sm text-gray-900 w-full cursor-pointer">
-                        {{.FirstName}} {{.LastName}}
-                      </label>
-                    </div>
-                  </div>
-                  {{end}}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Projekt-Filter -->
-          <div>
-            <label for="project-filter" class="block text-sm font-medium text-gray-700">Projekt</label>
-            <select id="project-filter" name="project" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
-              <option value="">Alle Projekte</option>
-              {{range .projects}}
-              <option value="{{.ID}}">{{.Name}}</option>
-              {{end}}
-            </select>
-          </div>
+      <h3 class="text-lg leading-6 font-medium text-gray-900">Filter & Suche</h3>
+      <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-3">
+        <div>
+          <label for="startDate" class="block text-sm font-medium text-gray-700">Von Datum</label>
+          <input type="date" name="startDate" id="startDate" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
         </div>
-
-        <!-- Filter-Button -->
-        <div class="flex justify-end">
-          <button type="button" id="apply-filter" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-            <svg class="mr-2 -ml-1 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
-            </svg>
-            Filter anwenden
-          </button>
+        <div>
+          <label for="endDate" class="block text-sm font-medium text-gray-700">Bis Datum</label>
+          <input type="date" name="endDate" id="endDate" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
         </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Zusammenfassung -->
-  <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 mb-6">
-    <div class="bg-white overflow-hidden shadow rounded-lg">
-      <div class="px-4 py-5 sm:p-6">
-        <dl>
-          <dt class="text-sm font-medium text-gray-500 truncate">Gesamtstunden</dt>
-          <dd id="total-hours" class="mt-1 text-3xl font-semibold text-gray-900">{{.totalHours}} Std</dd>
-        </dl>
+        <div>
+          <label for="projectFilter" class="block text-sm font-medium text-gray-700">Projekt</label>
+          <select id="projectFilter" name="projectFilter" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+            <option value="">Alle Projekte</option>
+            {{range .projects}}
+            <option value="{{.ID}}">{{.Name}}</option>
+            {{end}}
+          </select>
+        </div>
       </div>
-    </div>
-    <div class="bg-white overflow-hidden shadow rounded-lg">
-      <div class="px-4 py-5 sm:p-6">
-        <dl>
-          <dt class="text-sm font-medium text-gray-500 truncate">Mitarbeiter angezeigt</dt>
-          <dd id="total-employees-displayed" class="mt-1 text-3xl font-semibold text-gray-900">{{.totalEmployees}}</dd>
-        </dl>
-      </div>
-    </div>
-    <div class="bg-white overflow-hidden shadow rounded-lg">
-      <div class="px-4 py-5 sm:p-6">
-        <dl>
-          <dt class="text-sm font-medium text-gray-500 truncate">Projekte angezeigt</dt>
-          <dd id="total-projects-displayed" class="mt-1 text-3xl font-semibold text-gray-900">{{.totalProjects}}</dd>
-        </dl>
+      <div class="mt-4">
+        <button id="applyFilters" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+          Filter anwenden
+        </button>
+        <button id="resetFilters" class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+          Zurücksetzen
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Mitarbeiter Stundenliste - Zusammengefasst pro Mitarbeiter -->
-  <div class="bg-white shadow rounded-lg mb-6">
-    <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-      <h2 class="text-lg font-medium text-gray-900">Stunden pro Mitarbeiter</h2>
+  <!-- Mitarbeiter-Liste -->
+  <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-md">
+    <div class="px-4 py-5 sm:px-6">
+      <h3 class="text-lg leading-6 font-medium text-gray-900">Mitarbeiter-Zeiterfassung</h3>
+      <p class="mt-1 max-w-2xl text-sm text-gray-500">
+        Übersicht aller Mitarbeiter mit erfassten Arbeitszeiten
+      </p>
     </div>
-    <div class="border-t border-gray-200">
-      <div class="overflow-hidden">
-        <div id="employee-hours-container">
-          {{range .employeeSummary}}
-          <div class="employee-summary-item border-b border-gray-200" data-employee-id="{{.EmployeeID}}">
-            <div class="px-4 py-4 sm:px-6 flex items-center justify-between">
-              <div class="flex items-center">
-                <div class="flex-shrink-0 h-10 w-10">
-                  {{if .HasProfileImage}}
-                  <img class="h-10 w-10 rounded-full" src="/employees/{{.EmployeeID}}/profile-image" alt="">
-                  {{else}}
-                  <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-800 font-medium">
-                    {{ getInitials .EmployeeName }}
-                  </div>
-                  {{end}}
-                </div>
-                <div class="ml-4">
-                  <div class="text-sm font-medium text-gray-900">
-                    {{.EmployeeName}}
-                  </div>
-                  <div class="text-sm text-gray-500">
-                    Projekte: {{.ProjectCount}}
-                  </div>
-                </div>
-              </div>
-              <div class="flex items-center">
-                <span class="text-lg font-semibold text-gray-900">{{printf "%.1f" .TotalHours}} Std.</span>
-                <button class="ml-4 text-gray-400 hover:text-gray-500 toggle-details" data-employee-id="{{.EmployeeID}}">
-                  <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <div class="employee-details hidden px-4 py-4 sm:px-6 bg-gray-50">
-              <h3 class="text-sm font-medium text-gray-900 mb-2">Projektdetails</h3>
-              <div class="space-y-2">
-                {{range .Projects}}
-                <div class="project-detail flex justify-between" data-project-id="{{.ProjectID}}">
-                  <span class="text-sm text-gray-700">{{.ProjectName}}</span>
-                  <span class="text-sm font-medium text-gray-900">{{printf "%.1f" .Hours}} Std.</span>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+        <tr>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Mitarbeiter
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Erfasste Stunden
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Projekte
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Letzte Aktivität
+          </th>
+          <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Aktionen
+          </th>
+        </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+        {{if .employeeSummary}}
+        {{range .employeeSummary}}
+        <tr class="hover:bg-gray-50">
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="flex items-center">
+              <div class="flex-shrink-0 h-10 w-10">
+                {{if .HasProfileImage}}
+                <img class="h-10 w-10 rounded-full object-cover" src="/employees/{{.EmployeeID}}/profile-image" alt="{{.EmployeeName}}">
+                {{else}}
+                <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-sm font-semibold">
+                  {{ getInitials .EmployeeName }}
                 </div>
                 {{end}}
               </div>
-
-              <h3 class="text-sm font-medium text-gray-900 mt-4 mb-2">Zeiteinträge</h3>
-              <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                  <thead class="bg-gray-50">
-                  <tr>
-                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Datum</th>
-                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Projekt</th>
-                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tätigkeit</th>
-                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Von</th>
-                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bis</th>
-                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dauer</th>
-                  </tr>
-                  </thead>
-                  <tbody class="bg-white divide-y divide-gray-200">
-                  {{range .TimeEntries}}
-                  <tr class="time-entry-row" data-project-id="{{.ProjectID}}">
-                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{{.Date.Format "02.01.2006"}}</td>
-                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{{.ProjectName}}</td>
-                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{{.Activity}}</td>
-                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{{.StartTime.Format "15:04"}}</td>
-                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{{.EndTime.Format "15:04"}}</td>
-                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{{printf "%.1f" .Duration}} Std.</td>
-                  </tr>
-                  {{end}}
-                  </tbody>
-                </table>
+              <div class="ml-4">
+                <div class="text-sm font-medium text-gray-900">{{.EmployeeName}}</div>
+                <div class="text-sm text-gray-500">{{.EmployeeID}}</div>
               </div>
             </div>
-          </div>
-          {{else}}
-          <div class="px-4 py-4 sm:px-6 text-center text-gray-500">
-            Keine Zeiteinträge gefunden für den ausgewählten Zeitraum
-          </div>
-          {{end}}
-        </div>
-      </div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900">{{printf "%.1f" .TotalHours}} Std</div>
+            <div class="text-sm text-gray-500">Gesamt erfasst</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900">{{.ProjectCount}} Projekte</div>
+            {{if .Projects}}
+            <div class="text-sm text-gray-500">
+              {{range $index, $project := .Projects}}
+              {{if eq $index 0}}{{$project.ProjectName}}{{end}}
+              {{if gt (len $.Projects) 1}}{{if eq $index 0}} (+{{subtract (len $.Projects) 1}} weitere){{end}}{{end}}
+              {{end}}
+            </div>
+            {{end}}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            {{if .TimeEntries}}
+            {{range $index, $entry := .TimeEntries}}
+            {{if eq $index 0}}
+            <div class="text-sm text-gray-900">{{$entry.Date.Format "02.01.2006"}}</div>
+            <div class="text-sm text-gray-500">{{$entry.ProjectName}}</div>
+            {{end}}
+            {{end}}
+            {{else}}
+            <div class="text-sm text-gray-500">Keine Einträge</div>
+            {{end}}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+            <a href="/employees/view/{{.EmployeeID}}#timeentries" class="text-green-600 hover:text-green-900 mr-3">
+              Details
+            </a>
+            <button onclick="exportEmployeeData('{{.EmployeeID}}')" class="text-blue-600 hover:text-blue-900">
+              Export
+            </button>
+          </td>
+        </tr>
+        {{end}}
+        {{else}}
+        <tr>
+          <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+            Keine Zeiterfassungsdaten vorhanden
+          </td>
+        </tr>
+        {{end}}
+        </tbody>
+      </table>
     </div>
   </div>
 </main>
@@ -562,6 +597,36 @@
 
     // Automatisch einmal zu Beginn filtern
     setTimeout(filterTimeEntries, 100);
+  });
+
+  // Export-Funktionen
+  document.getElementById('exportTimeDataBtn').addEventListener('click', function() {
+    window.location.href = '/timetracking/export';
+  });
+
+  function exportEmployeeData(employeeId) {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const projectId = document.getElementById('projectFilter').value;
+
+    let url = `/api/timetracking/employee/${employeeId}?export=true`;
+    if (startDate) url += `&startDate=${startDate}`;
+    if (endDate) url += `&endDate=${endDate}`;
+    if (projectId) url += `&projectId=${projectId}`;
+
+    window.location.href = url;
+  }
+
+  // Filter-Funktionen
+  document.getElementById('applyFilters').addEventListener('click', function() {
+    // Filter-Logic hier implementieren
+    console.log('Filter anwenden...');
+  });
+
+  document.getElementById('resetFilters').addEventListener('click', function() {
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+    document.getElementById('projectFilter').value = '';
   });
 </script>
 </body>

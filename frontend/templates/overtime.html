@@ -1,0 +1,562 @@
+<!-- frontend/templates/overtime.html - Neue separate Überstunden-Seite -->
+
+{{ template "head" . }}
+<body class="bg-gray-50 min-h-screen flex flex-col">
+<!-- Navigation -->
+{{ template "navigation" . }}
+
+<!-- Main Content -->
+<main class="container mx-auto px-4 py-6 flex-grow">
+  <div class="sm:flex sm:items-center sm:justify-between">
+    <div>
+      <div class="flex items-center gap-x-3">
+        <h2 class="text-lg font-medium text-gray-800">Überstunden-Verwaltung</h2>
+        <span class="px-3 py-1 text-xs text-blue-600 bg-blue-100 rounded-full">{{.totalEmployees}} Mitarbeiter</span>
+      </div>
+      <p class="mt-1 text-sm text-gray-500">Übersicht über Arbeitszeiten und Überstunden-Salden aller Mitarbeiter.</p>
+    </div>
+
+    <div class="flex items-center mt-4 gap-x-3">
+      <a href="/timetracking" class="flex items-center justify-center px-5 py-2 text-sm text-gray-700 bg-white border rounded-lg gap-x-2 hover:bg-gray-100">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" fill="currentColor"/>
+        </svg>
+        <span>Zeiterfassung</span>
+      </a>
+
+      <button id="recalculateOvertimeBtn" class="flex items-center justify-center px-5 py-2 text-sm text-white bg-green-600 rounded-lg gap-x-2 hover:bg-green-500">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Neu berechnen</span>
+      </button>
+
+      <button id="exportOvertimeBtn" class="flex items-center justify-center px-5 py-2 text-sm text-gray-700 bg-white border rounded-lg gap-x-2 hover:bg-gray-100">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" fill="currentColor"/>
+        </svg>
+        <span>Export</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Überstunden-Übersicht -->
+  <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <!-- Gesamt Überstunden -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Gesamt Überstunden</dt>
+              <dd class="text-lg font-medium text-gray-900">
+                {{if .employeeSummaryWithOvertime}}
+                {{$totalOvertime := 0.0}}
+                {{range .employeeSummaryWithOvertime}}
+                {{$totalOvertime = add $totalOvertime .OvertimeBalance}}
+                {{end}}
+                {{if ge $totalOvertime 0}}
+                <span class="text-green-600">+{{printf "%.1f" $totalOvertime}} Std</span>
+                {{else}}
+                <span class="text-red-600">{{printf "%.1f" $totalOvertime}} Std</span>
+                {{end}}
+                {{else}}
+                0.0 Std
+                {{end}}
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mitarbeiter mit Überstunden -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Mit Überstunden</dt>
+              <dd class="text-lg font-medium text-gray-900">
+                {{if .employeeSummaryWithOvertime}}
+                {{$positiveCount := 0}}
+                {{range .employeeSummaryWithOvertime}}
+                {{if gt .OvertimeBalance 0}}
+                {{$positiveCount = add $positiveCount 1}}
+                {{end}}
+                {{end}}
+                {{$positiveCount}}
+                {{else}}
+                0
+                {{end}}
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mitarbeiter mit Minusstunden -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-red-500 rounded-md flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Mit Minusstunden</dt>
+              <dd class="text-lg font-medium text-gray-900">
+                {{if .employeeSummaryWithOvertime}}
+                {{$negativeCount := 0}}
+                {{range .employeeSummaryWithOvertime}}
+                {{if lt .OvertimeBalance 0}}
+                {{$negativeCount = add $negativeCount 1}}
+                {{end}}
+                {{end}}
+                {{$negativeCount}}
+                {{else}}
+                0
+                {{end}}
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Durchschnittliche Wochenstunden -->
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Ø Wochenstunden</dt>
+              <dd class="text-lg font-medium text-gray-900">
+                {{if .employeeSummaryWithOvertime}}
+                {{$totalTarget := 0.0}}
+                {{$count := len .employeeSummaryWithOvertime}}
+                {{range .employeeSummaryWithOvertime}}
+                {{$totalTarget = add $totalTarget .WeeklyTarget}}
+                {{end}}
+                {{if gt $count 0}}
+                {{printf "%.1f" (divide $totalTarget $count)}} Std
+                {{else}}
+                0.0 Std
+                {{end}}
+                {{else}}
+                40.0 Std
+                {{end}}
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter -->
+  <div class="mt-6 bg-white shadow sm:rounded-lg">
+    <div class="px-4 py-5 sm:p-6">
+      <h3 class="text-lg leading-6 font-medium text-gray-900">Filter</h3>
+      <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-4">
+        <div>
+          <label for="balanceFilter" class="block text-sm font-medium text-gray-700">Saldo-Filter</label>
+          <select id="balanceFilter" name="balanceFilter" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+            <option value="all">Alle</option>
+            <option value="positive">Nur Überstunden</option>
+            <option value="negative">Nur Minusstunden</option>
+            <option value="neutral">Nur ausgeglichen</option>
+          </select>
+        </div>
+        <div>
+          <label for="departmentFilter" class="block text-sm font-medium text-gray-700">Abteilung</label>
+          <select id="departmentFilter" name="departmentFilter" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+            <option value="">Alle Abteilungen</option>
+            <option value="IT">IT</option>
+            <option value="HR">HR</option>
+            <option value="Sales">Vertrieb</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Finance">Finanzen</option>
+            <option value="Production">Produktion</option>
+          </select>
+        </div>
+        <div>
+          <label for="sortBy" class="block text-sm font-medium text-gray-700">Sortierung</label>
+          <select id="sortBy" name="sortBy" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+            <option value="name">Name</option>
+            <option value="overtime_desc">Überstunden (hoch → niedrig)</option>
+            <option value="overtime_asc">Überstunden (niedrig → hoch)</option>
+            <option value="target_hours">Soll-Stunden</option>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button id="applyOvertimeFilters" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+            Filter anwenden
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mitarbeiter-Liste mit Überstunden -->
+  <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-md">
+    <div class="px-4 py-5 sm:px-6">
+      <h3 class="text-lg leading-6 font-medium text-gray-900">Überstunden-Übersicht</h3>
+      <p class="mt-1 max-w-2xl text-sm text-gray-500">
+        Detaillierte Übersicht aller Mitarbeiter mit Überstunden-Salden
+      </p>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+        <tr>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Mitarbeiter
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Wochenstunden
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Erfasste Stunden
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Überstunden-Saldo
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Letzte Berechnung
+          </th>
+          <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Aktionen
+          </th>
+        </tr>
+        </thead>
+        <tbody id="overtimeTableBody" class="bg-white divide-y divide-gray-200">
+        {{if .employeeSummaryWithOvertime}}
+        {{range .employeeSummaryWithOvertime}}
+        <tr class="hover:bg-gray-50" data-balance-status="{{.OvertimeStatus}}" data-department="{{.Department}}">
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="flex items-center">
+              <div class="flex-shrink-0 h-10 w-10">
+                {{if .HasProfileImage}}
+                <img class="h-10 w-10 rounded-full object-cover" src="/employees/{{.EmployeeID}}/profile-image" alt="{{.EmployeeName}}">
+                {{else}}
+                <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-sm font-semibold">
+                  {{ getInitials .EmployeeName }}
+                </div>
+                {{end}}
+              </div>
+              <div class="ml-4">
+                <div class="text-sm font-medium text-gray-900">{{.EmployeeName}}</div>
+                <div class="text-sm text-gray-500">{{.EmployeeID}}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900">{{printf "%.1f" .WeeklyTarget}} Std/Woche</div>
+            <div class="text-sm text-gray-500">Soll-Arbeitszeit</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900">{{printf "%.1f" .TotalHours}} Std</div>
+            <div class="text-sm text-gray-500">Gesamt erfasst</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            {{if eq .OvertimeStatus "positive"}}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        +{{printf "%.1f" .OvertimeBalance}} Std
+                                    </span>
+            {{else if eq .OvertimeStatus "negative"}}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        {{printf "%.1f" .OvertimeBalance}} Std
+                                    </span>
+            {{else}}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        0.0 Std
+                                    </span>
+            {{end}}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            {{if .OvertimeSummary}}
+            {{.OvertimeSummary.LastCalculated.Format "02.01.2006 15:04"}}
+            {{else}}
+            Noch nicht berechnet
+            {{end}}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+            <button onclick="showOvertimeDetails('{{.EmployeeID}}')" class="text-green-600 hover:text-green-900 mr-3">
+              Details
+            </button>
+            <a href="/employees/view/{{.EmployeeID}}#overtime" class="text-blue-600 hover:text-blue-900">
+              Profile
+            </a>
+          </td>
+        </tr>
+        {{end}}
+        {{else}}
+        <tr>
+          <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+            Keine Überstunden-Daten vorhanden
+          </td>
+        </tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Überstunden-Details Modal -->
+<div id="overtimeDetailsModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" aria-hidden="true"></div>
+    <div class="relative bg-white rounded-lg max-w-4xl w-full mx-auto shadow-xl">
+      <div class="flex justify-between items-center px-6 py-4 border-b">
+        <h3 id="overtimeModalTitle" class="text-lg font-medium text-gray-900">Überstunden-Details</h3>
+        <button type="button" onclick="closeModal('overtimeDetailsModal')" class="text-gray-400 hover:text-gray-500">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div id="overtimeModalContent" class="px-6 py-4">
+        <!-- Hier werden die Überstunden-Details geladen -->
+        <div class="text-center py-8">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto"></div>
+          <p class="mt-2 text-sm text-gray-500">Lade Überstunden-Details...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+{{ template "footer" . }}
+
+<script>
+  // Modal-Funktionen
+  function openModal(id) {
+    document.getElementById(id).classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+  }
+
+  // Überstunden neu berechnen
+  document.getElementById('recalculateOvertimeBtn').addEventListener('click', function() {
+    this.disabled = true;
+    this.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Berechne...';
+
+    fetch('/api/timetracking/recalculate-overtime', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                alert('Überstunden wurden erfolgreich neu berechnet');
+                window.location.reload();
+              } else {
+                alert('Fehler beim Berechnen der Überstunden');
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              alert('Ein Fehler ist aufgetreten');
+            })
+            .finally(() => {
+              this.disabled = false;
+              this.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Neu berechnen</span>';
+            });
+  });
+
+  // Filter-Funktionen
+  document.getElementById('applyOvertimeFilters').addEventListener('click', function() {
+    const balanceFilter = document.getElementById('balanceFilter').value;
+    const departmentFilter = document.getElementById('departmentFilter').value;
+    const sortBy = document.getElementById('sortBy').value;
+
+    const rows = Array.from(document.querySelectorAll('#overtimeTableBody tr'));
+
+    // Filter anwenden
+    rows.forEach(row => {
+      let showRow = true;
+
+      // Balance-Filter
+      if (balanceFilter !== 'all') {
+        const balanceStatus = row.getAttribute('data-balance-status');
+        if (balanceFilter !== balanceStatus) {
+          showRow = false;
+        }
+      }
+
+      // Department-Filter
+      if (departmentFilter && showRow) {
+        const department = row.getAttribute('data-department');
+        if (department !== departmentFilter) {
+          showRow = false;
+        }
+      }
+
+      row.style.display = showRow ? '' : 'none';
+    });
+
+    // Sortierung anwenden
+    if (sortBy !== 'name') {
+      // Implementierung der Sortierung je nach Bedarf
+      console.log('Sortierung:', sortBy);
+    }
+  });
+
+  // Überstunden-Details anzeigen
+  function showOvertimeDetails(employeeId) {
+    openModal('overtimeDetailsModal');
+
+    fetch(`/api/timetracking/employee/${employeeId}/overtime`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                displayOvertimeDetails(data.data);
+              } else {
+                document.getElementById('overtimeModalContent').innerHTML =
+                        '<div class="text-center py-8 text-red-500">Fehler beim Laden der Daten</div>';
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              document.getElementById('overtimeModalContent').innerHTML =
+                      '<div class="text-center py-8 text-red-500">Ein Fehler ist aufgetreten</div>';
+            });
+  }
+
+  // Überstunden-Details anzeigen
+  function displayOvertimeDetails(data) {
+    document.getElementById('overtimeModalTitle').textContent =
+            `Überstunden-Details - ${data.employeeName}`;
+
+    let balanceClass = 'text-gray-900';
+    let balanceText = data.currentBalance.toFixed(1);
+
+    if (data.currentBalance > 0) {
+      balanceClass = 'text-green-600';
+      balanceText = '+' + balanceText;
+    } else if (data.currentBalance < 0) {
+      balanceClass = 'text-red-600';
+    }
+
+    let weeklyEntriesHtml = '';
+    if (data.weeklyEntries && data.weeklyEntries.length > 0) {
+      data.weeklyEntries.slice(-8).forEach(entry => {
+        const weekStart = new Date(entry.weekStartDate).toLocaleDateString('de-DE');
+        const weekEnd = new Date(entry.weekEndDate).toLocaleDateString('de-DE');
+        const overtimeClass = entry.overtimeHours >= 0 ? 'text-green-600' : 'text-red-600';
+        const overtimeText = entry.overtimeHours >= 0 ? '+' + entry.overtimeHours.toFixed(1) : entry.overtimeHours.toFixed(1);
+
+        weeklyEntriesHtml += `
+                    <tr>
+                        <td class="px-4 py-2 text-sm text-gray-900">${weekStart} - ${weekEnd}</td>
+                        <td class="px-4 py-2 text-sm text-gray-900">${entry.plannedHours.toFixed(1)} Std</td>
+                        <td class="px-4 py-2 text-sm text-gray-900">${entry.actualHours.toFixed(1)} Std</td>
+                        <td class="px-4 py-2 text-sm ${overtimeClass}">${overtimeText} Std</td>
+                        <td class="px-4 py-2 text-sm text-gray-500">${entry.daysWorked} Tage</td>
+                    </tr>
+                `;
+      });
+    } else {
+      weeklyEntriesHtml = '<tr><td colspan="5" class="px-4 py-2 text-center text-gray-500">Keine Daten vorhanden</td></tr>';
+    }
+
+    const content = `
+            <div class="space-y-6">
+                <!-- Übersicht -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="text-sm font-medium text-gray-500">Aktuelles Saldo</div>
+                        <div class="mt-1 text-2xl font-semibold ${balanceClass}">${balanceText} Std</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="text-sm font-medium text-gray-500">Wochenstunden (Soll)</div>
+                        <div class="mt-1 text-2xl font-semibold text-gray-900">${data.weeklyTargetHours.toFixed(1)} Std</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="text-sm font-medium text-gray-500">Letzte Berechnung</div>
+                        <div class="mt-1 text-sm text-gray-900">${new Date(data.lastCalculated).toLocaleString('de-DE')}</div>
+                    </div>
+                </div>
+
+                <!-- Wöchentliche Aufschlüsselung -->
+                <div>
+                    <h4 class="text-md font-medium text-gray-900 mb-3">Wöchentliche Aufschlüsselung (letzte 8 Wochen)</h4>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Woche</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Soll</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ist</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Differenz</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Arbeitstage</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${weeklyEntriesHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+
+    document.getElementById('overtimeModalContent').innerHTML = content;
+  }
+
+  // Template-Hilfsfunktionen
+  function getInitials(name) {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  }
+
+  function add(a, b) {
+    return parseFloat(a) + parseFloat(b);
+  }
+
+  function divide(a, b) {
+    return parseFloat(a) / parseFloat(b);
+  }
+
+  function subtract(a, b) {
+    return parseFloat(a) - parseFloat(b);
+  }
+</script>
+
+</body>
+</html>

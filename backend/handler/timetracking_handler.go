@@ -3,6 +3,7 @@ package handler
 import (
 	"PeopleFlow/backend/model"
 	"PeopleFlow/backend/repository"
+	"PeopleFlow/backend/service"
 	"fmt"
 	"net/http"
 	"sort"
@@ -11,16 +12,27 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TimeTrackingHandler verwaltet alle Anfragen zur Zeiterfassung
+// TimeTrackingHandler erweitern (bestehende Struktur ersetzen)
 type TimeTrackingHandler struct {
-	employeeRepo *repository.EmployeeRepository
+	employeeRepo       *repository.EmployeeRepository
+	timeAccountService *service.TimeAccountService
 }
 
-// NewTimeTrackingHandler erstellt einen neuen TimeTrackingHandler
+// NewTimeTrackingHandler korrigieren (bestehende Funktion ersetzen)
 func NewTimeTrackingHandler() *TimeTrackingHandler {
 	return &TimeTrackingHandler{
-		employeeRepo: repository.NewEmployeeRepository(),
+		employeeRepo:       repository.NewEmployeeRepository(),
+		timeAccountService: service.NewTimeAccountService(),
 	}
+}
+
+// Neue Struktur für erweiterte Mitarbeiter-Zusammenfassung hinzufügen
+type EmployeeSummaryWithOvertime struct {
+	EmployeeSummary                                  // Eingebettete bestehende Struktur
+	OvertimeBalance float64                          `json:"overtimeBalance"`
+	OvertimeStatus  string                           `json:"overtimeStatus"`
+	WeeklyTarget    float64                          `json:"weeklyTarget"`
+	OvertimeSummary *service.EmployeeOvertimeSummary `json:"overtimeSummary"`
 }
 
 // TimeEntryViewModel repräsentiert die Daten für die Darstellung eines Zeiteintrags
@@ -166,20 +178,55 @@ func (h *TimeTrackingHandler) GetTimeTrackingView(c *gin.Context) {
 		return projectsList[i].Name < projectsList[j].Name
 	})
 
+	// Überstunden für alle Mitarbeiter berechnen
+	var employeeSummariesWithOvertime []EmployeeSummaryWithOvertime
+	for _, summary := range employeeSummaries {
+		emp, err := h.employeeRepo.FindByID(summary.EmployeeID)
+		if err != nil {
+			// Falls Fehler beim Abrufen, verwende Standard-Werte
+			enhancedSummary := EmployeeSummaryWithOvertime{
+				EmployeeSummary: summary,
+				OvertimeBalance: 0.0,
+				OvertimeStatus:  "neutral",
+				WeeklyTarget:    40.0,
+				OvertimeSummary: nil,
+			}
+			employeeSummariesWithOvertime = append(employeeSummariesWithOvertime, enhancedSummary)
+			continue
+		}
+
+		// Überstunden berechnen
+		overtimeSummary, err := h.timeAccountService.GetEmployeeOvertimeSummary(summary.EmployeeID)
+		if err != nil {
+			overtimeSummary = nil
+		}
+
+		enhancedSummary := EmployeeSummaryWithOvertime{
+			EmployeeSummary: summary,
+			OvertimeBalance: emp.OvertimeBalance,
+			OvertimeStatus:  emp.GetOvertimeStatus(),
+			WeeklyTarget:    emp.GetWeeklyTargetHours(),
+			OvertimeSummary: overtimeSummary,
+		}
+
+		employeeSummariesWithOvertime = append(employeeSummariesWithOvertime, enhancedSummary)
+	}
+
 	// Daten an das Template übergeben
 	c.HTML(http.StatusOK, "timetracking.html", gin.H{
-		"title":           "Zeiterfassung",
-		"active":          "timetracking",
-		"user":            userModel.FirstName + " " + userModel.LastName,
-		"email":           userModel.Email,
-		"year":            time.Now().Year(),
-		"userRole":        userRole,
-		"employees":       employees,
-		"projects":        projectsList,
-		"employeeSummary": employeeSummaries,
-		"totalHours":      totalHours,
-		"totalEmployees":  len(employeeSummaries),
-		"totalProjects":   len(projects),
+		"title":                       "Zeiterfassung",
+		"active":                      "timetracking",
+		"user":                        userModel.FirstName + " " + userModel.LastName,
+		"email":                       userModel.Email,
+		"year":                        time.Now().Year(),
+		"userRole":                    userRole,
+		"employees":                   employees,
+		"projects":                    projectsList,
+		"employeeSummary":             employeeSummaries,
+		"employeeSummaryWithOvertime": employeeSummariesWithOvertime, // Neu hinzugefügt
+		"totalHours":                  totalHours,
+		"totalEmployees":              len(employeeSummaries),
+		"totalProjects":               len(projects),
 	})
 }
 
@@ -347,4 +394,34 @@ func (h *TimeTrackingHandler) ExportTimeTracking(c *gin.Context) {
 	c.Header("Content-Disposition", "attachment; filename=zeiterfassung.csv")
 	c.Header("Content-Type", "text/csv; charset=utf-8")
 	c.String(http.StatusOK, csvContent)
+}
+
+// RecalculateOvertime berechnet Überstunden für alle Mitarbeiter neu
+func (h *TimeTrackingHandler) RecalculateOvertime(c *gin.Context) {
+	err := h.timeAccountService.RecalculateAllEmployeeOvertimes()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler bei der Überstunden-Berechnung: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Überstunden für alle Mitarbeiter wurden neu berechnet",
+	})
+}
+
+// GetEmployeeOvertimeDetails liefert detaillierte Überstunden-Informationen für einen Mitarbeiter
+func (h *TimeTrackingHandler) GetEmployeeOvertimeDetails(c *gin.Context) {
+	employeeID := c.Param("id")
+
+	overtimeSummary, err := h.timeAccountService.GetEmployeeOvertimeSummary(employeeID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden oder Fehler bei der Berechnung"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    overtimeSummary,
+	})
 }

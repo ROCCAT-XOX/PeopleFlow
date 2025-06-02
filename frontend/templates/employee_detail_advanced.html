@@ -59,7 +59,7 @@
     <!-- Tab Navigation -->
     <div class="border-b border-gray-200">
         <nav class="flex -mb-px space-x-8" aria-label="Tabs">
-            <!-- Tab Buttons -->
+            <!-- Bestehende Tab Buttons -->
             <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-green-500 text-green-600" data-tab="personal">
                 Persönliche Informationen
             </button>
@@ -83,6 +83,10 @@
             </button>
             <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="timeentries">
                 Zeiterfassung
+            </button>
+            <!-- NEUER ÜBERSTUNDEN-TAB -->
+            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="overtime">
+                Überstunden
             </button>
         </nav>
     </div>
@@ -958,6 +962,223 @@
                         {{end}}
                     </div>
                 </div>
+            </div>
+        </div>
+        <!-- NEUER 9. Überstunden Tab -->
+        <div id="overtime-tab" class="tab-content hidden space-y-6">
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Überstunden-Konto</h3>
+                        <p class="mt-1 max-w-2xl text-sm text-gray-500">Übersicht über Arbeitszeiten und Überstunden-Saldo</p>
+                    </div>
+                    <button id="recalculateEmployeeOvertimeBtn" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Neu berechnen
+                    </button>
+                </div>
+
+                <!-- Überstunden-Übersicht -->
+                <div class="px-4 py-5 sm:px-6 border-t border-gray-200">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="text-sm font-medium text-gray-500">Aktuelles Saldo</div>
+                            <div id="currentOvertimeBalance" class="mt-1 text-3xl font-semibold">
+                                {{if .employee.OvertimeBalance}}
+                                {{if ge .employee.OvertimeBalance 0}}
+                                <span class="text-green-600">+{{printf "%.1f" .employee.OvertimeBalance}} Std</span>
+                                {{else}}
+                                <span class="text-red-600">{{printf "%.1f" .employee.OvertimeBalance}} Std</span>
+                                {{end}}
+                                {{else}}
+                                <span class="text-gray-900">0.0 Std</span>
+                                {{end}}
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="text-sm font-medium text-gray-500">Wochenstunden (Soll)</div>
+                            <div class="mt-1 text-3xl font-semibold text-gray-900">
+                                {{if .employee.WorkingHoursPerWeek}}
+                                {{printf "%.1f" .employee.WorkingHoursPerWeek}} Std
+                                {{else}}
+                                40.0 Std
+                                {{end}}
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="text-sm font-medium text-gray-500">Erfasste Gesamtstunden</div>
+                            <div class="mt-1 text-3xl font-semibold text-gray-900">{{.totalHours}} Std</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="text-sm font-medium text-gray-500">Letzte Berechnung</div>
+                            <div class="mt-1 text-sm text-gray-900">
+                                {{if not .employee.LastTimeCalculated.IsZero}}
+                                {{.employee.LastTimeCalculated.Format "02.01.2006 15:04"}}
+                                {{else}}
+                                Noch nicht berechnet
+                                {{end}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wöchentliche Aufschlüsselung -->
+                <div class="border-t border-gray-200">
+                    <div class="px-4 py-5 sm:px-6">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Wöchentliche Aufschlüsselung</h4>
+
+                        {{if .employee.WeeklyTimeEntries}}
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Woche
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        KW
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Soll-Stunden
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Ist-Stunden
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Differenz
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Arbeitstage
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status
+                                    </th>
+                                </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                {{range .employee.WeeklyTimeEntries}}
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {{.WeekStartDate.Format "02.01."}} - {{.WeekEndDate.Format "02.01.2006"}}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        KW {{.WeekNumber}}/{{.Year}}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {{printf "%.1f" .PlannedHours}} Std
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {{printf "%.1f" .ActualHours}} Std
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        {{if ge .OvertimeHours 0}}
+                                        <span class="text-green-600">+{{printf "%.1f" .OvertimeHours}} Std</span>
+                                        {{else}}
+                                        <span class="text-red-600">{{printf "%.1f" .OvertimeHours}} Std</span>
+                                        {{end}}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {{.DaysWorked}} Tage
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        {{if .IsComplete}}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    Abgeschlossen
+                                                </span>
+                                        {{else}}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                    Laufend
+                                                </span>
+                                        {{end}}
+                                    </td>
+                                </tr>
+                                {{end}}
+                                </tbody>
+                            </table>
+                        </div>
+                        {{else}}
+                        <div class="text-center py-8">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Überstunden-Daten</h3>
+                            <p class="mt-1 text-sm text-gray-500">Für diesen Mitarbeiter wurden noch keine Überstunden berechnet.</p>
+                            <div class="mt-6">
+                                <button onclick="recalculateEmployeeOvertime()" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                    <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                    </svg>
+                                    Überstunden berechnen
+                                </button>
+                            </div>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+
+                <!-- Überstunden-Verlauf Chart -->
+                {{if .employee.WeeklyTimeEntries}}
+                <div class="border-t border-gray-200">
+                    <div class="px-4 py-5 sm:px-6">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Überstunden-Verlauf</h4>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <canvas id="overtimeChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+                {{end}}
+
+                <!-- Überstunden-Statistiken -->
+                {{if .employee.WeeklyTimeEntries}}
+                <div class="border-t border-gray-200">
+                    <div class="px-4 py-5 sm:px-6">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Statistiken</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-blue-50 rounded-lg p-4">
+                                <div class="text-sm font-medium text-blue-700">Durchschnittliche Wochenstunden</div>
+                                <div class="mt-1 text-2xl font-semibold text-blue-900">
+                                    {{$totalActual := 0.0}}
+                                    {{$weekCount := len .employee.WeeklyTimeEntries}}
+                                    {{range .employee.WeeklyTimeEntries}}
+                                    {{$totalActual = add $totalActual .ActualHours}}
+                                    {{end}}
+                                    {{if gt $weekCount 0}}
+                                    {{printf "%.1f" (divide $totalActual $weekCount)}} Std
+                                    {{else}}
+                                    0.0 Std
+                                    {{end}}
+                                </div>
+                            </div>
+                            <div class="bg-green-50 rounded-lg p-4">
+                                <div class="text-sm font-medium text-green-700">Wochen mit Überstunden</div>
+                                <div class="mt-1 text-2xl font-semibold text-green-900">
+                                    {{$positiveWeeks := 0}}
+                                    {{range .employee.WeeklyTimeEntries}}
+                                    {{if gt .OvertimeHours 0}}
+                                    {{$positiveWeeks = add $positiveWeeks 1}}
+                                    {{end}}
+                                    {{end}}
+                                    {{$positiveWeeks}}
+                                </div>
+                            </div>
+                            <div class="bg-red-50 rounded-lg p-4">
+                                <div class="text-sm font-medium text-red-700">Wochen mit Minusstunden</div>
+                                <div class="mt-1 text-2xl font-semibold text-red-900">
+                                    {{$negativeWeeks := 0}}
+                                    {{range .employee.WeeklyTimeEntries}}
+                                    {{if lt .OvertimeHours 0}}
+                                    {{$negativeWeeks = add $negativeWeeks 1}}
+                                    {{end}}
+                                    {{end}}
+                                    {{$negativeWeeks}}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {{end}}
             </div>
         </div>
         <!-- Urlaub Tab -->

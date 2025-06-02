@@ -67,6 +67,11 @@ type Employee struct {
 	CoreWorkingTimeStart string        `bson:"coreWorkingTimeStart" json:"coreWorkingTimeStart"` // Format: "09:00"
 	CoreWorkingTimeEnd   string        `bson:"coreWorkingTimeEnd" json:"coreWorkingTimeEnd"`     // Format: "15:00"
 
+	// Zeitkonto-Verwaltung
+	OvertimeBalance    float64           `bson:"overtimeBalance" json:"overtimeBalance"`       // Saldo Überstunden in Stunden
+	LastTimeCalculated time.Time         `bson:"lastTimeCalculated" json:"lastTimeCalculated"` // Letztes Berechnungsdatum
+	WeeklyTimeEntries  []WeeklyTimeEntry `bson:"weeklyTimeEntries" json:"weeklyTimeEntries"`   // Wöchentliche Zusammenfassungen
+
 	// Finanzielle Daten
 	Salary          float64 `bson:"salary" json:"salary"`
 	BankAccount     string  `bson:"bankAccount" json:"bankAccount"`
@@ -107,6 +112,22 @@ type Employee struct {
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }
 
+// WeeklyTimeEntry repräsentiert die wöchentliche Zeiterfassung
+type WeeklyTimeEntry struct {
+	ID            primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	WeekStartDate time.Time          `bson:"weekStartDate" json:"weekStartDate"` // Montag der Woche
+	WeekEndDate   time.Time          `bson:"weekEndDate" json:"weekEndDate"`     // Sonntag der Woche
+	Year          int                `bson:"year" json:"year"`                   // Jahr
+	WeekNumber    int                `bson:"weekNumber" json:"weekNumber"`       // Kalenderwoche
+	PlannedHours  float64            `bson:"plannedHours" json:"plannedHours"`   // Geplante Stunden der Woche
+	ActualHours   float64            `bson:"actualHours" json:"actualHours"`     // Tatsächlich gearbeitete Stunden
+	OvertimeHours float64            `bson:"overtimeHours" json:"overtimeHours"` // Überstunden (+/-)
+	DaysWorked    int                `bson:"daysWorked" json:"daysWorked"`       // Anzahl gearbeiteter Tage
+	IsComplete    bool               `bson:"isComplete" json:"isComplete"`       // Woche abgeschlossen
+	CreatedAt     time.Time          `bson:"createdAt" json:"createdAt"`
+	UpdatedAt     time.Time          `bson:"updatedAt" json:"updatedAt"`
+}
+
 // WorkTimeModel repräsentiert verschiedene Arbeitszeitmodelle
 type WorkTimeModel string
 
@@ -130,38 +151,6 @@ func (w WorkTimeModel) GetDisplayName() string {
 	default:
 		return string(w)
 	}
-}
-
-// GetWorkingHoursPerDay berechnet die durchschnittlichen Arbeitsstunden pro Tag
-func (e *Employee) GetWorkingHoursPerDay() float64 {
-	if e.WorkingDaysPerWeek == 0 {
-		return 0
-	}
-	return e.WorkingHoursPerWeek / float64(e.WorkingDaysPerWeek)
-}
-
-// IsFullTimeEmployee prüft, ob es sich um einen Vollzeit-Mitarbeiter handelt
-func (e *Employee) IsFullTimeEmployee() bool {
-	return e.WorkTimeModel == WorkTimeModelFullTime || e.WorkingHoursPerWeek >= 35
-}
-
-// GetWorkingTimeDescription gibt eine textuelle Beschreibung der Arbeitszeit zurück
-func (e *Employee) GetWorkingTimeDescription() string {
-	if e.WorkingHoursPerWeek == 0 {
-		return "Nicht festgelegt"
-	}
-
-	description := fmt.Sprintf("%.1f Std/Woche", e.WorkingHoursPerWeek)
-
-	if e.WorkingDaysPerWeek > 0 {
-		description += fmt.Sprintf(" (%.1f Std/Tag)", e.GetWorkingHoursPerDay())
-	}
-
-	if e.WorkTimeModel != "" {
-		description += " - " + e.WorkTimeModel.GetDisplayName()
-	}
-
-	return description
 }
 
 // Document repräsentiert ein Dokument oder eine Datei im System
@@ -269,4 +258,62 @@ type TimeEntry struct {
 	Activity    string             `bson:"activity" json:"activity"`
 	WageType    string             `bson:"wageType,omitempty" json:"wageType,omitempty"`
 	Source      string             `bson:"source" json:"source"` // e.g., "123erfasst"
+}
+
+// GetWorkingHoursPerDay berechnet die durchschnittlichen Arbeitsstunden pro Tag
+func (e *Employee) GetWorkingHoursPerDay() float64 {
+	if e.WorkingDaysPerWeek == 0 {
+		return 0
+	}
+	return e.WorkingHoursPerWeek / float64(e.WorkingDaysPerWeek)
+}
+
+// IsFullTimeEmployee prüft, ob es sich um einen Vollzeit-Mitarbeiter handelt
+func (e *Employee) IsFullTimeEmployee() bool {
+	return e.WorkTimeModel == WorkTimeModelFullTime || e.WorkingHoursPerWeek >= 35
+}
+
+// GetWorkingTimeDescription gibt eine textuelle Beschreibung der Arbeitszeit zurück
+func (e *Employee) GetWorkingTimeDescription() string {
+	if e.WorkingHoursPerWeek == 0 {
+		return "Nicht festgelegt"
+	}
+
+	description := fmt.Sprintf("%.1f Std/Woche", e.WorkingHoursPerWeek)
+
+	if e.WorkingDaysPerWeek > 0 {
+		description += fmt.Sprintf(" (%.1f Std/Tag)", e.GetWorkingHoursPerDay())
+	}
+
+	if e.WorkTimeModel != "" {
+		description += " - " + e.WorkTimeModel.GetDisplayName()
+	}
+
+	return description
+}
+
+// GetWeeklyTargetHours berechnet die Ziel-Arbeitsstunden für eine bestimmte Woche
+func (e *Employee) GetWeeklyTargetHours() float64 {
+	if e.WorkingHoursPerWeek == 0 {
+		return 40.0 // Standard-Vollzeit als Fallback
+	}
+	return e.WorkingHoursPerWeek
+}
+
+// FormatOvertimeBalance formatiert das Überstunden-Saldo zur Anzeige
+func (e *Employee) FormatOvertimeBalance() string {
+	if e.OvertimeBalance >= 0 {
+		return fmt.Sprintf("+%.2f Std", e.OvertimeBalance)
+	}
+	return fmt.Sprintf("%.2f Std", e.OvertimeBalance)
+}
+
+// GetOvertimeStatus gibt den Status des Überstunden-Saldos zurück
+func (e *Employee) GetOvertimeStatus() string {
+	if e.OvertimeBalance > 0 {
+		return "positive"
+	} else if e.OvertimeBalance < 0 {
+		return "negative"
+	}
+	return "neutral"
 }

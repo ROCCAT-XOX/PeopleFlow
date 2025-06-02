@@ -3,6 +3,7 @@ package handler
 import (
 	"PeopleFlow/backend/model"
 	"PeopleFlow/backend/repository"
+	"PeopleFlow/backend/service"
 	"fmt"
 	"io"
 	"net/http"
@@ -800,4 +801,50 @@ func (h *EmployeeHandler) GetProfileImage(c *gin.Context) {
 
 	// Serve the image data
 	c.Data(http.StatusOK, employee.ProfileImage, employee.ProfileImageData.Data)
+}
+
+// RecalculateEmployeeOvertime berechnet Überstunden für einen spezifischen Mitarbeiter neu
+func (h *EmployeeHandler) RecalculateEmployeeOvertime(c *gin.Context) {
+	employeeID := c.Param("id")
+
+	// Mitarbeiter abrufen
+	employee, err := h.employeeRepo.FindByID(employeeID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden"})
+		return
+	}
+
+	// TimeAccountService initialisieren
+	timeAccountService := service.NewTimeAccountService()
+
+	// Überstunden neu berechnen
+	err = timeAccountService.CalculateOvertimeForEmployee(employee)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler bei der Überstunden-Berechnung: " + err.Error()})
+		return
+	}
+
+	// Aktivität loggen
+	user, _ := c.Get("user")
+	userModel := user.(*model.User)
+
+	activityRepo := repository.NewActivityRepository()
+	_, _ = activityRepo.LogActivity(
+		model.ActivityTypeEmployeeUpdated,
+		userModel.ID,
+		userModel.FirstName+" "+userModel.LastName,
+		employee.ID,
+		"employee",
+		employee.FirstName+" "+employee.LastName,
+		"Überstunden neu berechnet",
+	)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Überstunden erfolgreich neu berechnet",
+		"data": gin.H{
+			"overtimeBalance": employee.OvertimeBalance,
+			"lastCalculated":  employee.LastTimeCalculated,
+		},
+	})
 }

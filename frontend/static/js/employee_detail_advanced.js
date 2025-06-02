@@ -31,6 +31,7 @@ function initTabs() {
     }
 }
 
+// Tab-Funktionen erweitern für den neuen Überstunden-Tab
 function showTab(tabId) {
     // Alle Tab-Inhalte ausblenden
     document.querySelectorAll('.tab-content').forEach(tab => {
@@ -55,13 +56,30 @@ function showTab(tabId) {
         activeBtn.classList.remove('text-gray-500', 'hover:text-gray-700', 'hover:bg-gray-100');
         activeBtn.classList.add('bg-green-100', 'text-green-700');
     }
+
+    // Spezielle Behandlung für Überstunden-Tab
+    if (tabId === 'overtime') {
+        // Überstunden-Chart neu laden falls nötig
+        setTimeout(() => {
+            const canvas = document.getElementById('overtimeChart');
+            if (canvas && typeof Chart !== 'undefined') {
+                // Chart nur neu initialisieren wenn er noch nicht existiert
+                if (!canvas.chart) {
+                    initializeOvertimeChart();
+                }
+            }
+        }, 100);
+    }
 }
 
+// URL-Hash-Behandlung erweitern
 function handleUrlHash() {
     if (window.location.hash) {
         const tabName = window.location.hash.substring(1);
-        if (tabName === 'conversations') {
-            showTab('conversations');
+        const validTabs = ['personal', 'documents', 'trainings', 'development', 'projects', 'vacation', 'conversations', 'timeentries', 'overtime'];
+
+        if (validTabs.includes(tabName)) {
+            showTab(tabName);
             setTimeout(function() {
                 window.scrollBy({
                     top: 200,
