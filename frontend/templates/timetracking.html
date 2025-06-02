@@ -242,7 +242,7 @@
             <div class="text-sm text-gray-500">
               {{range $index, $project := .Projects}}
               {{if eq $index 0}}{{$project.ProjectName}}{{end}}
-              {{if gt (len $.Projects) 1}}{{if eq $index 0}} (+{{subtract (len $.Projects) 1}} weitere){{end}}{{end}}
+              {{if and $.Projects (gt (len $.Projects) 1)}}{{if eq $index 0}} (+{{subtract (len $.Projects) 1}} weitere){{end}}{{end}}
               {{end}}
             </div>
             {{end}}

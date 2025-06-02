@@ -107,6 +107,7 @@ func (h *TimeTrackingHandler) GetTimeTrackingView(c *gin.Context) {
 			EmployeeName:    emp.FirstName + " " + emp.LastName,
 			HasProfileImage: len(emp.ProfileImageData.Data) > 0,
 			TimeEntries:     []TimeEntryViewModel{},
+			Projects:        []ProjectSummary{}, // Explizit initialisieren
 		}
 
 		// Projekte und Stunden pro Mitarbeiter sammeln
@@ -133,26 +134,30 @@ func (h *TimeTrackingHandler) GetTimeTrackingView(c *gin.Context) {
 			summary.TotalHours += entry.Duration
 
 			// Projekt hinzufügen, wenn es noch nicht in der Map ist
-			projects[entry.ProjectID] = ProjectViewModel{
-				ID:   entry.ProjectID,
-				Name: entry.ProjectName,
-			}
+			if entry.ProjectID != "" {
+				projects[entry.ProjectID] = ProjectViewModel{
+					ID:   entry.ProjectID,
+					Name: entry.ProjectName,
+				}
 
-			// Stunden pro Projekt summieren
-			projectHours[entry.ProjectID] += entry.Duration
-			projectNames[entry.ProjectID] = entry.ProjectName
+				// Stunden pro Projekt summieren
+				projectHours[entry.ProjectID] += entry.Duration
+				projectNames[entry.ProjectID] = entry.ProjectName
+			}
 		}
 
 		// Projekte für diesen Mitarbeiter aufbereiten
 		for projID, hours := range projectHours {
-			summary.Projects = append(summary.Projects, ProjectSummary{
-				ProjectID:   projID,
-				ProjectName: projectNames[projID],
-				Hours:       hours,
-			})
+			if projID != "" {
+				summary.Projects = append(summary.Projects, ProjectSummary{
+					ProjectID:   projID,
+					ProjectName: projectNames[projID],
+					Hours:       hours,
+				})
+			}
 		}
 
-		summary.ProjectCount = len(projectHours)
+		summary.ProjectCount = len(summary.Projects)
 		totalHours += summary.TotalHours
 
 		// Nach Datum sortieren
@@ -223,15 +228,14 @@ func (h *TimeTrackingHandler) GetTimeTrackingView(c *gin.Context) {
 		"employees":                   employees,
 		"projects":                    projectsList,
 		"employeeSummary":             employeeSummaries,
-		"employeeSummaryWithOvertime": employeeSummariesWithOvertime, // Neu hinzugefügt
+		"employeeSummaryWithOvertime": employeeSummariesWithOvertime,
 		"totalHours":                  totalHours,
 		"totalEmployees":              len(employeeSummaries),
 		"totalProjects":               len(projects),
 	})
 }
 
-// GetEmployeeTimeEntries liefert die Zeiteinträge für einen bestimmten Mitarbeiter
-// Diese Funktion kann für eine API-Route verwendet werden, um Daten nachzuladen
+// Rest der Funktionen bleibt unverändert...
 func (h *TimeTrackingHandler) GetEmployeeTimeEntries(c *gin.Context) {
 	employeeID := c.Param("id")
 
@@ -313,7 +317,6 @@ func (h *TimeTrackingHandler) GetEmployeeTimeEntries(c *gin.Context) {
 	})
 }
 
-// ExportTimeTracking exportiert die Zeiterfassungsdaten als CSV
 func (h *TimeTrackingHandler) ExportTimeTracking(c *gin.Context) {
 	// Parameter für Filterung
 	startDateStr := c.Query("startDate")
@@ -396,7 +399,6 @@ func (h *TimeTrackingHandler) ExportTimeTracking(c *gin.Context) {
 	c.String(http.StatusOK, csvContent)
 }
 
-// RecalculateOvertime berechnet Überstunden für alle Mitarbeiter neu
 func (h *TimeTrackingHandler) RecalculateOvertime(c *gin.Context) {
 	err := h.timeAccountService.RecalculateAllEmployeeOvertimes()
 	if err != nil {
@@ -410,7 +412,6 @@ func (h *TimeTrackingHandler) RecalculateOvertime(c *gin.Context) {
 	})
 }
 
-// GetEmployeeOvertimeDetails liefert detaillierte Überstunden-Informationen für einen Mitarbeiter
 func (h *TimeTrackingHandler) GetEmployeeOvertimeDetails(c *gin.Context) {
 	employeeID := c.Param("id")
 

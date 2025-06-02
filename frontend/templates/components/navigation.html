@@ -82,7 +82,7 @@
                             </li>
                             {{end}}
 
-                            <!-- Dokumente -->
+                            <!-- Zeiterfassung -->
                             <li class="sidebar-item relative">
                                 <a href="/timetracking" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "timetracking" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
                                 <svg class="h-6 w-6 shrink-0 {{ if eq .active "timetracking" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -91,6 +91,18 @@
                                 <span class="menu-text">Zeiterfassung</span>
                                 </a>
                             </li>
+
+                            <!-- Überstunden -->
+                            <li class="sidebar-item relative">
+                                <a href="/overtime" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "overtime" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
+                                <svg class="text-gray-400 group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 4v4m2-2h-4" />
+                                </svg>
+                                <span class="menu-text">Planung</span>
+                                </a>
+                            </li>
+
 
                             <!-- Planung -->
                             <li class="sidebar-item relative">

@@ -408,6 +408,7 @@ func InitializeRoutes(router *gin.Engine) {
 		timeTrackingHandler := handler.NewTimeTrackingHandler()
 		statisticsHandler := handler.NewStatisticsHandler()
 		statisticsAPIHandler := handler.NewStatisticsAPIHandler()
+		overtimeHandler := handler.NewOvertimeHandler()
 
 		// Hauptroute für den Kalender - innerhalb des authorized-Blocks
 		authorized.GET("/absence", calendarHandler.GetAbsenceCalendar)
@@ -454,6 +455,11 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.POST("/api/timetracking/recalculate-overtime", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), timeTrackingHandler.RecalculateOvertime)
 		authorized.GET("/api/timetracking/employee/:id/overtime", timeTrackingHandler.GetEmployeeOvertimeDetails)
 		authorized.POST("/api/timetracking/employee/:id/overtime", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.RecalculateEmployeeOvertime)
+		// NEUE ÜBERSTUNDEN-ROUTEN
+		authorized.GET("/overtime", overtimeHandler.GetOvertimeView)
+		authorized.POST("/api/overtime/recalculate", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), overtimeHandler.RecalculateAllOvertime)
+		authorized.GET("/api/overtime/export", overtimeHandler.ExportOvertimeData)
+		authorized.GET("/api/overtime/employee/:id", overtimeHandler.GetEmployeeOvertimeDetails)
 
 		// Dokument-Routen
 		authorized.POST("/employees/:id/documents", documentHandler.UploadDocument)

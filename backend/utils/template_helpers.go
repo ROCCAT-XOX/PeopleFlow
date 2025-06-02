@@ -60,20 +60,79 @@ func TemplateHelpers() template.FuncMap {
 			}
 			return i
 		},
-		"add": func(a, b int) int {
-			return a + b
+		"add": func(a, b interface{}) interface{} {
+			switch va := a.(type) {
+			case int:
+				if vb, ok := b.(int); ok {
+					return va + vb
+				}
+			case float64:
+				if vb, ok := b.(float64); ok {
+					return va + vb
+				}
+				if vb, ok := b.(int); ok {
+					return va + float64(vb)
+				}
+			}
+			return 0
 		},
-		"subtract": func(a, b int) int {
-			return a - b
+		"subtract": func(a, b interface{}) interface{} {
+			switch va := a.(type) {
+			case int:
+				if vb, ok := b.(int); ok {
+					return va - vb
+				}
+			case float64:
+				if vb, ok := b.(float64); ok {
+					return va - vb
+				}
+				if vb, ok := b.(int); ok {
+					return va - float64(vb)
+				}
+			}
+			return 0
 		},
-		"multiply": func(a, b int) int {
-			return a * b
+		"multiply": func(a, b interface{}) interface{} {
+			switch va := a.(type) {
+			case int:
+				if vb, ok := b.(int); ok {
+					return va * vb
+				}
+			case float64:
+				if vb, ok := b.(float64); ok {
+					return va * vb
+				}
+				if vb, ok := b.(int); ok {
+					return va * float64(vb)
+				}
+			}
+			return 0
 		},
-		"divide": func(a, b int) float64 {
-			if b == 0 {
+		"divide": func(a, b interface{}) float64 {
+			var fa, fb float64
+
+			switch va := a.(type) {
+			case int:
+				fa = float64(va)
+			case float64:
+				fa = va
+			default:
 				return 0
 			}
-			return float64(a) / float64(b)
+
+			switch vb := b.(type) {
+			case int:
+				fb = float64(vb)
+			case float64:
+				fb = vb
+			default:
+				return 0
+			}
+
+			if fb == 0 {
+				return 0
+			}
+			return fa / fb
 		},
 		"round": func(num float64) int {
 			return int(math.Round(num))
@@ -82,19 +141,26 @@ func TemplateHelpers() template.FuncMap {
 			return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
 		},
 		"neq": func(a, b interface{}) bool {
-			return a != b
+			return fmt.Sprintf("%v", a) != fmt.Sprintf("%v", b)
 		},
-		"lt": func(a, b int) bool {
-			return a < b
+		// Erweiterte Vergleichsfunktionen für verschiedene Typen
+		"lt": func(a, b interface{}) bool {
+			return compareValues(a, b) < 0
 		},
-		"lte": func(a, b int) bool {
-			return a <= b
+		"lte": func(a, b interface{}) bool {
+			return compareValues(a, b) <= 0
 		},
-		"gt": func(a, b int) bool {
-			return a > b
+		"gt": func(a, b interface{}) bool {
+			return compareValues(a, b) > 0
 		},
-		"gte": func(a, b int) bool {
-			return a >= b
+		"gte": func(a, b interface{}) bool {
+			return compareValues(a, b) >= 0
+		},
+		"ge": func(a, b interface{}) bool { // Alias für gte
+			return compareValues(a, b) >= 0
+		},
+		"le": func(a, b interface{}) bool { // Alias für lte
+			return compareValues(a, b) <= 0
 		},
 		"now": func() time.Time {
 			return time.Now()
@@ -119,7 +185,51 @@ func TemplateHelpers() template.FuncMap {
 				return x
 			}
 		},
-
-		"getInitials": GetInitials, // Neue Hilfsfunktion hinzugefügt
+		"getInitials": GetInitials,
 	}
+}
+
+// compareValues vergleicht zwei Werte verschiedener numerischer Typen
+func compareValues(a, b interface{}) int {
+	var fa, fb float64
+
+	// Konvertiere a zu float64
+	switch va := a.(type) {
+	case int:
+		fa = float64(va)
+	case int32:
+		fa = float64(va)
+	case int64:
+		fa = float64(va)
+	case float32:
+		fa = float64(va)
+	case float64:
+		fa = va
+	default:
+		return 0 // Unbekannter Typ
+	}
+
+	// Konvertiere b zu float64
+	switch vb := b.(type) {
+	case int:
+		fb = float64(vb)
+	case int32:
+		fb = float64(vb)
+	case int64:
+		fb = float64(vb)
+	case float32:
+		fb = float64(vb)
+	case float64:
+		fb = vb
+	default:
+		return 0 // Unbekannter Typ
+	}
+
+	// Vergleiche
+	if fa < fb {
+		return -1
+	} else if fa > fb {
+		return 1
+	}
+	return 0
 }
