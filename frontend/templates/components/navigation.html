@@ -92,14 +92,12 @@
                                 </a>
                             </li>
 
-                            <!-- Überstunden -->
-                            <li class="sidebar-item relative">
+                            <li>
                                 <a href="/overtime" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "overtime" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
-                                <svg class="text-gray-400 group-hover:text-gray-300 mr-3 flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 4v4m2-2h-4" />
+                                <svg class="h-6 w-6 shrink-0 {{ if eq .active "overtime" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
                                 </svg>
-                                <span class="menu-text">Planung</span>
+                                <span class="menu-text">Überstunden</span>
                                 </a>
                             </li>
 
