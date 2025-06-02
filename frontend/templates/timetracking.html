@@ -1,4 +1,3 @@
-
 {{ template "head" . }}
 <style>
   .employee-dropdown-toggle:focus-within {
@@ -7,18 +6,45 @@
     box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2);
   }
 
-  .employee-dropdown-toggle:focus-within {
-    outline: none;
-    border-color: #10B981;
-    box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2);
-  }
-
   .employee-option label {
     cursor: pointer;
   }
 
-  .employee-option label {
+  .table-row-hidden {
+    display: none !important;
+  }
+
+  .no-results-message {
+    background-color: #f9fafb;
+    border: 2px dashed #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+    color: #6b7280;
+  }
+
+  .expand-icon {
+    transition: transform 0.2s ease;
     cursor: pointer;
+  }
+
+  .expand-icon.expanded {
+    transform: rotate(90deg);
+  }
+
+  .time-entries-detail {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+
+  .time-entries-detail.expanded {
+    max-height: 500px;
+  }
+
+  .time-entry-row {
+    background-color: #f8fafc;
+    border-left: 3px solid #22c55e;
   }
 </style>
 <body class="bg-gray-50 min-h-screen flex flex-col">
@@ -44,19 +70,12 @@
         </svg>
         <span>Überstunden</span>
       </a>
-
-      <button id="exportTimeDataBtn" class="flex items-center justify-center px-5 py-2 text-sm text-gray-700 bg-white border rounded-lg gap-x-2 hover:bg-gray-100">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" fill="currentColor"/>
-        </svg>
-        <span>Export</span>
-      </button>
     </div>
   </div>
 
   <!-- Statistik-Karten -->
   <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-    <!-- Gesamt erfasste Stunden -->
+    <!-- Gefilterte erfasste Stunden -->
     <div class="bg-white overflow-hidden shadow rounded-lg">
       <div class="p-5">
         <div class="flex items-center">
@@ -69,15 +88,15 @@
           </div>
           <div class="ml-5 w-0 flex-1">
             <dl>
-              <dt class="text-sm font-medium text-gray-500 truncate">Gesamt erfasste Stunden</dt>
-              <dd class="text-lg font-medium text-gray-900">{{printf "%.1f" .totalHours}} Std</dd>
+              <dt class="text-sm font-medium text-gray-500 truncate">Erfasste Stunden (gefiltert)</dt>
+              <dd class="text-lg font-medium text-gray-900" id="totalHoursDisplay">{{printf "%.1f" .totalHours}} Std</dd>
             </dl>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Aktive Mitarbeiter -->
+    <!-- Sichtbare Mitarbeiter -->
     <div class="bg-white overflow-hidden shadow rounded-lg">
       <div class="p-5">
         <div class="flex items-center">
@@ -90,29 +109,29 @@
           </div>
           <div class="ml-5 w-0 flex-1">
             <dl>
-              <dt class="text-sm font-medium text-gray-500 truncate">Mitarbeiter mit Zeiten</dt>
-              <dd class="text-lg font-medium text-gray-900">{{.totalEmployees}}</dd>
+              <dt class="text-sm font-medium text-gray-500 truncate">Sichtbare Mitarbeiter</dt>
+              <dd class="text-lg font-medium text-gray-900" id="visibleEmployeesDisplay">{{.totalEmployees}}</dd>
             </dl>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Aktive Projekte -->
+    <!-- Gefilterte Zeiteinträge -->
     <div class="bg-white overflow-hidden shadow rounded-lg">
       <div class="p-5">
         <div class="flex items-center">
           <div class="flex-shrink-0">
             <div class="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v6a2 2 0 002 2h6a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
               </svg>
             </div>
           </div>
           <div class="ml-5 w-0 flex-1">
             <dl>
-              <dt class="text-sm font-medium text-gray-500 truncate">Aktive Projekte</dt>
-              <dd class="text-lg font-medium text-gray-900">{{.totalProjects}}</dd>
+              <dt class="text-sm font-medium text-gray-500 truncate">Zeiteinträge</dt>
+              <dd class="text-lg font-medium text-gray-900" id="entriesCountDisplay">-</dd>
             </dl>
           </div>
         </div>
@@ -133,7 +152,7 @@
           <div class="ml-5 w-0 flex-1">
             <dl>
               <dt class="text-sm font-medium text-gray-500 truncate">Ø Stunden/Mitarbeiter</dt>
-              <dd class="text-lg font-medium text-gray-900">
+              <dd class="text-lg font-medium text-gray-900" id="avgHoursDisplay">
                 {{if gt .totalEmployees 0}}
                 {{printf "%.1f" (divide .totalHours .totalEmployees)}} Std
                 {{else}}
@@ -151,7 +170,12 @@
   <div class="mt-6 bg-white shadow sm:rounded-lg">
     <div class="px-4 py-5 sm:p-6">
       <h3 class="text-lg leading-6 font-medium text-gray-900">Filter & Suche</h3>
-      <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-3">
+      <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-4">
+        <!-- Suchfeld -->
+        <div>
+          <label for="searchEmployee" class="block text-sm font-medium text-gray-700">Mitarbeiter suchen</label>
+          <input type="text" name="searchEmployee" id="searchEmployee" placeholder="Name eingeben..." class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+        </div>
         <div>
           <label for="startDate" class="block text-sm font-medium text-gray-700">Von Datum</label>
           <input type="date" name="startDate" id="startDate" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
@@ -165,17 +189,14 @@
           <select id="projectFilter" name="projectFilter" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
             <option value="">Alle Projekte</option>
             {{range .projects}}
-            <option value="{{.ID}}">{{.Name}}</option>
+            <option value="{{.Name}}">{{.Name}}</option>
             {{end}}
           </select>
         </div>
       </div>
       <div class="mt-4">
-        <button id="applyFilters" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-          Filter anwenden
-        </button>
-        <button id="resetFilters" class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-          Zurücksetzen
+        <button id="resetFilters" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+          Filter zurücksetzen
         </button>
       </div>
     </div>
@@ -186,7 +207,7 @@
     <div class="px-4 py-5 sm:px-6">
       <h3 class="text-lg leading-6 font-medium text-gray-900">Mitarbeiter-Zeiterfassung</h3>
       <p class="mt-1 max-w-2xl text-sm text-gray-500">
-        Übersicht aller Mitarbeiter mit erfassten Arbeitszeiten
+        Übersicht aller Mitarbeiter mit erfassten Arbeitszeiten. Klicken Sie auf den Pfeil, um Details anzuzeigen.
       </p>
     </div>
 
@@ -207,14 +228,14 @@
             Letzte Aktivität
           </th>
           <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Aktionen
+            Details
           </th>
         </tr>
         </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
+        <tbody id="employeeTableBody" class="bg-white divide-y divide-gray-200">
         {{if .employeeSummary}}
         {{range .employeeSummary}}
-        <tr class="hover:bg-gray-50">
+        <tr class="employee-row" data-employee-name="{{.EmployeeName}}" data-employee-id="{{.EmployeeID}}">
           <td class="px-6 py-4 whitespace-nowrap">
             <div class="flex items-center">
               <div class="flex-shrink-0 h-10 w-10">
@@ -233,11 +254,11 @@
             </div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm text-gray-900">{{printf "%.1f" .TotalHours}} Std</div>
-            <div class="text-sm text-gray-500">Gesamt erfasst</div>
+            <div class="text-sm text-gray-900 filtered-hours">{{printf "%.1f" .TotalHours}} Std</div>
+            <div class="text-sm text-gray-500 filtered-entries">{{len .TimeEntries}} Einträge</div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm text-gray-900">{{.ProjectCount}} Projekte</div>
+            <div class="text-sm text-gray-900 filtered-projects">{{.ProjectCount}} Projekte</div>
             {{if .Projects}}
             <div class="text-sm text-gray-500">
               {{range $index, $project := .Projects}}
@@ -251,8 +272,8 @@
             {{if .TimeEntries}}
             {{range $index, $entry := .TimeEntries}}
             {{if eq $index 0}}
-            <div class="text-sm text-gray-900">{{$entry.Date.Format "02.01.2006"}}</div>
-            <div class="text-sm text-gray-500">{{$entry.ProjectName}}</div>
+            <div class="text-sm text-gray-900 latest-activity-date">{{$entry.Date.Format "02.01.2006"}}</div>
+            <div class="text-sm text-gray-500 latest-activity-project">{{$entry.ProjectName}}</div>
             {{end}}
             {{end}}
             {{else}}
@@ -260,112 +281,307 @@
             {{end}}
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-            <a href="/employees/view/{{.EmployeeID}}#timeentries" class="text-green-600 hover:text-green-900 mr-3">
-              Details
-            </a>
-            <button onclick="exportEmployeeData('{{.EmployeeID}}')" class="text-blue-600 hover:text-blue-900">
-              Export
+            <button onclick="toggleTimeEntries('{{.EmployeeID}}')" class="text-green-600 hover:text-green-900 flex items-center">
+              <svg class="expand-icon w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+              Zeiten
             </button>
           </td>
         </tr>
-        {{end}}
-        {{else}}
-        <tr>
-          <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
-            Keine Zeiterfassungsdaten vorhanden
-          </td>
-        </tr>
-        {{end}}
-        </tbody>
-      </table>
+        <!-- Ausklappbare Zeiteinträge -->
+        <tr class="time-entries-detail" id="timeEntries-{{.EmployeeID}}" style="display: none;">
+          <td colspan="5" class="px-6 py-0">
+            <div class="py-4">
+              <div class="bg-gray-50 rounded-lg p-4">
+                <h4 class="text-sm font-medium text-gray-900 mb-3">Zeiteinträge für {{.EmployeeName}}</h4>
+                <div class="space-y-2 time-entries-container">
+                  {{range .TimeEntries}}
+                  <div class="time-entry-item flex justify-between items-center py-2 px-3 bg-white rounded border-l-4 border-green-500"
+                       data-entry-date="{{.Date.Format "2006-01-02"}}"
+                  data-entry-project="{{.ProjectName}}"
+                  data-entry-hours="{{.Duration}}">
+                  <div class="flex-grow">
+                    <div class="flex items-center space-x-4">
+                      <div class="text-sm font-medium text-gray-900">{{.Date.Format "02.01.2006"}}</div>
+                      <div class="text-sm text-gray-600">{{.StartTime.Format "15:04"}} - {{.EndTime.Format "15:04"}}</div>
+                      <div class="text-sm text-green-600 font-medium">{{printf "%.1f" .Duration}} Std</div>
+                    </div>
+                    <div class="text-sm text-gray-500 mt-1">{{.ProjectName}} - {{.Activity}}</div>
+                  </div>
+                  <div class="text-xs text-gray-400">{{.Source}}</div>
+                </div>
+                {{end}}
+              </div>
+            </div>
     </div>
+    </td>
+    </tr>
+    {{end}}
+    {{else}}
+    <tr id="noDataMessage">
+      <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+        Keine Zeiterfassungsdaten vorhanden
+      </td>
+    </tr>
+    {{end}}
+    </tbody>
+    </table>
+
+    <!-- "Keine Ergebnisse" Nachricht -->
+    <div id="noResultsMessage" class="no-results-message hidden">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 4a7.962 7.962 0 016 2.291M6 20.291A7.962 7.962 0 014 12a7.962 7.962 0 012-8.291"></path>
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Ergebnisse gefunden</h3>
+      <p class="mt-1 text-sm text-gray-500">Versuchen Sie, die Filter zu ändern oder die Suche anzupassen.</p>
+    </div>
+  </div>
   </div>
 </main>
 
 <!-- Footer -->
 {{ template "footer" . }}
 
-<!-- Ersetzen Sie das bestehende <script> Tag am Ende von timetracking.html mit diesem: -->
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     console.log('Timetracking page loaded');
 
-    // Filter-Event-Listener (nur für existierende Elemente)
-    const applyFiltersBtn = document.getElementById('applyFilters');
+    // Filter-Event-Listener
     const resetFiltersBtn = document.getElementById('resetFilters');
-    const exportBtn = document.getElementById('exportTimeDataBtn');
-
-    if (applyFiltersBtn) {
-      applyFiltersBtn.addEventListener('click', function() {
-        console.log('Filter anwenden...');
-        applyTimeTrackingFilters();
-      });
-    }
+    const searchInput = document.getElementById('searchEmployee');
 
     if (resetFiltersBtn) {
-      resetFiltersBtn.addEventListener('click', function() {
-        resetTimeTrackingFilters();
-      });
+      resetFiltersBtn.addEventListener('click', resetTimeTrackingFilters);
     }
 
-    if (exportBtn) {
-      exportBtn.addEventListener('click', function() {
-        exportAllTimeData();
-      });
+    // Live-Filter bei Eingabe
+    if (searchInput) {
+      searchInput.addEventListener('input', applyTimeTrackingFilters);
     }
+
+    // Filter bei Änderung der anderen Felder anwenden
+    ['startDate', 'endDate', 'projectFilter'].forEach(id => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.addEventListener('change', applyTimeTrackingFilters);
+      }
+    });
+
+    // Initial Filter anwenden
+    applyTimeTrackingFilters();
   });
 
-  // Filter-Funktionen
+  // Ausklapp-Funktionalität für Zeiteinträge
+  function toggleTimeEntries(employeeId) {
+    const detailRow = document.getElementById(`timeEntries-${employeeId}`);
+    const expandIcon = event.target.closest('button').querySelector('.expand-icon');
+
+    if (detailRow.style.display === 'none') {
+      detailRow.style.display = '';
+      expandIcon.classList.add('expanded');
+    } else {
+      detailRow.style.display = 'none';
+      expandIcon.classList.remove('expanded');
+    }
+  }
+
+  // Verbesserte Filter-Funktionen mit echter Zeiteinträge-Filterung
   function applyTimeTrackingFilters() {
+    const searchText = document.getElementById('searchEmployee')?.value.toLowerCase() || '';
     const startDate = document.getElementById('startDate')?.value;
     const endDate = document.getElementById('endDate')?.value;
-    const projectId = document.getElementById('projectFilter')?.value;
+    const projectFilter = document.getElementById('projectFilter')?.value;
 
-    console.log('Applying filters:', { startDate, endDate, projectId });
+    console.log('Applying filters:', { searchText, startDate, endDate, projectFilter });
 
-    // Filter-Logik hier implementieren
-    // Zum Beispiel: Tabellen-Zeilen filtern basierend auf den Werten
+    const employeeRows = document.querySelectorAll('.employee-row');
+    let visibleCount = 0;
+    let totalVisibleHours = 0;
+    let totalVisibleEntries = 0;
+
+    employeeRows.forEach(row => {
+      const employeeName = row.getAttribute('data-employee-name')?.toLowerCase() || '';
+      const employeeId = row.getAttribute('data-employee-id');
+
+      // Suche nach Mitarbeitername
+      let showEmployee = true;
+      if (searchText && !employeeName.includes(searchText)) {
+        showEmployee = false;
+      }
+
+      if (showEmployee) {
+        // Zeiteinträge für diesen Mitarbeiter filtern
+        const timeEntries = row.nextElementSibling?.querySelectorAll('.time-entry-item') || [];
+        let employeeHours = 0;
+        let employeeEntries = 0;
+        let employeeProjects = new Set();
+        let latestActivity = null;
+        let latestProject = '';
+
+        timeEntries.forEach(entry => {
+          const entryDate = entry.getAttribute('data-entry-date');
+          const entryProject = entry.getAttribute('data-entry-project');
+          const entryHours = parseFloat(entry.getAttribute('data-entry-hours')) || 0;
+
+          let showEntry = true;
+
+          // Datumsfilter anwenden
+          if (startDate && entryDate < startDate) {
+            showEntry = false;
+          }
+          if (endDate && entryDate > endDate) {
+            showEntry = false;
+          }
+
+          // Projektfilter anwenden
+          if (projectFilter && entryProject !== projectFilter) {
+            showEntry = false;
+          }
+
+          if (showEntry) {
+            entry.style.display = '';
+            employeeHours += entryHours;
+            employeeEntries++;
+            employeeProjects.add(entryProject);
+
+            // Neueste Aktivität verfolgen
+            if (!latestActivity || entryDate > latestActivity) {
+              latestActivity = entryDate;
+              latestProject = entryProject;
+            }
+          } else {
+            entry.style.display = 'none';
+          }
+        });
+
+        // Zeige Mitarbeiter nur wenn er passende Zeiteinträge hat
+        if (employeeEntries > 0) {
+          row.style.display = '';
+          // Auch die Detail-Zeile anzeigen lassen
+          const detailRow = row.nextElementSibling;
+          if (detailRow && detailRow.classList.contains('time-entries-detail')) {
+            detailRow.style.display = detailRow.style.display === 'none' ? 'none' : '';
+          }
+
+          visibleCount++;
+          totalVisibleHours += employeeHours;
+          totalVisibleEntries += employeeEntries;
+
+          // Angezeigte Werte in der Tabelle aktualisieren
+          updateEmployeeDisplayValues(row, employeeHours, employeeEntries, employeeProjects.size, latestActivity, latestProject);
+        } else {
+          row.style.display = 'none';
+          // Detail-Zeile auch verstecken
+          const detailRow = row.nextElementSibling;
+          if (detailRow && detailRow.classList.contains('time-entries-detail')) {
+            detailRow.style.display = 'none';
+          }
+        }
+      } else {
+        row.style.display = 'none';
+        // Detail-Zeile auch verstecken
+        const detailRow = row.nextElementSibling;
+        if (detailRow && detailRow.classList.contains('time-entries-detail')) {
+          detailRow.style.display = 'none';
+        }
+      }
+    });
+
+    // Statistiken aktualisieren
+    updateDisplayStatistics(visibleCount, totalVisibleHours, totalVisibleEntries);
+
+    // "Keine Ergebnisse" Nachricht anzeigen/verstecken
+    const noResultsMessage = document.getElementById('noResultsMessage');
+    const tableBody = document.getElementById('employeeTableBody');
+
+    if (visibleCount === 0) {
+      noResultsMessage.classList.remove('hidden');
+      tableBody.style.display = 'none';
+    } else {
+      noResultsMessage.classList.add('hidden');
+      tableBody.style.display = '';
+    }
+
+    console.log(`Filtered results: ${visibleCount} employees, ${totalVisibleHours.toFixed(1)} hours, ${totalVisibleEntries} entries`);
+  }
+
+  function updateEmployeeDisplayValues(row, hours, entries, projectCount, latestActivity, latestProject) {
+    // Stunden aktualisieren
+    const hoursDisplay = row.querySelector('.filtered-hours');
+    if (hoursDisplay) {
+      hoursDisplay.textContent = `${hours.toFixed(1)} Std`;
+    }
+
+    // Einträge aktualisieren
+    const entriesDisplay = row.querySelector('.filtered-entries');
+    if (entriesDisplay) {
+      entriesDisplay.textContent = `${entries} Einträge`;
+    }
+
+    // Projekte aktualisieren
+    const projectsDisplay = row.querySelector('.filtered-projects');
+    if (projectsDisplay) {
+      projectsDisplay.textContent = `${projectCount} Projekte`;
+    }
+
+    // Letzte Aktivität aktualisieren
+    if (latestActivity) {
+      const activityDateDisplay = row.querySelector('.latest-activity-date');
+      const activityProjectDisplay = row.querySelector('.latest-activity-project');
+
+      if (activityDateDisplay) {
+        const date = new Date(latestActivity);
+        activityDateDisplay.textContent = date.toLocaleDateString('de-DE');
+      }
+
+      if (activityProjectDisplay) {
+        activityProjectDisplay.textContent = latestProject;
+      }
+    }
+  }
+
+  function updateDisplayStatistics(visibleCount, totalVisibleHours, totalVisibleEntries) {
+    // Angezeigte Statistiken aktualisieren
+    const visibleEmployeesDisplay = document.getElementById('visibleEmployeesDisplay');
+    const totalHoursDisplay = document.getElementById('totalHoursDisplay');
+    const entriesCountDisplay = document.getElementById('entriesCountDisplay');
+    const avgHoursDisplay = document.getElementById('avgHoursDisplay');
+
+    if (visibleEmployeesDisplay) {
+      visibleEmployeesDisplay.textContent = visibleCount;
+    }
+
+    if (totalHoursDisplay) {
+      totalHoursDisplay.textContent = `${totalVisibleHours.toFixed(1)} Std`;
+    }
+
+    if (entriesCountDisplay) {
+      entriesCountDisplay.textContent = totalVisibleEntries;
+    }
+
+    if (avgHoursDisplay) {
+      const avgHours = visibleCount > 0 ? totalVisibleHours / visibleCount : 0;
+      avgHoursDisplay.textContent = `${avgHours.toFixed(1)} Std`;
+    }
   }
 
   function resetTimeTrackingFilters() {
+    // Alle Filter-Felder zurücksetzen
+    const searchEmployee = document.getElementById('searchEmployee');
     const startDate = document.getElementById('startDate');
     const endDate = document.getElementById('endDate');
     const projectFilter = document.getElementById('projectFilter');
 
+    if (searchEmployee) searchEmployee.value = '';
     if (startDate) startDate.value = '';
     if (endDate) endDate.value = '';
     if (projectFilter) projectFilter.value = '';
 
+    // Filter anwenden (zeigt alle Ergebnisse)
+    applyTimeTrackingFilters();
+
     console.log('Filters reset');
-  }
-
-  function exportAllTimeData() {
-    const startDate = document.getElementById('startDate')?.value;
-    const endDate = document.getElementById('endDate')?.value;
-    const projectId = document.getElementById('projectFilter')?.value;
-
-    let url = '/timetracking/export?';
-    const params = [];
-
-    if (startDate) params.push(`startDate=${startDate}`);
-    if (endDate) params.push(`endDate=${endDate}`);
-    if (projectId) params.push(`projectId=${projectId}`);
-
-    url += params.join('&');
-    window.location.href = url;
-  }
-
-  function exportEmployeeData(employeeId) {
-    const startDate = document.getElementById('startDate')?.value;
-    const endDate = document.getElementById('endDate')?.value;
-    const projectId = document.getElementById('projectFilter')?.value;
-
-    let url = `/api/timetracking/employee/${employeeId}?export=true`;
-    if (startDate) url += `&startDate=${startDate}`;
-    if (endDate) url += `&endDate=${endDate}`;
-    if (projectId) url += `&projectId=${projectId}`;
-
-    window.location.href = url;
   }
 
   // Template-Hilfsfunktionen
