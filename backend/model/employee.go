@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -26,11 +27,22 @@ const (
 	DepartmentMarketing  Department = "Marketing"
 	DepartmentFinance    Department = "Finance"
 	DepartmentProduction Department = "Production"
+
+	// Worktime
+	WorkTimeModelFullTime   WorkTimeModel = "fulltime"   // Vollzeit
+	WorkTimeModelPartTime   WorkTimeModel = "parttime"   // Teilzeit
+	WorkTimeModelFlexTime   WorkTimeModel = "flextime"   // Gleitzeit
+	WorkTimeModelRemote     WorkTimeModel = "remote"     // Remote/Homeoffice
+	WorkTimeModelShift      WorkTimeModel = "shift"      // Schichtarbeit
+	WorkTimeModelContract   WorkTimeModel = "contract"   // Werkvertrag
+	WorkTimeModelInternship WorkTimeModel = "internship" // Praktikum
 )
 
 // Employee repräsentiert einen Mitarbeiter im System
+// Employee repräsentiert einen Mitarbeiter im System
 type Employee struct {
 	ID                primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	EmployeeID        string             `bson:"employeeId" json:"employeeId"`
 	FirstName         string             `bson:"firstName" json:"firstName"`
 	LastName          string             `bson:"lastName" json:"lastName"`
 	Email             string             `bson:"email" json:"email"`
@@ -39,51 +51,117 @@ type Employee struct {
 	InternalExtension string             `bson:"internalExtension" json:"internalExtension"`
 	Address           string             `bson:"address" json:"address"`
 	DateOfBirth       time.Time          `bson:"dateOfBirth" json:"dateOfBirth"`
-	HireDate          time.Time          `bson:"hireDate" json:"hireDate"`
-	Position          string             `bson:"position" json:"position"`
-	Department        Department         `bson:"department" json:"department"`
-	ManagerID         primitive.ObjectID `bson:"managerId,omitempty" json:"managerId"`
-	Status            EmployeeStatus     `bson:"status" json:"status"`
-	Salary            float64            `bson:"salary" json:"salary"`
-	BankAccount       string             `bson:"bankAccount" json:"bankAccount"`
-	TaxID             string             `bson:"taxId" json:"taxId"`
-	SocialSecID       string             `bson:"socialSecId" json:"socialSecId"`
-	HealthInsurance   string             `bson:"healthInsurance" json:"healthInsurance"`
-	EmergencyName     string             `bson:"emergencyName" json:"emergencyName"`
-	EmergencyPhone    string             `bson:"emergencyPhone" json:"emergencyPhone"`
-	ProfileImage      string             `bson:"profileImage" json:"profileImage"`
-	ProfileImageData  primitive.Binary   `bson:"profileImageData,omitempty" json:"-"`
-	Notes             string             `bson:"notes" json:"notes"`
-	Conversations     []Conversation     `bson:"conversations,omitempty" json:"conversations,omitempty"`
 
-	// Neue Felder für erweiterte Mitarbeiterinformationen
+	// Beschäftigungsdaten
+	HireDate   time.Time          `bson:"hireDate" json:"hireDate"`
+	Position   string             `bson:"position" json:"position"`
+	Department Department         `bson:"department" json:"department"`
+	ManagerID  primitive.ObjectID `bson:"managerId,omitempty" json:"managerId"`
+	Status     EmployeeStatus     `bson:"status" json:"status"`
 
-	// Bewerbungs- und Einstellungsunterlagen
-	ApplicationDocuments []Document `bson:"applicationDocuments,omitempty" json:"applicationDocuments,omitempty"`
+	// Neu: Arbeitszeit-Regelungen
+	WorkingHoursPerWeek  float64       `bson:"workingHoursPerWeek" json:"workingHoursPerWeek"`
+	WorkingDaysPerWeek   int           `bson:"workingDaysPerWeek" json:"workingDaysPerWeek"`
+	WorkTimeModel        WorkTimeModel `bson:"workTimeModel" json:"workTimeModel"`
+	FlexibleWorkingHours bool          `bson:"flexibleWorkingHours" json:"flexibleWorkingHours"`
+	CoreWorkingTimeStart string        `bson:"coreWorkingTimeStart" json:"coreWorkingTimeStart"` // Format: "09:00"
+	CoreWorkingTimeEnd   string        `bson:"coreWorkingTimeEnd" json:"coreWorkingTimeEnd"`     // Format: "15:00"
 
-	// Weiterbildung und Entwicklung
-	Trainings       []Training        `bson:"trainings,omitempty" json:"trainings,omitempty"`
-	DevelopmentPlan []DevelopmentItem `bson:"developmentPlan,omitempty" json:"developmentPlan,omitempty"`
-	Evaluations     []Evaluation      `bson:"evaluations,omitempty" json:"evaluations,omitempty"`
+	// Finanzielle Daten
+	Salary          float64 `bson:"salary" json:"salary"`
+	BankAccount     string  `bson:"bankAccount" json:"bankAccount"`
+	TaxID           string  `bson:"taxId" json:"taxId"`
+	SocialSecID     string  `bson:"socialSecId" json:"socialSecId"`
+	HealthInsurance string  `bson:"healthInsurance" json:"healthInsurance"`
 
-	// Abwesenheiten und Urlaub
-	Absences          []Absence `bson:"absences,omitempty" json:"absences,omitempty"`
+	// Notfallkontakt
+	EmergencyName  string `bson:"emergencyName" json:"emergencyName"`
+	EmergencyPhone string `bson:"emergencyPhone" json:"emergencyPhone"`
+
+	// Urlaub und Abwesenheiten
 	VacationDays      int       `bson:"vacationDays" json:"vacationDays"`
 	RemainingVacation int       `bson:"remainingVacation" json:"remainingVacation"`
+	Absences          []Absence `bson:"absences" json:"absences"`
 
-	// Allgemeine Dokumente
-	Documents []Document `bson:"documents,omitempty" json:"documents,omitempty"`
+	// Dokumente und weitere Daten
+	ProfileImage     string           `bson:"profileImage" json:"profileImage"`
+	ProfileImageData primitive.Binary `bson:"profileImageData" json:"profileImageData"`
+	Notes            string           `bson:"notes" json:"notes"`
 
+	// Weitere bestehende Felder...
+	Documents            []Document          `bson:"documents" json:"documents"`
+	ApplicationDocuments []Document          `bson:"applicationDocuments" json:"applicationDocuments"`
+	Trainings            []Training          `bson:"trainings" json:"trainings"`
+	Evaluations          []Evaluation        `bson:"evaluations" json:"evaluations"`
+	DevelopmentPlan      []DevelopmentItem   `bson:"developmentPlan" json:"developmentPlan"`
+	Conversations        []Conversation      `bson:"conversations" json:"conversations"`
+	ProjectAssignments   []ProjectAssignment `bson:"projectAssignments" json:"projectAssignments"`
+	TimeEntries          []TimeEntry         `bson:"timeEntries" json:"timeEntries"`
+
+	// Integration IDs
+	TimebutlerUserID string `bson:"timebutlerUserId" json:"timebutlerUserId"`
+	Erfasst123ID     string `bson:"erfasst123Id" json:"erfasst123Id"`
+
+	// Timestamps
 	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
+}
 
-	// Integration Timebutler
-	TimebutlerUserID string `bson:"timebutlerUserId,omitempty" json:"timebutlerUserId,omitempty"`
+// WorkTimeModel repräsentiert verschiedene Arbeitszeitmodelle
+type WorkTimeModel string
 
-	// Integration 123erfasst
-	Erfasst123ID       string              `bson:"erfasst123Id,omitempty" json:"erfasst123Id,omitempty"`
-	ProjectAssignments []ProjectAssignment `bson:"projectAssignments,omitempty" json:"projectAssignments,omitempty"`
-	TimeEntries        []TimeEntry         `bson:"timeEntries,omitempty" json:"timeEntries,omitempty"`
+// GetWorkTimeModelDisplayName gibt den deutschen Anzeigenamen für das Arbeitszeitmodell zurück
+func (w WorkTimeModel) GetDisplayName() string {
+	switch w {
+	case WorkTimeModelFullTime:
+		return "Vollzeit"
+	case WorkTimeModelPartTime:
+		return "Teilzeit"
+	case WorkTimeModelFlexTime:
+		return "Gleitzeit"
+	case WorkTimeModelRemote:
+		return "Remote/Homeoffice"
+	case WorkTimeModelShift:
+		return "Schichtarbeit"
+	case WorkTimeModelContract:
+		return "Werkvertrag"
+	case WorkTimeModelInternship:
+		return "Praktikum"
+	default:
+		return string(w)
+	}
+}
+
+// GetWorkingHoursPerDay berechnet die durchschnittlichen Arbeitsstunden pro Tag
+func (e *Employee) GetWorkingHoursPerDay() float64 {
+	if e.WorkingDaysPerWeek == 0 {
+		return 0
+	}
+	return e.WorkingHoursPerWeek / float64(e.WorkingDaysPerWeek)
+}
+
+// IsFullTimeEmployee prüft, ob es sich um einen Vollzeit-Mitarbeiter handelt
+func (e *Employee) IsFullTimeEmployee() bool {
+	return e.WorkTimeModel == WorkTimeModelFullTime || e.WorkingHoursPerWeek >= 35
+}
+
+// GetWorkingTimeDescription gibt eine textuelle Beschreibung der Arbeitszeit zurück
+func (e *Employee) GetWorkingTimeDescription() string {
+	if e.WorkingHoursPerWeek == 0 {
+		return "Nicht festgelegt"
+	}
+
+	description := fmt.Sprintf("%.1f Std/Woche", e.WorkingHoursPerWeek)
+
+	if e.WorkingDaysPerWeek > 0 {
+		description += fmt.Sprintf(" (%.1f Std/Tag)", e.GetWorkingHoursPerDay())
+	}
+
+	if e.WorkTimeModel != "" {
+		description += " - " + e.WorkTimeModel.GetDisplayName()
+	}
+
+	return description
 }
 
 // Document repräsentiert ein Dokument oder eine Datei im System

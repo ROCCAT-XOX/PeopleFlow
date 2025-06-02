@@ -1,3 +1,5 @@
+<!-- frontend/templates/employee_edit.html - Erweitert um Arbeitszeit-Sektion -->
+
 {{ template "head" . }}
 <body class="bg-gray-50 min-h-screen flex flex-col">
 <!-- Navigation -->
@@ -92,7 +94,6 @@
                                     <option value="Produktion" {{if eq .employee.Department "Production"}}selected{{end}}>Produktion</option>
                                     <option value="Sales" {{if eq .employee.Department "Sales"}}selected{{end}}>Vertrieb</option>
                                     <option value="Techniker" {{if eq .employee.Department "Techniker"}}selected{{end}}>Technik</option>
-
                                 </select>
                             </div>
                             <div>
@@ -117,6 +118,67 @@
                                     <option value="remote" {{if eq .employee.Status "remote"}}selected{{end}}>Remote</option>
                                 </select>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- NEU: Arbeitszeit-Regelungen -->
+                    <div class="col-span-2">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Arbeitszeit-Regelungen</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="workingHoursPerWeek" class="block text-sm font-medium text-gray-700">Wochenstunden*</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <input type="number" name="workingHoursPerWeek" id="workingHoursPerWeek" step="0.5" min="0" max="60" class="flex-1 min-w-0 block w-full rounded-none rounded-l-md border-gray-300 focus:border-green-500 focus:ring-green-500" value="{{.employee.WorkingHoursPerWeek}}" placeholder="z.B. 40">
+                                    <span class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">Std</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="workingDaysPerWeek" class="block text-sm font-medium text-gray-700">Arbeitstage/Woche</label>
+                                <select name="workingDaysPerWeek" id="workingDaysPerWeek" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="">Bitte wählen</option>
+                                    <option value="1" {{if eq .employee.WorkingDaysPerWeek 1}}selected{{end}}>1 Tag</option>
+                                    <option value="2" {{if eq .employee.WorkingDaysPerWeek 2}}selected{{end}}>2 Tage</option>
+                                    <option value="3" {{if eq .employee.WorkingDaysPerWeek 3}}selected{{end}}>3 Tage</option>
+                                    <option value="4" {{if eq .employee.WorkingDaysPerWeek 4}}selected{{end}}>4 Tage</option>
+                                    <option value="5" {{if eq .employee.WorkingDaysPerWeek 5}}selected{{end}}>5 Tage</option>
+                                    <option value="6" {{if eq .employee.WorkingDaysPerWeek 6}}selected{{end}}>6 Tage</option>
+                                    <option value="7" {{if eq .employee.WorkingDaysPerWeek 7}}selected{{end}}>7 Tage</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="workTimeModel" class="block text-sm font-medium text-gray-700">Arbeitszeitmodell*</label>
+                                <select name="workTimeModel" id="workTimeModel" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="">Bitte wählen</option>
+                                    <option value="fulltime" {{if eq .employee.WorkTimeModel "fulltime"}}selected{{end}}>Vollzeit</option>
+                                    <option value="parttime" {{if eq .employee.WorkTimeModel "parttime"}}selected{{end}}>Teilzeit</option>
+                                    <option value="flextime" {{if eq .employee.WorkTimeModel "flextime"}}selected{{end}}>Gleitzeit</option>
+                                    <option value="remote" {{if eq .employee.WorkTimeModel "remote"}}selected{{end}}>Remote/Homeoffice</option>
+                                    <option value="shift" {{if eq .employee.WorkTimeModel "shift"}}selected{{end}}>Schichtarbeit</option>
+                                    <option value="contract" {{if eq .employee.WorkTimeModel "contract"}}selected{{end}}>Werkvertrag</option>
+                                    <option value="internship" {{if eq .employee.WorkTimeModel "internship"}}selected{{end}}>Praktikum</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="flexibleWorkingHours" class="flex items-center text-sm font-medium text-gray-700">
+                                    <input type="checkbox" name="flexibleWorkingHours" id="flexibleWorkingHours" value="true" {{if .employee.FlexibleWorkingHours}}checked{{end}} class="mr-2 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                                    Flexible Arbeitszeiten
+                                </label>
+                                <p class="mt-1 text-xs text-gray-500">Kann außerhalb der Kernarbeitszeit arbeiten</p>
+                            </div>
+                            <div>
+                                <label for="coreWorkingTimeStart" class="block text-sm font-medium text-gray-700">Kernarbeitszeit von</label>
+                                <input type="time" name="coreWorkingTimeStart" id="coreWorkingTimeStart" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.CoreWorkingTimeStart}}">
+                            </div>
+                            <div>
+                                <label for="coreWorkingTimeEnd" class="block text-sm font-medium text-gray-700">Kernarbeitszeit bis</label>
+                                <input type="time" name="coreWorkingTimeEnd" id="coreWorkingTimeEnd" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="{{.employee.CoreWorkingTimeEnd}}">
+                            </div>
+                        </div>
+
+                        <!-- Arbeitszeit-Zusammenfassung -->
+                        <div id="workTimesSummary" class="mt-4 p-3 bg-green-50 rounded-md hidden">
+                            <h5 class="text-sm font-medium text-green-800">Arbeitszeit-Zusammenfassung</h5>
+                            <p id="workTimesSummaryText" class="text-sm text-green-700 mt-1"></p>
                         </div>
                     </div>
 
@@ -201,6 +263,73 @@
 
 <!-- Footer -->
 {{ template "footer" . }}
+
+<script>
+    // JavaScript für Arbeitszeit-Zusammenfassung
+    document.addEventListener('DOMContentLoaded', function() {
+        const workingHoursInput = document.getElementById('workingHoursPerWeek');
+        const workingDaysInput = document.getElementById('workingDaysPerWeek');
+        const workTimeModelInput = document.getElementById('workTimeModel');
+        const flexibleHoursInput = document.getElementById('flexibleWorkingHours');
+        const coreStartInput = document.getElementById('coreWorkingTimeStart');
+        const coreEndInput = document.getElementById('coreWorkingTimeEnd');
+        const summaryDiv = document.getElementById('workTimesSummary');
+        const summaryText = document.getElementById('workTimesSummaryText');
+
+        function updateWorkTimeSummary() {
+            const hours = parseFloat(workingHoursInput.value) || 0;
+            const days = parseInt(workingDaysInput.value) || 0;
+            const model = workTimeModelInput.value;
+            const flexible = flexibleHoursInput.checked;
+            const coreStart = coreStartInput.value;
+            const coreEnd = coreEndInput.value;
+
+            if (hours > 0) {
+                let summary = hours + ' Stunden pro Woche';
+
+                if (days > 0) {
+                    const hoursPerDay = (hours / days).toFixed(1);
+                    summary += ' (' + hoursPerDay + ' Std/Tag)';
+                }
+
+                if (model) {
+                    const modelNames = {
+                        'fulltime': 'Vollzeit',
+                        'parttime': 'Teilzeit',
+                        'flextime': 'Gleitzeit',
+                        'remote': 'Remote/Homeoffice',
+                        'shift': 'Schichtarbeit',
+                        'contract': 'Werkvertrag',
+                        'internship': 'Praktikum'
+                    };
+                    summary += ' - ' + (modelNames[model] || model);
+                }
+
+                if (flexible) {
+                    summary += ' (flexible Arbeitszeiten)';
+                }
+
+                if (coreStart && coreEnd) {
+                    summary += ' | Kernarbeitszeit: ' + coreStart + ' - ' + coreEnd + ' Uhr';
+                }
+
+                summaryText.textContent = summary;
+                summaryDiv.classList.remove('hidden');
+            } else {
+                summaryDiv.classList.add('hidden');
+            }
+        }
+
+        // Event Listener für alle relevanten Felder
+        [workingHoursInput, workingDaysInput, workTimeModelInput, flexibleHoursInput, coreStartInput, coreEndInput].forEach(input => {
+            input.addEventListener('change', updateWorkTimeSummary);
+            input.addEventListener('input', updateWorkTimeSummary);
+        });
+
+        // Initial summary update
+        updateWorkTimeSummary();
+    });
+</script>
 
 </body>
 </html>
