@@ -285,329 +285,80 @@
 <!-- Footer -->
 {{ template "footer" . }}
 
+<!-- Ersetzen Sie das bestehende <script> Tag am Ende von timetracking.html mit diesem: -->
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Toggle für Mitarbeiterdetails
-    document.querySelectorAll('.toggle-details').forEach(button => {
-      button.addEventListener('click', function() {
-        const employeeId = this.getAttribute('data-employee-id');
-        const detailsContainer = this.closest('.employee-summary-item').querySelector('.employee-details');
+    console.log('Timetracking page loaded');
 
-        // Toggle Details anzeigen/ausblenden
-        if (detailsContainer.classList.contains('hidden')) {
-          detailsContainer.classList.remove('hidden');
-          this.innerHTML = `<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
-                    </svg>`;
-        } else {
-          detailsContainer.classList.add('hidden');
-          this.innerHTML = `<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                    </svg>`;
-        }
+    // Filter-Event-Listener (nur für existierende Elemente)
+    const applyFiltersBtn = document.getElementById('applyFilters');
+    const resetFiltersBtn = document.getElementById('resetFilters');
+    const exportBtn = document.getElementById('exportTimeDataBtn');
+
+    if (applyFiltersBtn) {
+      applyFiltersBtn.addEventListener('click', function() {
+        console.log('Filter anwenden...');
+        applyTimeTrackingFilters();
       });
-    });
-
-    // Zeigt/versteckt den benutzerdefinierten Zeitraum
-    const dateRange = document.getElementById('date-range');
-    const customDateRange = document.getElementById('custom-date-range');
-
-    dateRange.addEventListener('change', function() {
-      if (this.value === 'custom') {
-        customDateRange.classList.remove('hidden');
-      } else {
-        customDateRange.classList.add('hidden');
-      }
-    });
-
-    // Filter-Funktionalität
-    const projectFilter = document.getElementById('project-filter');
-    const applyFilterBtn = document.getElementById('apply-filter');
-    const employeeDropdownToggle = document.getElementById('employee-dropdown-toggle');
-    const employeeDropdown = document.getElementById('employee-dropdown');
-    const selectAllEmployees = document.getElementById('select-all-employees');
-    const employeeSelectionDisplay = document.getElementById('employee-selection-display');
-    let selectedEmployees = []; // Array to store selected employee IDs
-
-    // Mitarbeiter-Dropdown Funktionalität
-    employeeDropdownToggle.addEventListener('click', function() {
-      employeeDropdown.classList.toggle('hidden');
-    });
-
-    // Klick außerhalb des Dropdowns schließt es
-    document.addEventListener('click', function(event) {
-      if (!employeeDropdownToggle.contains(event.target) && !employeeDropdown.contains(event.target)) {
-        employeeDropdown.classList.add('hidden');
-      }
-    });
-
-    // "Alle auswählen" Checkbox Funktionalität
-    selectAllEmployees.addEventListener('change', function() {
-      const checkboxes = document.querySelectorAll('.employee-checkbox');
-      checkboxes.forEach(checkbox => {
-        checkbox.checked = this.checked;
-      });
-
-      updateEmployeeSelection();
-    });
-
-    // Einzelne Mitarbeiter-Checkboxen
-    document.querySelectorAll('.employee-checkbox').forEach(checkbox => {
-      checkbox.addEventListener('change', function() {
-        updateEmployeeSelection();
-
-        // Überprüfen, ob alle Checkboxen ausgewählt sind
-        const allCheckboxes = document.querySelectorAll('.employee-checkbox');
-        const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
-        selectAllEmployees.checked = allChecked;
-      });
-    });
-
-    // Auch das Klicken auf die Labels oder Zeilen sollte die Checkboxen umschalten
-    document.querySelectorAll('.employee-option').forEach(option => {
-      option.addEventListener('click', function(e) {
-        // Verhindern, dass das Klicken auf die Checkbox selbst doppelt registriert wird
-        if (e.target.type !== 'checkbox') {
-          const checkbox = this.querySelector('input[type="checkbox"]');
-          checkbox.checked = !checkbox.checked;
-
-          // Manuell das Change-Event auslösen
-          const event = new Event('change');
-          checkbox.dispatchEvent(event);
-        }
-      });
-    });
-
-    // Aktualisiert die Anzeige der ausgewählten Mitarbeiter
-    function updateEmployeeSelection() {
-      selectedEmployees = [];
-      const checkboxes = document.querySelectorAll('.employee-checkbox:checked');
-
-      checkboxes.forEach(checkbox => {
-        selectedEmployees.push(checkbox.value);
-      });
-
-      if (selectedEmployees.length === 0) {
-        employeeSelectionDisplay.textContent = 'Alle Mitarbeiter';
-      } else if (selectedEmployees.length === 1) {
-        const employeeName = document.querySelector(`label[for="employee-${selectedEmployees[0]}"]`).textContent.trim();
-        employeeSelectionDisplay.textContent = employeeName;
-      } else {
-        employeeSelectionDisplay.textContent = `${selectedEmployees.length} Mitarbeiter ausgewählt`;
-      }
     }
 
-    applyFilterBtn.addEventListener('click', function() {
-      filterTimeEntries();
-    });
-
-    function filterTimeEntries() {
-      // Datumsfilterung
-      const dateRangeValue = dateRange.value;
-      let startDate = null;
-      let endDate = null;
-
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-      if (dateRangeValue === 'custom') {
-        const startDateInput = document.getElementById('start-date');
-        const endDateInput = document.getElementById('end-date');
-
-        if (startDateInput.value) {
-          startDate = new Date(startDateInput.value);
-        }
-
-        if (endDateInput.value) {
-          endDate = new Date(endDateInput.value);
-          // Setzen auf Ende des Tages für korrekten Vergleich
-          endDate.setHours(23, 59, 59, 999);
-        }
-      } else if (dateRangeValue === 'this-week') {
-        // Diese Woche (Montag bis Sonntag)
-        const day = today.getDay();
-        const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Justierung für Sonntag
-        startDate = new Date(today);
-        startDate.setDate(diff);
-        endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 6);
-        endDate.setHours(23, 59, 59, 999);
-      } else if (dateRangeValue === 'last-week') {
-        // Letzte Woche
-        const day = today.getDay();
-        const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Justierung für Sonntag
-        startDate = new Date(today);
-        startDate.setDate(diff - 7);
-        endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 6);
-        endDate.setHours(23, 59, 59, 999);
-      } else if (dateRangeValue === 'this-month') {
-        // Dieser Monat
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        endDate.setHours(23, 59, 59, 999);
-      } else if (dateRangeValue === 'last-month') {
-        // Letzter Monat
-        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        endDate = new Date(now.getFullYear(), now.getMonth(), 0);
-        endDate.setHours(23, 59, 59, 999);
-      }
-
-      console.log('Filter - Date Range:', { startDate, endDate });
-
-      // Ausgewählte Mitarbeiter
-      console.log('Filter - Employees:', selectedEmployees);
-
-      // Ausgewähltes Projekt
-      const selectedProject = projectFilter.value;
-      console.log('Filter - Project:', selectedProject);
-
-      // Alle Mitarbeiterzeilen durchgehen
-      document.querySelectorAll('.employee-summary-item').forEach(employeeItem => {
-        const employeeId = employeeItem.dataset.employeeId;
-        let showEmployee = true;
-
-        // Mitarbeiterfilter anwenden
-        if (selectedEmployees.length > 0 && !selectedEmployees.includes(employeeId)) {
-          showEmployee = false;
-        }
-
-        // Zeiteinträge des Mitarbeiters filtern
-        let employeeHasFilteredEntries = false;
-        let employeeFilteredHours = 0;
-        const projectHours = {};
-
-        // Alle Zeiteinträge dieses Mitarbeiters durchgehen
-        employeeItem.querySelectorAll('.time-entry-row').forEach(row => {
-          const dateStr = row.querySelector('td:first-child').textContent;
-          const projectId = row.dataset.projectId;
-          const projectName = row.querySelector('td:nth-child(2)').textContent;
-          const durationStr = row.querySelector('td:last-child').textContent;
-          const duration = parseFloat(durationStr);
-
-          const entryDate = parseStringToDate(dateStr);
-          let showEntry = true;
-
-          // Datum filtern
-          if (startDate && entryDate < startDate) {
-            showEntry = false;
-          }
-
-          if (endDate && entryDate > endDate) {
-            showEntry = false;
-          }
-
-          // Projekt filtern
-          if (selectedProject && projectId !== selectedProject) {
-            showEntry = false;
-          }
-
-          // Zeile ein-/ausblenden
-          if (showEntry) {
-            row.classList.remove('hidden');
-            employeeHasFilteredEntries = true;
-            employeeFilteredHours += duration;
-
-            // Projektstunden aufaddieren
-            if (!projectHours[projectId]) {
-              projectHours[projectId] = {
-                hours: 0,
-                name: projectName
-              };
-            }
-            projectHours[projectId].hours += duration;
-          } else {
-            row.classList.add('hidden');
-          }
-        });
-
-        // Projekt-Details aktualisieren
-        employeeItem.querySelectorAll('.project-detail').forEach(detail => {
-          const projectId = detail.dataset.projectId;
-
-          // Projektfilter anwenden
-          if (selectedProject && projectId !== selectedProject) {
-            detail.classList.add('hidden');
-          } else if (projectHours[projectId]) {
-            // Stunden aktualisieren falls gefiltert
-            const hoursDisplay = detail.querySelector('.font-medium');
-            if (hoursDisplay) {
-              hoursDisplay.textContent = projectHours[projectId].hours.toFixed(1) + ' Std.';
-            }
-            detail.classList.remove('hidden');
-          } else {
-            detail.classList.add('hidden');
-          }
-        });
-
-        // Mitarbeiter gesamt-Stunden aktualisieren
-        if (employeeHasFilteredEntries) {
-          const hoursDisplay = employeeItem.querySelector('.font-semibold');
-          if (hoursDisplay) {
-            hoursDisplay.textContent = employeeFilteredHours.toFixed(1) + ' Std.';
-          }
-        }
-
-        // Falls der Mitarbeiter keine passenden Einträge hat oder ausgeblendet werden soll
-        if (!employeeHasFilteredEntries || !showEmployee) {
-          employeeItem.classList.add('hidden');
-        } else {
-          employeeItem.classList.remove('hidden');
-        }
+    if (resetFiltersBtn) {
+      resetFiltersBtn.addEventListener('click', function() {
+        resetTimeTrackingFilters();
       });
-
-      // Statistiken aktualisieren
-      updateStats();
     }
 
-    // Helper-Funktion zum Parsen von deutschem Datumsformat
-    function parseStringToDate(dateStr) {
-      const parts = dateStr.split('.');
-      if (parts.length === 3) {
-        return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-      }
-      return new Date(); // Fallback
-    }
-
-    // Statistiken aktualisieren
-    function updateStats() {
-      // Zähle sichtbare Mitarbeiter
-      const visibleEmployees = document.querySelectorAll('.employee-summary-item:not(.hidden)').length;
-      document.getElementById('total-employees-displayed').textContent = visibleEmployees;
-
-      // Berechne Gesamtstunden der sichtbaren Mitarbeiter
-      let totalHours = 0;
-      document.querySelectorAll('.employee-summary-item:not(.hidden)').forEach(item => {
-        const hoursText = item.querySelector('.font-semibold').textContent;
-        const hours = parseFloat(hoursText);
-        if (!isNaN(hours)) {
-          totalHours += hours;
-        }
+    if (exportBtn) {
+      exportBtn.addEventListener('click', function() {
+        exportAllTimeData();
       });
-      document.getElementById('total-hours').textContent = totalHours.toFixed(1) + ' Std';
-
-      // Sammle alle sichtbaren Projekte
-      const visibleProjects = new Set();
-      document.querySelectorAll('.employee-summary-item:not(.hidden) .project-detail:not(.hidden)').forEach(project => {
-        const projectName = project.querySelector('span').textContent;
-        visibleProjects.add(projectName);
-      });
-      document.getElementById('total-projects-displayed').textContent = visibleProjects.size;
     }
-
-    // Automatisch einmal zu Beginn filtern
-    setTimeout(filterTimeEntries, 100);
   });
 
-  // Export-Funktionen
-  document.getElementById('exportTimeDataBtn').addEventListener('click', function() {
-    window.location.href = '/timetracking/export';
-  });
+  // Filter-Funktionen
+  function applyTimeTrackingFilters() {
+    const startDate = document.getElementById('startDate')?.value;
+    const endDate = document.getElementById('endDate')?.value;
+    const projectId = document.getElementById('projectFilter')?.value;
+
+    console.log('Applying filters:', { startDate, endDate, projectId });
+
+    // Filter-Logik hier implementieren
+    // Zum Beispiel: Tabellen-Zeilen filtern basierend auf den Werten
+  }
+
+  function resetTimeTrackingFilters() {
+    const startDate = document.getElementById('startDate');
+    const endDate = document.getElementById('endDate');
+    const projectFilter = document.getElementById('projectFilter');
+
+    if (startDate) startDate.value = '';
+    if (endDate) endDate.value = '';
+    if (projectFilter) projectFilter.value = '';
+
+    console.log('Filters reset');
+  }
+
+  function exportAllTimeData() {
+    const startDate = document.getElementById('startDate')?.value;
+    const endDate = document.getElementById('endDate')?.value;
+    const projectId = document.getElementById('projectFilter')?.value;
+
+    let url = '/timetracking/export?';
+    const params = [];
+
+    if (startDate) params.push(`startDate=${startDate}`);
+    if (endDate) params.push(`endDate=${endDate}`);
+    if (projectId) params.push(`projectId=${projectId}`);
+
+    url += params.join('&');
+    window.location.href = url;
+  }
 
   function exportEmployeeData(employeeId) {
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-    const projectId = document.getElementById('projectFilter').value;
+    const startDate = document.getElementById('startDate')?.value;
+    const endDate = document.getElementById('endDate')?.value;
+    const projectId = document.getElementById('projectFilter')?.value;
 
     let url = `/api/timetracking/employee/${employeeId}?export=true`;
     if (startDate) url += `&startDate=${startDate}`;
@@ -617,17 +368,10 @@
     window.location.href = url;
   }
 
-  // Filter-Funktionen
-  document.getElementById('applyFilters').addEventListener('click', function() {
-    // Filter-Logic hier implementieren
-    console.log('Filter anwenden...');
-  });
-
-  document.getElementById('resetFilters').addEventListener('click', function() {
-    document.getElementById('startDate').value = '';
-    document.getElementById('endDate').value = '';
-    document.getElementById('projectFilter').value = '';
-  });
+  // Template-Hilfsfunktionen
+  function getInitials(name) {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  }
 </script>
 </body>
 </html>
