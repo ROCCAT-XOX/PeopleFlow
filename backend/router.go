@@ -62,7 +62,7 @@ func InitializeRoutes(router *gin.Engine) {
 			c.Redirect(http.StatusFound, "/dashboard")
 		})
 
-		// Dashboard
+		// Dashboard Route in backend/router.go - ersetze die bestehende Dashboard Route
 		authorized.GET("/dashboard", func(c *gin.Context) {
 			user, _ := c.Get("user")
 			userModel := user.(*model.User)
@@ -70,9 +70,7 @@ func InitializeRoutes(router *gin.Engine) {
 
 			// Repository für Mitarbeiterdaten
 			employeeRepo := repository.NewEmployeeRepository()
-
-			// Service für Kostenberechnungen initialisieren
-			costService := service.NewCostService()
+			activityRepo := repository.NewActivityRepository()
 
 			// Alle Mitarbeiter abrufen
 			allEmployees, err := employeeRepo.FindAll()
@@ -81,6 +79,157 @@ func InitializeRoutes(router *gin.Engine) {
 			}
 
 			totalEmployees := len(allEmployees)
+			currentDate := time.Now().Format("Monday, 02. January 2006")
+
+			// Gemeinsame Daten für alle Rollen
+			commonData := gin.H{
+				"title":          "Dashboard",
+				"active":         "dashboard",
+				"user":           userModel.FirstName + " " + userModel.LastName,
+				"email":          userModel.Email,
+				"userRole":       userRole,
+				"year":           time.Now().Year(),
+				"currentDate":    currentDate,
+				"totalEmployees": totalEmployees,
+			}
+
+			// HR-spezifisches Dashboard
+			if userRole == string(model.RoleHR) {
+				// HR-Service initialisieren und echte Daten berechnen
+				hrService := service.NewHRService()
+				hrData := hrService.CalculateHRDashboardData(allEmployees)
+
+				// Chart-Daten generieren
+				departmentLabels, departmentData := hrService.GetDepartmentLabelsAndData(hrData.DepartmentCounts)
+				statusLabels, statusData := hrService.GetStatusLabelsAndData(hrData.StatusDistribution)
+				ageLabels, ageData := hrService.GetAgeLabelsAndData(hrData.AgeDistribution)
+				tenureLabels, tenureData := hrService.GetTenureLabelsAndData(hrData.TenureDistribution)
+
+				// Aktivitäten für HR
+				recentActivitiesData, err := activityRepo.FindRecent(5)
+				if err != nil {
+					recentActivitiesData = []*model.Activity{}
+				}
+
+				var recentActivities []gin.H
+				for i, activity := range recentActivitiesData {
+					isLast := i == len(recentActivitiesData)-1
+
+					var message string
+					switch activity.Type {
+					case model.ActivityTypeEmployeeAdded:
+						message = fmt.Sprintf("<a href=\"/employees/view/%s\" class=\"font-medium text-gray-900\">%s</a> wurde als neuer Mitarbeiter hinzugefügt",
+							activity.TargetID.Hex(), activity.TargetName)
+					case model.ActivityTypeEmployeeUpdated:
+						message = fmt.Sprintf("<a href=\"/employees/view/%s\" class=\"font-medium text-gray-900\">%s</a> wurde aktualisiert",
+							activity.TargetID.Hex(), activity.TargetName)
+					case model.ActivityTypeVacationRequested:
+						message = fmt.Sprintf("<a href=\"/employees/view/%s\" class=\"font-medium text-gray-900\">%s</a> hat einen Urlaubsantrag eingereicht",
+							activity.TargetID.Hex(), activity.TargetName)
+					case model.ActivityTypeVacationApproved:
+						message = fmt.Sprintf("Urlaubsantrag von <a href=\"/employees/view/%s\" class=\"font-medium text-gray-900\">%s</a> wurde genehmigt",
+							activity.TargetID.Hex(), activity.TargetName)
+					default:
+						message = activity.Description
+					}
+
+					recentActivities = append(recentActivities, gin.H{
+						"IconBgClass": activity.GetIconClass(),
+						"IconSVG":     activity.GetIconSVG(),
+						"Message":     message,
+						"Time":        activity.FormatTimeAgo(),
+						"IsLast":      isLast,
+					})
+				}
+
+				// Mitarbeiterübersicht für HR (zeige mehr Details)
+				recentEmployees := []gin.H{}
+				maxToShow := 8
+				if len(allEmployees) < maxToShow {
+					maxToShow = len(allEmployees)
+				}
+
+				for i := 0; i < maxToShow; i++ {
+					emp := allEmployees[i]
+					status := "Aktiv"
+					switch emp.Status {
+					case model.EmployeeStatusInactive:
+						status = "Inaktiv"
+					case model.EmployeeStatusOnLeave:
+						status = "Im Urlaub"
+					case model.EmployeeStatusRemote:
+						status = "Krank" // Remote wird als Krank angezeigt
+					}
+
+					recentEmployees = append(recentEmployees, gin.H{
+						"ID":           emp.ID.Hex(),
+						"Name":         emp.FirstName + " " + emp.LastName,
+						"Position":     emp.Position,
+						"Status":       status,
+						"Department":   emp.Department,
+						"ProfileImage": emp.ProfileImage,
+						"HireDate":     emp.HireDate.Format("02.01.2006"),
+						"Tenure":       hrService.CalculateTenure(emp.HireDate),
+					})
+				}
+
+				// HR-spezifische Daten zu commonData hinzufügen
+				for k, v := range commonData {
+					commonData[k] = v
+				}
+
+				hrDataForTemplate := gin.H{
+					// Grundstatistiken
+					"activeEmployees":       hrData.ActiveEmployees,
+					"onLeaveEmployees":      hrData.OnLeaveEmployees,
+					"sickEmployees":         hrData.SickEmployees, // Geändert von remoteEmployees
+					"inactiveEmployees":     hrData.InactiveEmployees,
+					"newEmployeesThisMonth": hrData.NewEmployeesThisMonth,
+					"currentAbsences":       hrData.CurrentAbsences,
+					"upcomingAbsences":      hrData.UpcomingAbsences,
+					"absenceRate":           fmt.Sprintf("%.1f", hrData.AbsenceRate),
+					"sickRate":              fmt.Sprintf("%.1f", hrData.SickRate),
+
+					// Review-Statistiken
+					"upcomingReviews": hrData.UpcomingReviews,
+					"overdueReviews":  hrData.OverdueReviews,
+
+					// Fluktuationsstatistiken
+					"turnoverRate":      fmt.Sprintf("%.1f", hrData.TurnoverRate),
+					"averageEmployment": fmt.Sprintf("%.1f", hrData.AverageEmployment),
+					"retentionRate":     fmt.Sprintf("%.1f", hrData.RetentionRate),
+
+					// Chart-Daten
+					"departmentLabels":      departmentLabels,
+					"departmentData":        departmentData,
+					"statusLabels":          statusLabels,
+					"statusData":            statusData,
+					"ageLabels":             ageLabels,
+					"ageData":               ageData,
+					"tenureLabels":          tenureLabels,
+					"tenureData":            tenureData,
+					"monthlyHiresData":      hrData.MonthlyHires,
+					"monthlyDeparturesData": hrData.MonthlyDepartures,
+					"absenceByMonthData":    hrData.AbsenceByMonth,
+					"sicknessByMonthData":   hrData.SicknessByMonth,
+
+					// Mitarbeiterübersicht
+					"recentEmployees":  recentEmployees,
+					"recentActivities": recentActivities,
+				}
+
+				// Daten zusammenführen
+				for k, v := range hrDataForTemplate {
+					commonData[k] = v
+				}
+
+				c.HTML(http.StatusOK, "dashboard.html", commonData)
+				return
+			}
+
+			// Hier folgt der bestehende Code für Admin/Manager/User Rollen
+			// Service für Kostenberechnungen initialisieren (nur für Admin/Manager)
+			costService := service.NewCostService()
 
 			// Monatliche Personalkosten berechnen
 			monthlyLaborCosts := costService.CalculateMonthlyLaborCosts(allEmployees)
@@ -105,9 +254,6 @@ func InitializeRoutes(router *gin.Engine) {
 
 			// Altersstruktur berechnen
 			ageGroups, ageCounts := costService.CalculateAgeDistribution(allEmployees)
-
-			// Repository für Aktivitätsdaten
-			activityRepo := repository.NewActivityRepository()
 
 			// Neueste Aktivitäten abrufen
 			recentActivitiesData, err := activityRepo.FindRecent(5)
@@ -195,7 +341,6 @@ func InitializeRoutes(router *gin.Engine) {
 						status = "Remote"
 					}
 
-					// Hier ist das Problem: Wenn ProfileImage leer ist, wird ein Default-Pfad verwendet
 					profileImg := emp.ProfileImage
 					if profileImg == "" {
 						profileImg = "" // Leer lassen, damit Platzhalter mit Initialen angezeigt wird
@@ -227,18 +372,12 @@ func InitializeRoutes(router *gin.Engine) {
 			// Formatieren der monatlichen Personalkosten
 			formattedLaborCosts := fmt.Sprintf("%.2f", monthlyLaborCosts)
 
-			currentDate := time.Now().Format("Monday, 02. January 2006")
+			// Vollständige Daten für Admin/Manager
+			for k, v := range commonData {
+				commonData[k] = v
+			}
 
-			// Daten an das Template übergeben
-			c.HTML(http.StatusOK, "dashboard.html", gin.H{
-				"title":                   "Dashboard",
-				"active":                  "dashboard",
-				"user":                    userModel.FirstName + " " + userModel.LastName,
-				"email":                   userModel.Email,
-				"userRole":                userRole, // Hier wird die userRole mitgegeben
-				"year":                    time.Now().Year(),
-				"currentDate":             currentDate,
-				"totalEmployees":          totalEmployees,
+			adminManagerData := gin.H{
 				"monthlyLaborCosts":       formattedLaborCosts,
 				"upcomingReviews":         len(upcomingReviewsList),
 				"expiredDocuments":        expiredDocuments,
@@ -253,7 +392,14 @@ func InitializeRoutes(router *gin.Engine) {
 				"deptCostsData":           deptCostsData,
 				"ageGroups":               ageGroups,
 				"ageCounts":               ageCounts,
-			})
+			}
+
+			// Daten zusammenführen
+			for k, v := range adminManagerData {
+				commonData[k] = v
+			}
+
+			c.HTML(http.StatusOK, "dashboard.html", commonData)
 		})
 
 		// Kalender-Handler erstellen
