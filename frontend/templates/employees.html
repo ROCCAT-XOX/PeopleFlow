@@ -83,6 +83,10 @@
                             <div>
                                 <p class="truncate text-sm font-medium text-green-600">{{.LastName}} {{.FirstName}}</p>
                                 <p class="mt-1 truncate text-sm text-gray-500">{{.Position}} · {{.Department}}</p>
+                                <!-- Arbeitszeit-Information hinzufügen -->
+                                {{if .WorkingHours}}
+                                <p class="mt-1 truncate text-xs text-gray-400">{{.WorkingHours}} Std/Woche · {{.WorkTimeModel}}</p>
+                                {{end}}
                             </div>
                             <div class="mt-2 flex">
                                 <div class="flex items-center text-sm text-gray-500">
@@ -119,6 +123,8 @@
     </span>
                                     {{end}}
                                 </div>
+
+
                             </div>
                         </div>
                     </div>
@@ -302,6 +308,67 @@
                         </div>
                     </div>
 
+                    <!-- Arbeitszeit-Regelungen -->
+                    <div class="col-span-2">
+                        <h4 class="text-md font-medium text-gray-900 mb-4">Arbeitszeit-Regelungen</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="workingHoursPerWeek" class="block text-sm font-medium text-gray-700">Wochenstunden*</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <input type="number" name="workingHoursPerWeek" id="workingHoursPerWeek" step="0.5" min="0" max="60" required class="flex-1 min-w-0 block w-full rounded-none rounded-l-md border-gray-300 focus:border-green-500 focus:ring-green-500" placeholder="z.B. 40" value="40">
+                                    <span class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">Std</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="workingDaysPerWeek" class="block text-sm font-medium text-gray-700">Arbeitstage/Woche</label>
+                                <select name="workingDaysPerWeek" id="workingDaysPerWeek" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="">Bitte wählen</option>
+                                    <option value="1">1 Tag</option>
+                                    <option value="2">2 Tage</option>
+                                    <option value="3">3 Tage</option>
+                                    <option value="4">4 Tage</option>
+                                    <option value="5" selected>5 Tage</option>
+                                    <option value="6">6 Tage</option>
+                                    <option value="7">7 Tage</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="workTimeModel" class="block text-sm font-medium text-gray-700">Arbeitszeitmodell*</label>
+                                <select name="workTimeModel" id="workTimeModel" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                    <option value="">Bitte wählen</option>
+                                    <option value="fulltime" selected>Vollzeit</option>
+                                    <option value="parttime">Teilzeit</option>
+                                    <option value="flextime">Gleitzeit</option>
+                                    <option value="remote">Remote/Homeoffice</option>
+                                    <option value="shift">Schichtarbeit</option>
+                                    <option value="contract">Werkvertrag</option>
+                                    <option value="internship">Praktikum</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="flexibleWorkingHours" class="flex items-center text-sm font-medium text-gray-700">
+                                    <input type="checkbox" name="flexibleWorkingHours" id="flexibleWorkingHours" value="true" class="mr-2 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                                    Flexible Arbeitszeiten
+                                </label>
+                                <p class="mt-1 text-xs text-gray-500">Kann außerhalb der Kernarbeitszeit arbeiten</p>
+                            </div>
+                            <div>
+                                <label for="coreWorkingTimeStart" class="block text-sm font-medium text-gray-700">Kernarbeitszeit von</label>
+                                <input type="time" name="coreWorkingTimeStart" id="coreWorkingTimeStart" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="09:00">
+                            </div>
+                            <div>
+                                <label for="coreWorkingTimeEnd" class="block text-sm font-medium text-gray-700">Kernarbeitszeit bis</label>
+                                <input type="time" name="coreWorkingTimeEnd" id="coreWorkingTimeEnd" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500" value="15:00">
+                            </div>
+                        </div>
+
+                        <!-- Arbeitszeit-Zusammenfassung für Add Modal -->
+                        <div id="addWorkTimesSummary" class="mt-4 p-3 bg-green-50 rounded-md">
+                            <h5 class="text-sm font-medium text-green-800">Arbeitszeit-Zusammenfassung</h5>
+                            <p id="addWorkTimesSummaryText" class="text-sm text-green-700 mt-1">40 Stunden pro Woche (8.0 Std/Tag) - Vollzeit | Kernarbeitszeit: 09:00 - 15:00 Uhr</p>
+                        </div>
+                    </div>
+
                     <!-- Vertragliche Informationen -->
                     <div class="col-span-2">
                         <h4 class="text-md font-medium text-gray-900 mb-4">Vertragliche Informationen</h4>
@@ -464,6 +531,71 @@
 
     // Suchfunktion
     document.addEventListener('DOMContentLoaded', function() {
+        // Arbeitszeit-Zusammenfassung für Add Modal
+        const addWorkingHoursInput = document.getElementById('workingHoursPerWeek');
+        const addWorkingDaysInput = document.getElementById('workingDaysPerWeek');
+        const addWorkTimeModelInput = document.getElementById('workTimeModel');
+        const addFlexibleHoursInput = document.getElementById('flexibleWorkingHours');
+        const addCoreStartInput = document.getElementById('coreWorkingTimeStart');
+        const addCoreEndInput = document.getElementById('coreWorkingTimeEnd');
+        const addSummaryText = document.getElementById('addWorkTimesSummaryText');
+
+        function updateAddWorkTimeSummary() {
+            const hours = parseFloat(addWorkingHoursInput.value) || 0;
+            const days = parseInt(addWorkingDaysInput.value) || 0;
+            const model = addWorkTimeModelInput.value;
+            const flexible = addFlexibleHoursInput.checked;
+            const coreStart = addCoreStartInput.value;
+            const coreEnd = addCoreEndInput.value;
+
+            if (hours > 0) {
+                let summary = hours + ' Stunden pro Woche';
+
+                if (days > 0) {
+                    const hoursPerDay = (hours / days).toFixed(1);
+                    summary += ' (' + hoursPerDay + ' Std/Tag)';
+                }
+
+                if (model) {
+                    const modelNames = {
+                        'fulltime': 'Vollzeit',
+                        'parttime': 'Teilzeit',
+                        'flextime': 'Gleitzeit',
+                        'remote': 'Remote/Homeoffice',
+                        'shift': 'Schichtarbeit',
+                        'contract': 'Werkvertrag',
+                        'internship': 'Praktikum'
+                    };
+                    summary += ' - ' + (modelNames[model] || model);
+                }
+
+                if (flexible) {
+                    summary += ' (flexible Arbeitszeiten)';
+                }
+
+                if (coreStart && coreEnd) {
+                    summary += ' | Kernarbeitszeit: ' + coreStart + ' - ' + coreEnd + ' Uhr';
+                }
+
+                addSummaryText.textContent = summary;
+            } else {
+                addSummaryText.textContent = 'Bitte Wochenstunden eingeben';
+            }
+        }
+
+        // Event Listener für Add Modal Felder
+        if (addWorkingHoursInput) {
+            [addWorkingHoursInput, addWorkingDaysInput, addWorkTimeModelInput, addFlexibleHoursInput, addCoreStartInput, addCoreEndInput].forEach(input => {
+                if (input) {
+                    input.addEventListener('change', updateAddWorkTimeSummary);
+                    input.addEventListener('input', updateAddWorkTimeSummary);
+                }
+            });
+
+            // Initial summary update für Add Modal
+            updateAddWorkTimeSummary();
+        }
+
         const searchInput = document.getElementById('searchInput');
         const employeeItems = document.querySelectorAll('.employee-item');
 
@@ -737,6 +869,8 @@
             });
         }
     });
+
+
 
 
 </script>

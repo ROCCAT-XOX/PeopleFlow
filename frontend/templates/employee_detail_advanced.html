@@ -246,6 +246,40 @@
                     </div>
                 </dl>
             </div>
+            <!-- Arbeitszeit-Regelungen -->
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Arbeitszeit</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{if .employee.WorkingHoursPerWeek}}
+                    {{.employee.GetWorkingTimeDescription}}
+                    {{else}}
+                    -
+                    {{end}}
+                </dd>
+            </div>
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Arbeitszeitmodell</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{if .employee.WorkTimeModel}}
+                    {{.employee.WorkTimeModel.GetDisplayName}}
+                    {{else}}
+                    -
+                    {{end}}
+                </dd>
+            </div>
+            {{if .employee.FlexibleWorkingHours}}
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Arbeitszeit-Flexibilität</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                Flexible Arbeitszeiten
+                            </span>
+                    {{if and .employee.CoreWorkingTimeStart .employee.CoreWorkingTimeEnd}}
+                    <br><span class="text-xs text-gray-500">Kernarbeitszeit: {{.employee.CoreWorkingTimeStart}} - {{.employee.CoreWorkingTimeEnd}} Uhr</span>
+                    {{end}}
+                </dd>
+            </div>
+            {{end}}
         </div>
         <!-- 2. Dokumente -->
         <div id="documents-tab" class="tab-content hidden space-y-6">

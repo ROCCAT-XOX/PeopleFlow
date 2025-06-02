@@ -78,6 +78,14 @@ func (h *EmployeeHandler) ListEmployees(c *gin.Context) {
 			profileImage = "" // Leer lassen
 		}
 
+		// Arbeitszeit-Informationen formatieren
+		var workingHours string
+		var workTimeModel string
+		if emp.WorkingHoursPerWeek > 0 {
+			workingHours = fmt.Sprintf("%.1f", emp.WorkingHoursPerWeek)
+			workTimeModel = emp.WorkTimeModel.GetDisplayName()
+		}
+
 		// ViewModel erstellen
 		employeeViewModels = append(employeeViewModels, gin.H{
 			"ID":                emp.ID.Hex(),
@@ -89,6 +97,8 @@ func (h *EmployeeHandler) ListEmployees(c *gin.Context) {
 			"HireDateFormatted": hireDateFormatted,
 			"Status":            status,
 			"ProfileImage":      profileImage,
+			"WorkingHours":      workingHours,
+			"WorkTimeModel":     workTimeModel,
 		})
 	}
 
@@ -156,6 +166,21 @@ func (h *EmployeeHandler) AddEmployee(c *gin.Context) {
 		salary, _ = strconv.ParseFloat(salaryStr, 64)
 	}
 
+	// Arbeitszeit-Daten verarbeiten
+	var workingHoursPerWeek float64
+	workingHoursStr := c.PostForm("workingHoursPerWeek")
+	if workingHoursStr != "" {
+		workingHoursPerWeek, _ = strconv.ParseFloat(workingHoursStr, 64)
+	}
+
+	var workingDaysPerWeek int
+	workingDaysStr := c.PostForm("workingDaysPerWeek")
+	if workingDaysStr != "" {
+		workingDaysPerWeek, _ = strconv.Atoi(workingDaysStr)
+	}
+
+	flexibleWorkingHours := c.PostForm("flexibleWorkingHours") == "true"
+
 	// Neues Employee-Objekt erstellen
 	employee := &model.Employee{
 		FirstName:         firstName,
@@ -170,17 +195,27 @@ func (h *EmployeeHandler) AddEmployee(c *gin.Context) {
 		Position:          position,
 		Department:        model.Department(department),
 		ManagerID:         managerID,
-		Status:            model.EmployeeStatusActive, // Standardmäßig aktiv
-		Salary:            salary,
-		BankAccount:       c.PostForm("iban"),
-		TaxID:             c.PostForm("taxClass"),
-		SocialSecID:       c.PostForm("socialSecId"),
-		HealthInsurance:   c.PostForm("healthInsurance"),
-		EmergencyName:     c.PostForm("emergencyName"),
-		EmergencyPhone:    c.PostForm("emergencyPhone"),
-		Notes:             c.PostForm("notes"),
-		CreatedAt:         time.Now(),
-		UpdatedAt:         time.Now(),
+		Status:            model.EmployeeStatusActive,
+
+		// Arbeitszeit-Daten hinzufügen
+		WorkingHoursPerWeek:  workingHoursPerWeek,
+		WorkingDaysPerWeek:   workingDaysPerWeek,
+		WorkTimeModel:        model.WorkTimeModel(c.PostForm("workTimeModel")),
+		FlexibleWorkingHours: flexibleWorkingHours,
+		CoreWorkingTimeStart: c.PostForm("coreWorkingTimeStart"),
+		CoreWorkingTimeEnd:   c.PostForm("coreWorkingTimeEnd"),
+
+		// Bestehende Felder...
+		Salary:          salary,
+		BankAccount:     c.PostForm("iban"),
+		TaxID:           c.PostForm("taxClass"),
+		SocialSecID:     c.PostForm("socialSecId"),
+		HealthInsurance: c.PostForm("healthInsurance"),
+		EmergencyName:   c.PostForm("emergencyName"),
+		EmergencyPhone:  c.PostForm("emergencyPhone"),
+		Notes:           c.PostForm("notes"),
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
 	}
 
 	// Mitarbeiter in der Datenbank speichern
@@ -392,6 +427,28 @@ func (h *EmployeeHandler) UpdateEmployee(c *gin.Context) {
 	employee.Position = c.PostForm("position")
 	employee.Department = model.Department(c.PostForm("department"))
 	employee.Notes = c.PostForm("notes")
+
+	// Arbeitszeit-Daten aktualisieren
+	workingHoursStr := c.PostForm("workingHoursPerWeek")
+	if workingHoursStr != "" {
+		workingHours, err := strconv.ParseFloat(workingHoursStr, 64)
+		if err == nil {
+			employee.WorkingHoursPerWeek = workingHours
+		}
+	}
+
+	workingDaysStr := c.PostForm("workingDaysPerWeek")
+	if workingDaysStr != "" {
+		workingDays, err := strconv.Atoi(workingDaysStr)
+		if err == nil {
+			employee.WorkingDaysPerWeek = workingDays
+		}
+	}
+
+	employee.WorkTimeModel = model.WorkTimeModel(c.PostForm("workTimeModel"))
+	employee.FlexibleWorkingHours = c.PostForm("flexibleWorkingHours") == "true"
+	employee.CoreWorkingTimeStart = c.PostForm("coreWorkingTimeStart")
+	employee.CoreWorkingTimeEnd = c.PostForm("coreWorkingTimeEnd")
 
 	// Status aktualisieren
 	statusStr := c.PostForm("status")
