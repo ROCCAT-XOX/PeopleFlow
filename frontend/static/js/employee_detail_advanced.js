@@ -363,6 +363,14 @@ function initFormHandlers() {
             });
         }
     });
+
+    // Überstunden-Button Event-Listener hinzufügen
+    const recalculateBtn = document.getElementById('recalculateEmployeeOvertimeBtn');
+    if (recalculateBtn) {
+        // Entferne onclick Attribute falls vorhanden
+        recalculateBtn.removeAttribute('onclick');
+        recalculateBtn.addEventListener('click', recalculateEmployeeOvertime);
+    }
 }
 
 // Generischer Form-Submission-Handler
@@ -563,3 +571,226 @@ function openAbsenceDocumentsModal(absenceId) {
 
 
 // ============ TIME TRACKING ==============
+// Überstunden für spezifischen Mitarbeiter neu berechnen
+function recalculateEmployeeOvertime() {
+    const employeeId = getEmployeeIdFromUrl();
+    const button = document.getElementById('recalculateEmployeeOvertimeBtn');
+
+    if (!button) {
+        console.error('Recalculate button not found');
+        return;
+    }
+
+    // Button deaktivieren und Loading-State anzeigen
+    button.disabled = true;
+    const originalText = button.innerHTML;
+    button.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Berechne...
+    `;
+
+    // API-Aufruf zur Neuberechnung
+    fetch(`/api/timetracking/employee/${employeeId}/overtime`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Fehler bei der Überstunden-Berechnung');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Erfolgsmeldung anzeigen
+                showNotification('Überstunden erfolgreich neu berechnet', 'success');
+
+                // Überstunden-Balance aktualisieren
+                updateOvertimeDisplay(data.data);
+
+                // Seite nach kurzer Verzögerung neu laden für vollständige Aktualisierung
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                throw new Error(data.error || 'Unbekannter Fehler');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Fehler beim Berechnen der Überstunden: ' + error.message, 'error');
+        })
+        .finally(() => {
+            // Button zurücksetzen
+            button.disabled = false;
+            button.innerHTML = originalText;
+        });
+}
+
+// Event-Listener für den Überstunden-Button hinzufügen
+document.addEventListener('DOMContentLoaded', function() {
+    // Bestehende Initialization...
+
+    // Überstunden-Button Event-Listener
+    const recalculateBtn = document.getElementById('recalculateEmployeeOvertimeBtn');
+    if (recalculateBtn) {
+        recalculateBtn.addEventListener('click', recalculateEmployeeOvertime);
+    }
+});
+
+// Hilfsfunktion: Employee ID aus URL extrahieren
+function getEmployeeIdFromUrl() {
+    const pathParts = window.location.pathname.split('/');
+    const viewIndex = pathParts.indexOf('view');
+    if (viewIndex !== -1 && pathParts[viewIndex + 1]) {
+        return pathParts[viewIndex + 1];
+    }
+    return null;
+}
+
+// Hilfsfunktion: Überstunden-Display aktualisieren
+function updateOvertimeDisplay(data) {
+    const balanceElement = document.getElementById('currentOvertimeBalance');
+    if (balanceElement && data.overtimeBalance !== undefined) {
+        const balance = data.overtimeBalance;
+        let balanceHtml = '';
+
+        if (balance >= 0) {
+            balanceHtml = `<span class="text-green-600">+${balance.toFixed(1)} Std</span>`;
+        } else {
+            balanceHtml = `<span class="text-red-600">${balance.toFixed(1)} Std</span>`;
+        }
+
+        balanceElement.innerHTML = balanceHtml;
+    }
+}
+
+// Hilfsfunktion: Benachrichtigungen anzeigen
+function showNotification(message, type = 'info') {
+    // Erstelle ein einfaches Notification-Element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 max-w-sm w-full p-4 rounded-md shadow-lg transform transition-all duration-300 ${
+        type === 'success' ? 'bg-green-100 border border-green-500 text-green-700' :
+            type === 'error' ? 'bg-red-100 border border-red-500 text-red-700' :
+                'bg-blue-100 border border-blue-500 text-blue-700'
+    }`;
+
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                ${type === 'success' ?
+        '<svg class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' :
+        type === 'error' ?
+            '<svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>' :
+            '<svg class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+    }
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium">${message}</p>
+            </div>
+            <div class="ml-auto pl-3">
+                <button onclick="this.parentElement.parentElement.parentElement.remove()" class="inline-flex text-gray-400 hover:text-gray-600">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Animation beim Erscheinen
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+
+    // Automatisch nach 5 Sekunden entfernen
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 300);
+        }
+    }, 5000);
+}
+
+// Überstunden-Chart initialisieren (falls Chart.js verfügbar ist)
+function initializeOvertimeChart() {
+    const canvas = document.getElementById('overtimeChart');
+    if (!canvas || typeof Chart === 'undefined') {
+        return;
+    }
+
+    // Verhindere mehrfache Initialisierung
+    if (canvas.chart) {
+        return;
+    }
+
+    // Beispiel-Daten - diese sollten vom Server kommen
+    const weeklyData = window.employeeWeeklyData || [];
+
+    if (weeklyData.length === 0) {
+        canvas.style.display = 'none';
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
+
+    canvas.chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: weeklyData.map(entry => `KW ${entry.weekNumber}`),
+            datasets: [{
+                label: 'Überstunden',
+                data: weeklyData.map(entry => entry.overtimeHours),
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Stunden'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Kalenderwoche'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed.y;
+                            return value >= 0 ? `+${value.toFixed(1)} Std` : `${value.toFixed(1)} Std`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
