@@ -58,6 +58,7 @@ func InitializeRoutes(router *gin.Engine) {
 		// Handler erstellen
 		userHandler := handler.NewUserHandler()
 		systemSettingsHandler := handler.NewSystemSettingsHandler()
+		holidayHandler := handler.NewHolidayHandler()
 
 		// Root-Pfad zum Dashboard umleiten
 		router.GET("/", func(c *gin.Context) {
@@ -427,12 +428,19 @@ func InitializeRoutes(router *gin.Engine) {
 
 		// Einstellungsrouten (für alle Benutzer)
 		authorized.GET("/settings", userHandler.ShowSettings)
+
 		// System-Einstellungen Routen (nur für Admins)
 		authorized.POST("/api/settings/company-name", middleware.RoleMiddleware(model.RoleAdmin), systemSettingsHandler.UpdateCompanyName)
 		authorized.POST("/api/settings/language", middleware.RoleMiddleware(model.RoleAdmin), systemSettingsHandler.UpdateLanguage)
 		authorized.POST("/api/settings/state", middleware.RoleMiddleware(model.RoleAdmin), systemSettingsHandler.UpdateState)
 		authorized.GET("/api/settings", systemSettingsHandler.GetSystemSettings)
 		authorized.POST("/api/settings", middleware.RoleMiddleware(model.RoleAdmin), systemSettingsHandler.UpdateSystemSettings)
+
+		// Feiertags-API Routen
+		authorized.GET("/api/holidays", holidayHandler.GetHolidays)
+		authorized.GET("/api/holidays/check", holidayHandler.CheckHoliday)
+		authorized.GET("/api/holidays/working-days", holidayHandler.GetWorkingDays)
+		authorized.GET("/api/holidays/current-year", holidayHandler.GetCurrentYearHolidays)
 
 		// Benutzerverwaltungsrouten (mit rollenbasierter Zugriffssteuerung)
 		authorized.GET("/users", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), userHandler.ListUsers)
