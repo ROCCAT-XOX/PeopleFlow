@@ -258,8 +258,8 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 		hideSalary = false
 	}
 
-	// Mitarbeiter anhand der ID abrufen
-	employee, err := h.employeeRepo.FindByID(id)
+	// Mitarbeiter inklusive Anpassungen laden
+	employee, err := h.employeeRepo.FindByIDWithAdjustments(id)
 	if err != nil {
 		c.HTML(http.StatusNotFound, "error.html", gin.H{
 			"title":      "Fehler",
@@ -373,6 +373,9 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 		projectHours = append(projectHours, hours)
 	}
 
+	// Überstunden-Details berechnen
+	overtimeDetails := employee.GetOvertimeBalanceWithDetails()
+
 	// Format total hours with 2 decimal places
 	totalHoursFormatted := fmt.Sprintf("%.2f", totalHours)
 
@@ -399,6 +402,7 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 		"endDate":           endDate,
 		"projectLabels":     projectLabels,
 		"projectHours":      projectHours,
+		"overtimeDetails":   overtimeDetails,
 	})
 }
 

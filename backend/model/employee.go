@@ -344,3 +344,41 @@ func (e *Employee) FormatAdjustedOvertimeBalance() string {
 	}
 	return fmt.Sprintf("%.2f Std", balance)
 }
+
+// GetApprovedAdjustments gibt alle genehmigten Anpassungen zurück
+func (e *Employee) GetApprovedAdjustments() []OvertimeAdjustment {
+	var approved []OvertimeAdjustment
+	for _, adjustment := range e.OvertimeAdjustments {
+		if adjustment.Status == "approved" {
+			approved = append(approved, adjustment)
+		}
+	}
+	return approved
+}
+
+// CalculateFinalOvertimeBalance berechnet das finale Überstunden-Saldo inklusive aller Anpassungen
+func (e *Employee) CalculateFinalOvertimeBalance() float64 {
+	baseBalance := e.OvertimeBalance
+	adjustmentsTotal := e.GetTotalAdjustments()
+	return baseBalance + adjustmentsTotal
+}
+
+// GetOvertimeBalanceWithDetails gibt detaillierte Überstunden-Informationen zurück
+func (e *Employee) GetOvertimeBalanceWithDetails() map[string]interface{} {
+	baseBalance := e.OvertimeBalance
+	adjustmentsTotal := e.GetTotalAdjustments()
+	finalBalance := baseBalance + adjustmentsTotal
+
+	return map[string]interface{}{
+		"baseBalance":      baseBalance,
+		"adjustmentsTotal": adjustmentsTotal,
+		"finalBalance":     finalBalance,
+		"adjustmentCount":  len(e.GetApprovedAdjustments()),
+	}
+}
+
+// UpdateOvertimeBalance aktualisiert das Basis-Überstunden-Saldo (ohne Anpassungen)
+func (e *Employee) UpdateOvertimeBalance(newBalance float64) {
+	e.OvertimeBalance = newBalance
+	e.LastTimeCalculated = time.Now()
+}

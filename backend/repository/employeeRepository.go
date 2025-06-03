@@ -322,3 +322,64 @@ func (r *EmployeeRepository) FindByErfasst123ID(erfasst123ID string) (*model.Emp
 
 	return &employee, nil
 }
+
+// UpdateEmployeeWithAdjustments aktualisiert einen Mitarbeiter und lädt seine Anpassungen
+func (r *EmployeeRepository) UpdateEmployeeWithAdjustments(employee *model.Employee) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Zuerst den Mitarbeiter aktualisieren
+	employee.UpdatedAt = time.Now()
+
+	_, err := r.collection.UpdateOne(
+		ctx,
+		bson.M{"_id": employee.ID},
+		bson.M{"$set": employee},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	// Dann die aktuellen Anpassungen laden und dem Mitarbeiter zuweisen
+	adjustmentRepo := NewOvertimeAdjustmentRepository()
+	adjustments, err := adjustmentRepo.FindByEmployeeID(employee.ID.Hex())
+	if err != nil {
+		// Fehler beim Laden der Anpassungen loggen, aber nicht den ganzen Update fehlschlagen lassen
+		fmt.Printf("Warning: Could not load overtime adjustments for employee %s: %v\n", employee.ID.Hex(), err)
+		return nil
+	}
+
+	// Anpassungen in das Employee-Objekt kopieren
+	employee.OvertimeAdjustments = make([]model.OvertimeAdjustment, len(adjustments))
+	for i, adj := range adjustments {
+		employee.OvertimeAdjustments[i] = *adj
+	}
+
+	return nil
+}
+
+// FindByIDWithAdjustments lädt einen Mitarbeiter inklusive seiner Überstunden-Anpassungen
+func (r *EmployeeRepository) FindByIDWithAdjustments(id string) (*model.Employee, error) {
+	// Zuerst den normalen Mitarbeiter laden
+	employee, err := r.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Dann die Anpassungen laden
+	adjustmentRepo := NewOvertimeAdjustmentRepository()
+	adjustments, err := adjustmentRepo.FindByEmployeeID(id)
+	if err != nil {
+		// Bei Fehlern beim Laden der Anpassungen, leere Liste verwenden
+		adjustments = []*model.OvertimeAdjustment{}
+	}
+
+	// Anpassungen in das Employee-Objekt kopieren
+	employee.OvertimeAdjustments = make([]model.OvertimeAdjustment, len(adjustments))
+	for i, adj := range adjustments {
+		employee.OvertimeAdjustments[i] = *adj
+	}
+
+	return employee, nil
+}

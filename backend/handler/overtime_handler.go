@@ -27,7 +27,6 @@ type OvertimeEmployeeSummary struct {
 	WorkTimeModel   string    `json:"workTimeModel"`
 }
 
-// GetOvertimeView zeigt die Überstunden-Übersicht an
 func (h *OvertimeHandler) GetOvertimeView(c *gin.Context) {
 	// Aktuellen Benutzer aus dem Context abrufen
 	user, _ := c.Get("user")
@@ -48,6 +47,7 @@ func (h *OvertimeHandler) GetOvertimeView(c *gin.Context) {
 	// Überstunden-Zusammenfassung für alle Mitarbeiter erstellen
 	var overtimeEmployees []OvertimeEmployeeSummary
 	var totalOvertimeBalance float64
+	var totalFinalBalance float64 // Neue Variable für finales Saldo
 	var positiveCount, negativeCount, neutralCount int
 
 	for _, emp := range employees {
@@ -56,24 +56,43 @@ func (h *OvertimeHandler) GetOvertimeView(c *gin.Context) {
 			continue
 		}
 
+		// Anpassungen für diesen Mitarbeiter laden
+		adjustments, err := h.overtimeAdjustmentRepo.FindByEmployeeID(emp.ID.Hex())
+		if err == nil {
+			emp.OvertimeAdjustments = make([]model.OvertimeAdjustment, len(adjustments))
+			for i, adj := range adjustments {
+				emp.OvertimeAdjustments[i] = *adj
+			}
+		}
+
 		// Gesamtstunden berechnen
 		var totalHours float64
 		for _, entry := range emp.TimeEntries {
 			totalHours += entry.Duration
 		}
 
-		// Überstunden-Status bestimmen
-		status := emp.GetOvertimeStatus()
-		switch status {
-		case "positive":
+		// Basis-Überstunden-Saldo
+		baseBalance := emp.OvertimeBalance
+		// Anpassungen-Saldo
+		adjustmentsTotal := emp.GetTotalAdjustments()
+		// Finales Saldo
+		finalBalance := baseBalance + adjustmentsTotal
+
+		// Überstunden-Status basierend auf finalem Saldo bestimmen
+		var status string
+		if finalBalance > 0 {
+			status = "positive"
 			positiveCount++
-		case "negative":
+		} else if finalBalance < 0 {
+			status = "negative"
 			negativeCount++
-		default:
+		} else {
+			status = "neutral"
 			neutralCount++
 		}
 
-		totalOvertimeBalance += emp.OvertimeBalance
+		totalOvertimeBalance += baseBalance
+		totalFinalBalance += finalBalance
 
 		// Mitarbeiter-Zusammenfassung erstellen
 		overtimeSummary := OvertimeEmployeeSummary{
@@ -83,7 +102,7 @@ func (h *OvertimeHandler) GetOvertimeView(c *gin.Context) {
 			HasProfileImage: len(emp.ProfileImageData.Data) > 0,
 			WeeklyTarget:    emp.GetWeeklyTargetHours(),
 			TotalHours:      totalHours,
-			OvertimeBalance: emp.OvertimeBalance,
+			OvertimeBalance: finalBalance, // Verwende finales Saldo statt Basis-Saldo
 			OvertimeStatus:  status,
 			LastCalculated:  emp.LastTimeCalculated,
 			WorkTimeModel:   emp.WorkTimeModel.GetDisplayName(),
@@ -92,7 +111,7 @@ func (h *OvertimeHandler) GetOvertimeView(c *gin.Context) {
 		overtimeEmployees = append(overtimeEmployees, overtimeSummary)
 	}
 
-	// Nach Überstunden-Saldo sortieren (höchste zuerst)
+	// Nach finalem Überstunden-Saldo sortieren (höchste zuerst)
 	sort.Slice(overtimeEmployees, func(i, j int) bool {
 		return overtimeEmployees[i].OvertimeBalance > overtimeEmployees[j].OvertimeBalance
 	})
@@ -127,7 +146,6 @@ func (h *OvertimeHandler) GetOvertimeView(c *gin.Context) {
 	if userRole == string(model.RoleAdmin) || userRole == string(model.RoleManager) {
 		pendingAdjustments, err = h.overtimeAdjustmentRepo.FindPending()
 		if err != nil {
-			// Fehler beim Laden der ausstehenden Anpassungen - loggen, aber nicht den ganzen Request fehlschlagen lassen
 			fmt.Printf("Error loading pending adjustments: %v\n", err)
 			pendingAdjustments = []*model.OvertimeAdjustment{}
 		}
@@ -144,7 +162,8 @@ func (h *OvertimeHandler) GetOvertimeView(c *gin.Context) {
 		"userRole":                    userRole,
 		"employeeSummaryWithOvertime": overtimeEmployees,
 		"totalEmployees":              len(overtimeEmployees),
-		"totalOvertimeBalance":        totalOvertimeBalance,
+		"totalOvertimeBalance":        totalFinalBalance,    // Verwende finales Saldo
+		"totalBaseBalance":            totalOvertimeBalance, // Zusätzlich Basis-Saldo für Vergleich
 		"positiveCount":               positiveCount,
 		"negativeCount":               negativeCount,
 		"neutralCount":                neutralCount,

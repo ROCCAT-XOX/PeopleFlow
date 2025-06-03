@@ -919,13 +919,21 @@ function updateAdjustmentsSummary(adjustments) {
     const approvedAdjustments = adjustments.filter(adj => adj.status === 'approved');
     const totalAdjustments = approvedAdjustments.reduce((sum, adj) => sum + adj.hours, 0);
 
-    // Berechnetes Saldo aus Template
-    const calculatedBalance = parseFloat('{{.employee.OvertimeBalance}}') || 0;
+    // Berechnetes Basis-Saldo aus Template
+    const calculatedBalance = parseFloat(document.querySelector('[data-overtime-base]')?.getAttribute('data-overtime-base')) || 0;
     const finalBalance = calculatedBalance + totalAdjustments;
 
     // UI aktualisieren
     const adjustmentsTotalEl = document.getElementById('adjustmentsTotal');
     const finalBalanceEl = document.getElementById('finalBalance');
+    const calculatedBalanceEl = document.getElementById('calculatedBalance');
+
+    if (calculatedBalanceEl) {
+        calculatedBalanceEl.textContent = calculatedBalance >= 0 ?
+            `+${calculatedBalance.toFixed(1)} Std` :
+            `${calculatedBalance.toFixed(1)} Std`;
+        calculatedBalanceEl.className = `font-medium ${calculatedBalance >= 0 ? 'text-green-600' : 'text-red-600'}`;
+    }
 
     if (adjustmentsTotalEl) {
         adjustmentsTotalEl.textContent = totalAdjustments >= 0 ?
@@ -939,6 +947,16 @@ function updateAdjustmentsSummary(adjustments) {
             `+${finalBalance.toFixed(1)} Std` :
             `${finalBalance.toFixed(1)} Std`;
         finalBalanceEl.className = `font-medium text-lg ${finalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`;
+    }
+
+    // Auch das Haupt-Überstunden-Display aktualisieren
+    const currentOvertimeBalance = document.getElementById('currentOvertimeBalance');
+    if (currentOvertimeBalance) {
+        if (finalBalance >= 0) {
+            currentOvertimeBalance.innerHTML = `<span class="text-green-600">+${finalBalance.toFixed(1)} Std</span>`;
+        } else {
+            currentOvertimeBalance.innerHTML = `<span class="text-red-600">${finalBalance.toFixed(1)} Std</span>`;
+        }
     }
 }
 
