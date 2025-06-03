@@ -71,6 +71,8 @@ type Employee struct {
 	OvertimeBalance    float64           `bson:"overtimeBalance" json:"overtimeBalance"`       // Saldo Überstunden in Stunden
 	LastTimeCalculated time.Time         `bson:"lastTimeCalculated" json:"lastTimeCalculated"` // Letztes Berechnungsdatum
 	WeeklyTimeEntries  []WeeklyTimeEntry `bson:"weeklyTimeEntries" json:"weeklyTimeEntries"`   // Wöchentliche Zusammenfassungen
+	// Überstunden-Anpassungen
+	OvertimeAdjustments []OvertimeAdjustment `bson:"overtimeAdjustments" json:"overtimeAdjustments"`
 
 	// Finanzielle Daten
 	Salary          float64 `bson:"salary" json:"salary"`
@@ -316,4 +318,29 @@ func (e *Employee) GetOvertimeStatus() string {
 		return "negative"
 	}
 	return "neutral"
+}
+
+// GetTotalAdjustments berechnet die Summe aller genehmigten manuellen Anpassungen
+func (e *Employee) GetTotalAdjustments() float64 {
+	total := 0.0
+	for _, adjustment := range e.OvertimeAdjustments {
+		if adjustment.Status == "approved" {
+			total += adjustment.Hours
+		}
+	}
+	return total
+}
+
+// GetAdjustedOvertimeBalance gibt das Überstunden-Saldo inklusive manueller Anpassungen zurück
+func (e *Employee) GetAdjustedOvertimeBalance() float64 {
+	return e.OvertimeBalance + e.GetTotalAdjustments()
+}
+
+// FormatAdjustedOvertimeBalance formatiert das angepasste Überstunden-Saldo zur Anzeige
+func (e *Employee) FormatAdjustedOvertimeBalance() string {
+	balance := e.GetAdjustedOvertimeBalance()
+	if balance >= 0 {
+		return fmt.Sprintf("+%.2f Std", balance)
+	}
+	return fmt.Sprintf("%.2f Std", balance)
 }

@@ -856,7 +856,7 @@
             </div>
         </div>
 
-        <!-- 9. Überstunden Tab -->
+        <!-- 9. Überstunden Tab - Kompletter Ersatz -->
         <div id="overtime-tab" class="tab-content hidden space-y-6">
             <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                 <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
@@ -876,7 +876,7 @@
                 <div class="px-4 py-5 sm:px-6 border-t border-gray-200">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div class="bg-gray-50 rounded-lg p-4">
-                            <div class="text-sm font-medium text-gray-500">Aktuelles Saldo</div>
+                            <div class="text-sm font-medium text-gray-500">Berechnetes Saldo</div>
                             <div id="currentOvertimeBalance" class="mt-1 text-3xl font-semibold">
                                 {{if .employee.OvertimeBalance}}
                                 {{if ge .employee.OvertimeBalance 0}}
@@ -977,12 +977,12 @@
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         {{if .IsComplete}}
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                    Abgeschlossen
-                                                </span>
+                                    Abgeschlossen
+                                </span>
                                         {{else}}
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                    Laufend
-                                                </span>
+                                    Laufend
+                                </span>
                                         {{end}}
                                     </td>
                                 </tr>
@@ -1008,6 +1008,173 @@
                         </div>
                         {{end}}
                     </div>
+                </div>
+
+                <!-- Manuelle Anpassungen Sektion -->
+                <div class="border-t border-gray-200">
+                    <div class="px-4 py-5 sm:px-6">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h4 class="text-md font-medium text-gray-900 mb-2">Manuelle Anpassungen</h4>
+                                <p class="text-sm text-gray-500">Historie aller manuellen Überstunden-Korrekturen</p>
+                            </div>
+                            {{if or (eq .userRole "admin") (eq .userRole "manager") (eq .userRole "hr")}}
+                            <button onclick="addOvertimeAdjustment('{{.employee.ID.Hex}}')" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                Anpassung hinzufügen
+                            </button>
+                            {{end}}
+                        </div>
+
+                        <div id="adjustmentsContainer" class="mt-4">
+                            <!-- Wird dynamisch mit JavaScript gefüllt -->
+                            <div class="text-center py-8">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto"></div>
+                                <p class="mt-2 text-sm text-gray-500">Lade Anpassungen...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aktueller Saldo mit Anpassungen -->
+                <div class="border-t border-gray-200">
+                    <div class="px-4 py-5 sm:px-6">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-3 flex-1">
+                                    <h3 class="text-sm font-medium text-blue-800">Gesamtsaldo</h3>
+                                    <div class="mt-1 text-sm text-blue-700">
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div>
+                                                <span class="block text-xs text-blue-600">Berechnet:</span>
+                                                <span id="calculatedBalance" class="font-medium">
+                                            {{if .employee.OvertimeBalance}}
+                                            {{if ge .employee.OvertimeBalance 0}}
+                                            +{{printf "%.1f" .employee.OvertimeBalance}} Std
+                                            {{else}}
+                                            {{printf "%.1f" .employee.OvertimeBalance}} Std
+                                            {{end}}
+                                            {{else}}
+                                            0.0 Std
+                                            {{end}}
+                                        </span>
+                                            </div>
+                                            <div>
+                                                <span class="block text-xs text-blue-600">Anpassungen:</span>
+                                                <span id="adjustmentsTotal" class="font-medium">+0.0 Std</span>
+                                            </div>
+                                            <div>
+                                                <span class="block text-xs text-blue-600">Gesamt:</span>
+                                                <span id="finalBalance" class="font-medium text-lg">
+                                            {{if .employee.OvertimeBalance}}
+                                            {{if ge .employee.OvertimeBalance 0}}
+                                            +{{printf "%.1f" .employee.OvertimeBalance}} Std
+                                            {{else}}
+                                            {{printf "%.1f" .employee.OvertimeBalance}} Std
+                                            {{end}}
+                                            {{else}}
+                                            0.0 Std
+                                            {{end}}
+                                        </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal für manuelle Überstunden-Anpassung -->
+        <div id="addOvertimeAdjustmentModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" aria-hidden="true"></div>
+                <div class="relative bg-white rounded-lg max-w-lg w-full mx-auto shadow-xl">
+                    <div class="flex justify-between items-center px-6 py-4 border-b">
+                        <h3 class="text-lg font-medium text-gray-900">Überstunden-Anpassung</h3>
+                        <button type="button" onclick="closeModal('addOvertimeAdjustmentModal')" class="text-gray-400 hover:text-gray-500">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    <form id="addOvertimeAdjustmentForm" class="px-6 py-4">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="overtimeAdjustmentType" class="block text-sm font-medium text-gray-700">Art der Anpassung *</label>
+                                <select name="type" id="overtimeAdjustmentType" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                                    <option value="">Bitte wählen...</option>
+                                    <option value="correction">Korrektur (Fehler in Zeiterfassung)</option>
+                                    <option value="manual">Manuelle Anpassung</option>
+                                    <option value="bonus">Bonus/Ausgleich</option>
+                                    <option value="penalty">Abzug</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label for="overtimeAdjustmentHours" class="block text-sm font-medium text-gray-700">Stunden *</label>
+                                <div class="mt-1 relative rounded-md shadow-sm">
+                                    <input type="number" name="hours" id="overtimeAdjustmentHours" step="0.1" required
+                                           class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                                           placeholder="z.B. 2.5 oder -1.0">
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">Std</span>
+                                    </div>
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">Positive Werte erhöhen das Überstunden-Konto, negative reduzieren es.</p>
+                            </div>
+
+                            <div>
+                                <label for="overtimeAdjustmentReason" class="block text-sm font-medium text-gray-700">Begründung *</label>
+                                <input type="text" name="reason" id="overtimeAdjustmentReason" required
+                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                                       placeholder="Kurze Begründung für die Anpassung">
+                            </div>
+
+                            <div>
+                                <label for="overtimeAdjustmentDescription" class="block text-sm font-medium text-gray-700">Detaillierte Beschreibung</label>
+                                <textarea name="description" id="overtimeAdjustmentDescription" rows="3"
+                                          class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                                          placeholder="Weitere Details zur Anpassung (optional)"></textarea>
+                            </div>
+
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-5 w-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <h3 class="text-sm font-medium text-yellow-800">Hinweis</h3>
+                                        <div class="mt-1 text-sm text-yellow-700">
+                                            <p>Diese Anpassung muss von einem Administrator oder Manager genehmigt werden, bevor sie wirksam wird.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <input type="hidden" name="employeeId" id="overtimeAdjustmentEmployeeId" value="">
+
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <button type="button" onclick="closeModal('addOvertimeAdjustmentModal')" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                Abbrechen
+                            </button>
+                            <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                Anpassung einreichen
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -1370,6 +1537,77 @@
 {{ template "footer" . }}
 <script src="/static/js/employee_detail_advanced.js"></script>
 <script>
+    // Überstunden-Anpassung hinzufügen
+    function addOvertimeAdjustment(employeeId) {
+        document.getElementById('overtimeAdjustmentEmployeeId').value = employeeId;
+
+        // Formular zurücksetzen
+        document.getElementById('addOvertimeAdjustmentForm').reset();
+        document.getElementById('overtimeAdjustmentEmployeeId').value = employeeId;
+
+        openModal('addOvertimeAdjustmentModal');
+    }
+
+    // Event-Listener für Anpassungsformular hinzufügen (im DOMContentLoaded)
+    const addOvertimeAdjustmentForm = document.getElementById('addOvertimeAdjustmentForm');
+    if (addOvertimeAdjustmentForm) {
+        addOvertimeAdjustmentForm.addEventListener('submit', submitOvertimeAdjustment);
+    }
+
+    // Anpassung einreichen
+    function submitOvertimeAdjustment(event) {
+        event.preventDefault();
+
+        const formData = new FormData(event.target);
+        const employeeId = formData.get('employeeId');
+
+        // Validierung
+        const hours = parseFloat(formData.get('hours'));
+        if (isNaN(hours)) {
+            alert('Bitte geben Sie eine gültige Stundenanzahl ein.');
+            return;
+        }
+
+        const reason = formData.get('reason').trim();
+        if (!reason) {
+            alert('Bitte geben Sie eine Begründung an.');
+            return;
+        }
+
+        // Button deaktivieren
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Wird eingereicht...';
+
+        // API-Aufruf
+        fetch(`/api/overtime/employee/${employeeId}/adjustment`, {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeModal('addOvertimeAdjustmentModal');
+                    showNotification('Überstunden-Anpassung wurde eingereicht und wartet auf Genehmigung.', 'success');
+
+                    // Anpassungen neu laden
+                    setTimeout(() => {
+                        loadEmployeeAdjustments();
+                    }, 500);
+                } else {
+                    throw new Error(data.error || 'Fehler beim Einreichen der Anpassung');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Fehler beim Einreichen der Anpassung: ' + error.message, 'error');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+    }
 
 </script>
 </body>

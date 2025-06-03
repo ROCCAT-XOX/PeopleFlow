@@ -460,6 +460,11 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.POST("/api/overtime/recalculate", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), overtimeHandler.RecalculateAllOvertime)
 		authorized.GET("/api/overtime/export", overtimeHandler.ExportOvertimeData)
 		authorized.GET("/api/overtime/employee/:id", overtimeHandler.GetEmployeeOvertimeDetails)
+		// Überstunden-Anpassungen Routen
+		authorized.POST("/api/overtime/employee/:id/adjustment", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), overtimeHandler.AddOvertimeAdjustment)
+		authorized.GET("/api/overtime/employee/:id/adjustments", overtimeHandler.GetEmployeeAdjustments)
+		authorized.POST("/api/overtime/adjustments/:adjustmentId/approve", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), overtimeHandler.ApproveAdjustment)
+		authorized.GET("/api/overtime/adjustments/pending", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), overtimeHandler.GetPendingAdjustments)
 
 		// Dokument-Routen
 		authorized.POST("/employees/:id/documents", documentHandler.UploadDocument)

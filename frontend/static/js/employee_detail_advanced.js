@@ -11,6 +11,11 @@ document.addEventListener('DOMContentLoaded', function() {
         initVacationFilters();
     }
 
+    // Anpassungen für Überstunden-Tab laden
+    if (document.getElementById('overtime-tab')) {
+        loadEmployeeAdjustments();
+    }
+
     // Form-Handler initialisieren
     initFormHandlers();
 });
@@ -794,3 +799,213 @@ function initializeOvertimeChart() {
         }
     });
 }
+
+//========================================== OVERTIME ADJUSTMENT ==================================
+
+function loadEmployeeAdjustments() {
+    const employeeId = getEmployeeIdFromUrl();
+    if (!employeeId) return;
+
+    fetch(`/api/overtime/employee/${employeeId}/adjustments`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayEmployeeAdjustments(data.data);
+                updateAdjustmentsSummary(data.data);
+            } else {
+                displayAdjustmentsError('Fehler beim Laden der Anpassungen');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading adjustments:', error);
+            displayAdjustmentsError('Fehler beim Laden der Anpassungen');
+        });
+}
+
+// Anpassungen anzeigen
+function displayEmployeeAdjustments(adjustments) {
+    const container = document.getElementById('adjustmentsContainer');
+    if (!container) return;
+
+    if (adjustments.length === 0) {
+        container.innerHTML = `
+      <div class="text-center py-8">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 4a7.962 7.962 0 016 2.291M6 20.291A7.962 7.962 0 014 12a7.962 7.962 0 012-8.291"></path>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Anpassungen</h3>
+        <p class="mt-1 text-sm text-gray-500">Für diesen Mitarbeiter wurden noch keine manuellen Überstunden-Anpassungen vorgenommen.</p>
+      </div>
+    `;
+        return;
+    }
+
+    const html = adjustments.map(adjustment => {
+        const hoursClass = adjustment.hours >= 0 ? 'text-green-600' : 'text-red-600';
+        const hoursText = adjustment.hours >= 0 ? `+${adjustment.hours.toFixed(1)}` : adjustment.hours.toFixed(1);
+        const statusClass = getStatusClass(adjustment.status);
+
+        return `
+      <div class="border border-gray-200 rounded-lg p-4 mb-4">
+        <div class="flex justify-between items-start">
+          <div class="flex-1">
+            <div class="flex items-center space-x-3 mb-2">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                ${getAdjustmentTypeDisplay(adjustment.type)}
+              </span>
+              <span class="text-lg font-medium ${hoursClass}">${hoursText} Std</span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
+                ${getStatusDisplay(adjustment.status)}
+              </span>
+            </div>
+            
+            <h4 class="text-sm font-medium text-gray-900 mb-1">${adjustment.reason}</h4>
+            ${adjustment.description ? `<p class="text-sm text-gray-600 mb-2">${adjustment.description}</p>` : ''}
+            
+            <div class="text-xs text-gray-500">
+              <div>Eingereicht von ${adjustment.adjusterName} am ${new Date(adjustment.createdAt).toLocaleDateString('de-DE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        })}</div>
+              ${adjustment.approverName ? `
+                <div class="mt-1">
+                  ${adjustment.status === 'approved' ? 'Genehmigt' : 'Abgelehnt'} von ${adjustment.approverName} 
+                  am ${new Date(adjustment.approvedAt).toLocaleDateString('de-DE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        })}
+                </div>
+              ` : ''}
+            </div>
+          </div>
+          
+          ${adjustment.status === 'pending' && (window.userRole === 'admin' || window.userRole === 'manager') ? `
+            <div class="flex space-x-2 ml-4">
+              <button onclick="approveEmployeeAdjustment('${adjustment.id}', 'approve')" 
+                      class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200">
+                Genehmigen
+              </button>
+              <button onclick="approveEmployeeAdjustment('${adjustment.id}', 'reject')" 
+                      class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200">
+                Ablehnen
+              </button>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+    }).join('');
+
+    container.innerHTML = html;
+}
+
+// Anpassungs-Zusammenfassung aktualisieren
+function updateAdjustmentsSummary(adjustments) {
+    const approvedAdjustments = adjustments.filter(adj => adj.status === 'approved');
+    const totalAdjustments = approvedAdjustments.reduce((sum, adj) => sum + adj.hours, 0);
+
+    // Berechnetes Saldo aus Template
+    const calculatedBalance = parseFloat('{{.employee.OvertimeBalance}}') || 0;
+    const finalBalance = calculatedBalance + totalAdjustments;
+
+    // UI aktualisieren
+    const adjustmentsTotalEl = document.getElementById('adjustmentsTotal');
+    const finalBalanceEl = document.getElementById('finalBalance');
+
+    if (adjustmentsTotalEl) {
+        adjustmentsTotalEl.textContent = totalAdjustments >= 0 ?
+            `+${totalAdjustments.toFixed(1)} Std` :
+            `${totalAdjustments.toFixed(1)} Std`;
+        adjustmentsTotalEl.className = `font-medium ${totalAdjustments >= 0 ? 'text-green-600' : 'text-red-600'}`;
+    }
+
+    if (finalBalanceEl) {
+        finalBalanceEl.textContent = finalBalance >= 0 ?
+            `+${finalBalance.toFixed(1)} Std` :
+            `${finalBalance.toFixed(1)} Std`;
+        finalBalanceEl.className = `font-medium text-lg ${finalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`;
+    }
+}
+
+// Anpassung genehmigen (für Employee Detail View)
+function approveEmployeeAdjustment(adjustmentId, action) {
+    const formData = new FormData();
+    formData.append('action', action);
+
+    fetch(`/api/overtime/adjustments/${adjustmentId}/approve`, {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const message = action === 'approve' ? 'Anpassung wurde genehmigt.' : 'Anpassung wurde abgelehnt.';
+                showNotification(message, 'success');
+
+                // Anpassungen neu laden
+                setTimeout(() => {
+                    loadEmployeeAdjustments();
+                }, 500);
+            } else {
+                throw new Error(data.error || 'Fehler beim Verarbeiten der Anpassung');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Fehler: ' + error.message, 'error');
+        });
+}
+
+// Hilfsfunktionen für Anzeigenamen
+function getAdjustmentTypeDisplay(type) {
+    const types = {
+        'correction': 'Korrektur',
+        'manual': 'Manuelle Anpassung',
+        'bonus': 'Bonus/Ausgleich',
+        'penalty': 'Abzug'
+    };
+    return types[type] || type;
+}
+
+function getStatusDisplay(status) {
+    const statuses = {
+        'pending': 'Ausstehend',
+        'approved': 'Genehmigt',
+        'rejected': 'Abgelehnt'
+    };
+    return statuses[status] || status;
+}
+
+function getStatusClass(status) {
+    const classes = {
+        'pending': 'bg-yellow-100 text-yellow-800',
+        'approved': 'bg-green-100 text-green-800',
+        'rejected': 'bg-red-100 text-red-800'
+    };
+    return classes[status] || 'bg-gray-100 text-gray-800';
+}
+
+// Fehler beim Laden anzeigen
+function displayAdjustmentsError(message) {
+    const container = document.getElementById('adjustmentsContainer');
+    if (!container) return;
+
+    container.innerHTML = `
+    <div class="text-center py-8">
+      <svg class="mx-auto h-12 w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">Fehler</h3>
+      <p class="mt-1 text-sm text-gray-500">${message}</p>
+    </div>
+  `;
+}
+
+// Globale Variable für User Role (für Berechtigungsprüfungen)
+window.userRole = '{{.userRole}}';

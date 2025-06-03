@@ -6,24 +6,12 @@ import (
 	"PeopleFlow/backend/service"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"sort"
+	"strconv"
 	"time"
 )
-
-// OvertimeHandler verwaltet alle Überstunden-bezogenen Anfragen
-type OvertimeHandler struct {
-	employeeRepo       *repository.EmployeeRepository
-	timeAccountService *service.TimeAccountService
-}
-
-// NewOvertimeHandler erstellt einen neuen OvertimeHandler
-func NewOvertimeHandler() *OvertimeHandler {
-	return &OvertimeHandler{
-		employeeRepo:       repository.NewEmployeeRepository(),
-		timeAccountService: service.NewTimeAccountService(),
-	}
-}
 
 // OvertimeEmployeeSummary repräsentiert die Überstunden-Daten für einen Mitarbeiter
 type OvertimeEmployeeSummary struct {
@@ -257,5 +245,187 @@ func (h *OvertimeHandler) GetEmployeeOvertimeDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    overtimeSummary,
+	})
+}
+
+// =========================== OVERTIME ADJUSTMENT =========================================
+
+// Ergänzungen für backend/handler/overtime_handler.go
+
+// Neue Struktur für Overtime Handler hinzufügen:
+type OvertimeHandler struct {
+	employeeRepo           *repository.EmployeeRepository
+	timeAccountService     *service.TimeAccountService
+	overtimeAdjustmentRepo *repository.OvertimeAdjustmentRepository
+}
+
+// NewOvertimeHandler Konstruktor erweitern:
+func NewOvertimeHandler() *OvertimeHandler {
+	return &OvertimeHandler{
+		employeeRepo:           repository.NewEmployeeRepository(),
+		timeAccountService:     service.NewTimeAccountService(),
+		overtimeAdjustmentRepo: repository.NewOvertimeAdjustmentRepository(),
+	}
+}
+
+// Neue Handler-Methoden hinzufügen:
+
+// AddOvertimeAdjustment fügt eine manuelle Überstunden-Anpassung hinzu
+func (h *OvertimeHandler) AddOvertimeAdjustment(c *gin.Context) {
+	employeeID := c.Param("id")
+
+	// Formulardaten abrufen
+	adjustmentType := c.PostForm("type")
+	hoursStr := c.PostForm("hours")
+	reason := c.PostForm("reason")
+	description := c.PostForm("description")
+
+	// Validierung
+	if reason == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Begründung ist erforderlich"})
+		return
+	}
+
+	hours, err := strconv.ParseFloat(hoursStr, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültige Stundenangabe"})
+		return
+	}
+
+	// Mitarbeiter prüfen
+	employee, err := h.employeeRepo.FindByID(employeeID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden"})
+		return
+	}
+
+	// Aktuellen Benutzer abrufen
+	user, _ := c.Get("user")
+	userModel := user.(*model.User)
+
+	empObjID, _ := primitive.ObjectIDFromHex(employeeID)
+
+	// Anpassung erstellen
+	adjustment := &model.OvertimeAdjustment{
+		EmployeeID:   empObjID,
+		Type:         model.OvertimeAdjustmentType(adjustmentType),
+		Hours:        hours,
+		Reason:       reason,
+		Description:  description,
+		AdjustedBy:   userModel.ID,
+		AdjusterName: userModel.FirstName + " " + userModel.LastName,
+		Status:       "pending",
+	}
+
+	// In Datenbank speichern
+	err = h.overtimeAdjustmentRepo.Create(adjustment)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Speichern der Anpassung"})
+		return
+	}
+
+	// Aktivität loggen
+	activityRepo := repository.NewActivityRepository()
+	_, _ = activityRepo.LogActivity(
+		model.ActivityTypeEmployeeUpdated,
+		userModel.ID,
+		userModel.FirstName+" "+userModel.LastName,
+		employee.ID,
+		"employee",
+		employee.FirstName+" "+employee.LastName,
+		fmt.Sprintf("Manuelle Überstunden-Anpassung hinzugefügt: %s", adjustment.FormatHours()),
+	)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Überstunden-Anpassung wurde eingereicht und wartet auf Genehmigung",
+		"data":    adjustment,
+	})
+}
+
+// GetEmployeeAdjustments liefert alle Anpassungen für einen Mitarbeiter
+func (h *OvertimeHandler) GetEmployeeAdjustments(c *gin.Context) {
+	employeeID := c.Param("id")
+
+	adjustments, err := h.overtimeAdjustmentRepo.FindByEmployeeID(employeeID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Abrufen der Anpassungen"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    adjustments,
+	})
+}
+
+// ApproveAdjustment genehmigt eine Überstunden-Anpassung
+func (h *OvertimeHandler) ApproveAdjustment(c *gin.Context) {
+	adjustmentID := c.Param("adjustmentId")
+	action := c.PostForm("action") // "approve" oder "reject"
+
+	// Aktuellen Benutzer abrufen
+	user, _ := c.Get("user")
+	userModel := user.(*model.User)
+
+	// Status bestimmen
+	status := "approved"
+	if action == "reject" {
+		status = "rejected"
+	}
+
+	// Status aktualisieren
+	err := h.overtimeAdjustmentRepo.UpdateStatus(adjustmentID, status, userModel.ID, userModel.FirstName+" "+userModel.LastName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Aktualisieren des Status"})
+		return
+	}
+
+	// Anpassung abrufen für Logging
+	adjustment, err := h.overtimeAdjustmentRepo.FindByID(adjustmentID)
+	if err == nil {
+		// Mitarbeiter abrufen
+		employee, err := h.employeeRepo.FindByID(adjustment.EmployeeID.Hex())
+		if err == nil {
+			// Aktivität loggen
+			activityRepo := repository.NewActivityRepository()
+			actionText := "genehmigt"
+			if status == "rejected" {
+				actionText = "abgelehnt"
+			}
+			_, _ = activityRepo.LogActivity(
+				model.ActivityTypeEmployeeUpdated,
+				userModel.ID,
+				userModel.FirstName+" "+userModel.LastName,
+				employee.ID,
+				"employee",
+				employee.FirstName+" "+employee.LastName,
+				fmt.Sprintf("Überstunden-Anpassung %s: %s", actionText, adjustment.FormatHours()),
+			)
+		}
+	}
+
+	message := "Anpassung wurde genehmigt"
+	if status == "rejected" {
+		message = "Anpassung wurde abgelehnt"
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": message,
+	})
+}
+
+// GetPendingAdjustments liefert alle ausstehenden Anpassungen
+func (h *OvertimeHandler) GetPendingAdjustments(c *gin.Context) {
+	adjustments, err := h.overtimeAdjustmentRepo.FindPending()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Abrufen der ausstehenden Anpassungen"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    adjustments,
 	})
 }
