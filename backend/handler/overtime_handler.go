@@ -27,6 +27,22 @@ type OvertimeEmployeeSummary struct {
 	WorkTimeModel   string    `json:"workTimeModel"`
 }
 
+// OvertimeHandler verwaltet alle Anfragen zur Überstunden-Verwaltung
+type OvertimeHandler struct {
+	employeeRepo           *repository.EmployeeRepository
+	timeAccountService     *service.TimeAccountService
+	overtimeAdjustmentRepo *repository.OvertimeAdjustmentRepository
+}
+
+// NewOvertimeHandler erstellt einen neuen OvertimeHandler
+func NewOvertimeHandler() *OvertimeHandler {
+	return &OvertimeHandler{
+		employeeRepo:           repository.NewEmployeeRepository(),
+		timeAccountService:     service.NewTimeAccountService(),
+		overtimeAdjustmentRepo: repository.NewOvertimeAdjustmentRepository(),
+	}
+}
+
 func (h *OvertimeHandler) GetOvertimeView(c *gin.Context) {
 	// Aktuellen Benutzer aus dem Context abrufen
 	user, _ := c.Get("user")
@@ -314,6 +330,58 @@ func (h *OvertimeHandler) GetEmployeeOvertimeDetails(c *gin.Context) {
 	baseBalance := overtimeSummary.CurrentBalance
 	finalBalance := baseBalance + totalAdjustments
 
+	// Berechnete Statistiken aus verfügbaren Daten
+	var totalWorkedHours float64
+	var totalPlannedHours float64
+	var weeksCounted int
+	var averageWeeklyHours float64
+
+	// Werte aus WeeklyEntries berechnen, falls vorhanden
+	if overtimeSummary.WeeklyEntries != nil {
+		weeksCounted = len(overtimeSummary.WeeklyEntries)
+		for _, week := range overtimeSummary.WeeklyEntries {
+			totalWorkedHours += week.ActualHours
+			totalPlannedHours += week.PlannedHours
+		}
+		if weeksCounted > 0 {
+			averageWeeklyHours = totalWorkedHours / float64(weeksCounted)
+		}
+	}
+
+	// Fallback: Aus TimeEntries berechnen, falls WeeklyEntries nicht verfügbar
+	if weeksCounted == 0 {
+		for _, entry := range employee.TimeEntries {
+			totalWorkedHours += entry.Duration
+		}
+
+		// Groben Wochenschnitt berechnen
+		if len(employee.TimeEntries) > 0 {
+			// Annahme: Zeiteinträge über mehrere Wochen verteilt
+			firstDate := employee.TimeEntries[0].Date
+			lastDate := employee.TimeEntries[0].Date
+			for _, entry := range employee.TimeEntries {
+				if entry.Date.Before(firstDate) {
+					firstDate = entry.Date
+				}
+				if entry.Date.After(lastDate) {
+					lastDate = entry.Date
+				}
+			}
+
+			// Anzahl Wochen schätzen
+			daysDiff := lastDate.Sub(firstDate).Hours() / 24
+			estimatedWeeks := int(daysDiff/7) + 1
+			if estimatedWeeks > 0 {
+				weeksCounted = estimatedWeeks
+				averageWeeklyHours = totalWorkedHours / float64(estimatedWeeks)
+			}
+		}
+
+		// Geplante Stunden basierend auf Sollarbeitszeit
+		weeklyTarget := employee.GetWeeklyTargetHours()
+		totalPlannedHours = weeklyTarget * float64(weeksCounted)
+	}
+
 	// Erweiterte Response zusammenstellen
 	detailedResponse := gin.H{
 		"employeeId":        employee.ID.Hex(),
@@ -332,10 +400,10 @@ func (h *OvertimeHandler) GetEmployeeOvertimeDetails(c *gin.Context) {
 			"count":    len(adjustments),
 		},
 		"summary": gin.H{
-			"totalWorkedHours":   overtimeSummary.TotalWorkedHours,
-			"totalPlannedHours":  overtimeSummary.TotalPlannedHours,
-			"weeksCounted":       overtimeSummary.WeeksCounted,
-			"averageWeeklyHours": overtimeSummary.AverageWeeklyHours,
+			"totalWorkedHours":   totalWorkedHours,
+			"totalPlannedHours":  totalPlannedHours,
+			"weeksCounted":       weeksCounted,
+			"averageWeeklyHours": averageWeeklyHours,
 		},
 	}
 
@@ -344,28 +412,6 @@ func (h *OvertimeHandler) GetEmployeeOvertimeDetails(c *gin.Context) {
 		"data":    detailedResponse,
 	})
 }
-
-// =========================== OVERTIME ADJUSTMENT =========================================
-
-// Ergänzungen für backend/handler/overtime_handler.go
-
-// Neue Struktur für Overtime Handler hinzufügen:
-type OvertimeHandler struct {
-	employeeRepo           *repository.EmployeeRepository
-	timeAccountService     *service.TimeAccountService
-	overtimeAdjustmentRepo *repository.OvertimeAdjustmentRepository
-}
-
-// NewOvertimeHandler Konstruktor erweitern:
-func NewOvertimeHandler() *OvertimeHandler {
-	return &OvertimeHandler{
-		employeeRepo:           repository.NewEmployeeRepository(),
-		timeAccountService:     service.NewTimeAccountService(),
-		overtimeAdjustmentRepo: repository.NewOvertimeAdjustmentRepository(),
-	}
-}
-
-// Neue Handler-Methoden hinzufügen:
 
 // AddOvertimeAdjustment fügt eine manuelle Überstunden-Anpassung hinzu
 func (h *OvertimeHandler) AddOvertimeAdjustment(c *gin.Context) {

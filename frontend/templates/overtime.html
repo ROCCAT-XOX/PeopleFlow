@@ -863,9 +863,9 @@
       finalBalanceClass = 'text-red-600';
     }
 
-    // Wöchentliche Einträge aufbereiten
+    // Wöchentliche Einträge aufbereiten - mit Null-Check
     let weeklyEntriesHtml = '';
-    if (data.weeklyEntries && data.weeklyEntries.length > 0) {
+    if (data.weeklyEntries && Array.isArray(data.weeklyEntries) && data.weeklyEntries.length > 0) {
       data.weeklyEntries.slice(-8).forEach(entry => {
         const weekStart = new Date(entry.weekStartDate).toLocaleDateString('de-DE');
         const weekEnd = new Date(entry.weekEndDate).toLocaleDateString('de-DE');
@@ -886,9 +886,12 @@
       weeklyEntriesHtml = '<tr><td colspan="5" class="px-4 py-2 text-center text-gray-500">Keine Daten vorhanden</td></tr>';
     }
 
-    // Anpassungen aufbereiten
+    // Anpassungen aufbereiten - mit robuster Null-Prüfung
     let adjustmentsHtml = '';
-    if (data.adjustments && data.adjustments.approved && data.adjustments.approved.length > 0) {
+    if (data.adjustments &&
+            data.adjustments.approved &&
+            Array.isArray(data.adjustments.approved) &&
+            data.adjustments.approved.length > 0) {
       data.adjustments.approved.forEach(adjustment => {
         const adjustmentClass = adjustment.hours >= 0 ? 'text-green-600' : 'text-red-600';
         const adjustmentText = adjustment.hours >= 0 ? '+' + adjustment.hours.toFixed(1) : adjustment.hours.toFixed(1);
@@ -908,6 +911,18 @@
       adjustmentsHtml = '<tr><td colspan="5" class="px-4 py-2 text-center text-gray-500">Keine manuellen Anpassungen</td></tr>';
     }
 
+    // Sichere Zugriffe auf adjustments
+    const approvedCount = (data.adjustments && data.adjustments.approved && Array.isArray(data.adjustments.approved))
+            ? data.adjustments.approved.length
+            : 0;
+    const pendingCount = (data.adjustments && data.adjustments.pending && Array.isArray(data.adjustments.pending))
+            ? data.adjustments.pending.length
+            : 0;
+    const rejectedCount = (data.adjustments && data.adjustments.rejected && Array.isArray(data.adjustments.rejected))
+            ? data.adjustments.rejected.length
+            : 0;
+    const weeksCounted = (data.summary && data.summary.weeksCounted) ? data.summary.weeksCounted : 0;
+
     const content = `
         <div class="space-y-6">
             <!-- Saldo-Übersicht -->
@@ -920,7 +935,7 @@
                 <div class="bg-gray-50 rounded-lg p-4">
                     <div class="text-sm font-medium text-gray-500">Manuelle Anpassungen</div>
                     <div class="mt-1 text-2xl font-semibold ${adjustmentsClass}">${adjustmentsText} Std</div>
-                    <div class="text-xs text-gray-400">${data.adjustments.approved.length} Anpassung(en)</div>
+                    <div class="text-xs text-gray-400">${approvedCount} Anpassung(en)</div>
                 </div>
                 <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
                     <div class="text-sm font-medium text-blue-700">Finales Saldo</div>
@@ -986,15 +1001,15 @@
                     </div>
                     <div>
                         <span class="text-gray-500">Erfasste Wochen:</span>
-                        <div class="font-medium">${data.summary.weeksCounted || 0}</div>
+                        <div class="font-medium">${weeksCounted}</div>
                     </div>
                     <div>
                         <span class="text-gray-500">Ausstehende Anpassungen:</span>
-                        <div class="font-medium">${data.adjustments.pending.length}</div>
+                        <div class="font-medium">${pendingCount}</div>
                     </div>
                     <div>
                         <span class="text-gray-500">Abgelehnte Anpassungen:</span>
-                        <div class="font-medium">${data.adjustments.rejected.length}</div>
+                        <div class="font-medium">${rejectedCount}</div>
                     </div>
                 </div>
             </div>
