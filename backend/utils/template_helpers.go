@@ -143,7 +143,6 @@ func TemplateHelpers() template.FuncMap {
 		"neq": func(a, b interface{}) bool {
 			return fmt.Sprintf("%v", a) != fmt.Sprintf("%v", b)
 		},
-		// Erweiterte Vergleichsfunktionen für verschiedene Typen
 		"lt": func(a, b interface{}) bool {
 			return compareValues(a, b) < 0
 		},
@@ -156,10 +155,10 @@ func TemplateHelpers() template.FuncMap {
 		"gte": func(a, b interface{}) bool {
 			return compareValues(a, b) >= 0
 		},
-		"ge": func(a, b interface{}) bool { // Alias für gte
+		"ge": func(a, b interface{}) bool {
 			return compareValues(a, b) >= 0
 		},
-		"le": func(a, b interface{}) bool { // Alias für lte
+		"le": func(a, b interface{}) bool {
 			return compareValues(a, b) <= 0
 		},
 		"now": func() time.Time {
@@ -186,6 +185,14 @@ func TemplateHelpers() template.FuncMap {
 			}
 		},
 		"getInitials": GetInitials,
+		// NEU: time Funktion hinzufügen
+		"time": func() map[string]interface{} {
+			return map[string]interface{}{
+				"Now": map[string]interface{}{
+					"Year": time.Now().Year(),
+				},
+			}
+		},
 	}
 }
 
