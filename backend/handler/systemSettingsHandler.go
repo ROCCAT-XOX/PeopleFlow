@@ -151,20 +151,26 @@ func (h *SystemSettingsHandler) UpdateLanguage(c *gin.Context) {
 
 // UpdateState aktualisiert das Bundesland
 func (h *SystemSettingsHandler) UpdateState(c *gin.Context) {
+	// Zusätzliche Rollenprüfung
+	userRole, _ := c.Get("userRole")
+	if userRole != string(model.RoleAdmin) {
+		c.Redirect(http.StatusFound, "/settings?error=insufficient_permissions")
+		return
+	}
+
 	state := c.PostForm("state")
 	if state == "" {
 		c.Redirect(http.StatusFound, "/settings?error=empty_state")
 		return
 	}
 
-	// Aktuelle Einstellungen abrufen
+	// Rest der Funktion bleibt unverändert...
 	settings, err := h.settingsRepo.GetSettings()
 	if err != nil {
 		c.Redirect(http.StatusFound, "/settings?error=fetch_settings")
 		return
 	}
 
-	// Bundesland aktualisieren
 	settings.State = state
 	err = h.settingsRepo.Update(settings)
 	if err != nil {
@@ -172,7 +178,6 @@ func (h *SystemSettingsHandler) UpdateState(c *gin.Context) {
 		return
 	}
 
-	// Aktivität loggen
 	user, _ := c.Get("user")
 	userModel := user.(*model.User)
 
