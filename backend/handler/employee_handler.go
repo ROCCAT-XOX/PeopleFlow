@@ -848,3 +848,24 @@ func (h *EmployeeHandler) RecalculateEmployeeOvertime(c *gin.Context) {
 		},
 	})
 }
+
+// GetEmployeeName liefert nur den Namen eines Mitarbeiters (für AJAX-Anfragen)
+func GetEmployeeName(c *gin.Context) {
+	employeeID := c.Param("id")
+
+	employeeRepo := repository.NewEmployeeRepository()
+	employee, err := employeeRepo.FindByID(employeeID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "Mitarbeiter nicht gefunden",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"name":    employee.FirstName + " " + employee.LastName,
+		"id":      employee.ID.Hex(),
+	})
+}

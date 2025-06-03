@@ -31,7 +31,7 @@ func (r *OvertimeAdjustmentRepository) Create(adjustment *model.OvertimeAdjustme
 	defer cancel()
 
 	adjustment.CreatedAt = time.Now()
-	adjustment.Status = "pending" // Standardstatus
+	adjustment.UpdatedAt = time.Now()
 
 	result, err := r.collection.InsertOne(ctx, adjustment)
 	if err != nil {
@@ -40,6 +40,25 @@ func (r *OvertimeAdjustmentRepository) Create(adjustment *model.OvertimeAdjustme
 
 	adjustment.ID = result.InsertedID.(primitive.ObjectID)
 	return nil
+}
+
+// FindByID findet eine Anpassung anhand der ID
+func (r *OvertimeAdjustmentRepository) FindByID(id string) (*model.OvertimeAdjustment, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var adjustment model.OvertimeAdjustment
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&adjustment)
+	if err != nil {
+		return nil, err
+	}
+
+	return &adjustment, nil
 }
 
 // FindByEmployeeID findet alle Anpassungen für einen Mitarbeiter
@@ -52,7 +71,7 @@ func (r *OvertimeAdjustmentRepository) FindByEmployeeID(employeeID string) ([]*m
 		return nil, err
 	}
 
-	// Sortiert nach Erstellungsdatum (neueste zuerst)
+	// Nach Erstellungsdatum sortieren (neueste zuerst)
 	opts := options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}})
 
 	var adjustments []*model.OvertimeAdjustment
@@ -70,7 +89,11 @@ func (r *OvertimeAdjustmentRepository) FindByEmployeeID(employeeID string) ([]*m
 		adjustments = append(adjustments, &adjustment)
 	}
 
-	return adjustments, cursor.Err()
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return adjustments, nil
 }
 
 // FindPending findet alle ausstehenden Anpassungen
@@ -78,7 +101,8 @@ func (r *OvertimeAdjustmentRepository) FindPending() ([]*model.OvertimeAdjustmen
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	opts := options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}})
+	// Nach Erstellungsdatum sortieren (älteste zuerst für Genehmigung)
+	opts := options.Find().SetSort(bson.D{{Key: "createdAt", Value: 1}})
 
 	var adjustments []*model.OvertimeAdjustment
 	cursor, err := r.collection.Find(ctx, bson.M{"status": "pending"}, opts)
@@ -95,7 +119,11 @@ func (r *OvertimeAdjustmentRepository) FindPending() ([]*model.OvertimeAdjustmen
 		adjustments = append(adjustments, &adjustment)
 	}
 
-	return adjustments, cursor.Err()
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return adjustments, nil
 }
 
 // UpdateStatus aktualisiert den Status einer Anpassung
@@ -114,6 +142,7 @@ func (r *OvertimeAdjustmentRepository) UpdateStatus(adjustmentID string, status 
 			"approvedBy":   approverID,
 			"approverName": approverName,
 			"approvedAt":   time.Now(),
+			"updatedAt":    time.Now(),
 		},
 	}
 
@@ -121,62 +150,68 @@ func (r *OvertimeAdjustmentRepository) UpdateStatus(adjustmentID string, status 
 	return err
 }
 
-// FindByID findet eine Anpassung anhand ihrer ID
-func (r *OvertimeAdjustmentRepository) FindByID(id string) (*model.OvertimeAdjustment, error) {
+// Update aktualisiert eine Anpassung
+func (r *OvertimeAdjustmentRepository) Update(adjustment *model.OvertimeAdjustment) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	adjustment.UpdatedAt = time.Now()
+
+	_, err := r.collection.UpdateOne(
+		ctx,
+		bson.M{"_id": adjustment.ID},
+		bson.M{"$set": adjustment},
+	)
+	return err
+}
+
+// Delete löscht eine Anpassung
+func (r *OvertimeAdjustmentRepository) Delete(id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var adjustment model.OvertimeAdjustment
-	err = r.collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&adjustment)
-	if err != nil {
-		return nil, err
-	}
-
-	return &adjustment, nil
+	_, err = r.collection.DeleteOne(ctx, bson.M{"_id": objID})
+	return err
 }
 
-// GetApprovedAdjustmentsByEmployee berechnet die Summe aller genehmigten Anpassungen für einen Mitarbeiter
-func (r *OvertimeAdjustmentRepository) GetApprovedAdjustmentsByEmployee(employeeID string) (float64, error) {
+// FindApprovedByEmployeeID findet alle genehmigten Anpassungen für einen Mitarbeiter
+func (r *OvertimeAdjustmentRepository) FindApprovedByEmployeeID(employeeID string) ([]*model.OvertimeAdjustment, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	objID, err := primitive.ObjectIDFromHex(employeeID)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	pipeline := []bson.M{
-		{"$match": bson.M{
-			"employeeId": objID,
-			"status":     "approved",
-		}},
-		{"$group": bson.M{
-			"_id":        nil,
-			"totalHours": bson.M{"$sum": "$hours"},
-		}},
+	filter := bson.M{
+		"employeeId": objID,
+		"status":     "approved",
 	}
 
-	cursor, err := r.collection.Aggregate(ctx, pipeline)
+	var adjustments []*model.OvertimeAdjustment
+	cursor, err := r.collection.Find(ctx, filter)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	defer cursor.Close(ctx)
 
-	var result struct {
-		TotalHours float64 `bson:"totalHours"`
-	}
-
-	if cursor.Next(ctx) {
-		if err := cursor.Decode(&result); err != nil {
-			return 0, err
+	for cursor.Next(ctx) {
+		var adjustment model.OvertimeAdjustment
+		if err := cursor.Decode(&adjustment); err != nil {
+			return nil, err
 		}
-		return result.TotalHours, nil
+		adjustments = append(adjustments, &adjustment)
 	}
 
-	return 0, nil
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return adjustments, nil
 }

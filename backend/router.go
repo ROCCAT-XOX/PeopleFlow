@@ -524,7 +524,9 @@ func InitializeRoutes(router *gin.Engine) {
 		api := router.Group("/api")
 		api.Use(middleware.AuthMiddleware())
 		{
+
 			api.DELETE("/employees/:id", employeeHandler.DeleteEmployee)
+			api.GET("/employees/:id/name", handler.GetEmployeeName)
 		}
 	}
 }
