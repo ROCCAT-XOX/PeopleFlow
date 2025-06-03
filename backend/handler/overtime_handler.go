@@ -268,17 +268,80 @@ func (h *OvertimeHandler) ExportOvertimeData(c *gin.Context) {
 func (h *OvertimeHandler) GetEmployeeOvertimeDetails(c *gin.Context) {
 	employeeID := c.Param("id")
 
-	overtimeSummary, err := h.timeAccountService.GetEmployeeOvertimeSummary(employeeID)
+	// Mitarbeiter mit Anpassungen laden
+	employee, err := h.employeeRepo.FindByIDWithAdjustments(employeeID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
-			"error": "Mitarbeiter nicht gefunden oder Fehler bei der Berechnung",
+			"error": "Mitarbeiter nicht gefunden",
 		})
 		return
 	}
 
+	// Basis-Überstunden-Zusammenfassung abrufen
+	overtimeSummary, err := h.timeAccountService.GetEmployeeOvertimeSummary(employeeID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Fehler bei der Überstunden-Berechnung",
+		})
+		return
+	}
+
+	// Anpassungen hinzufügen
+	adjustments, err := h.overtimeAdjustmentRepo.FindByEmployeeID(employeeID)
+	if err != nil {
+		adjustments = []*model.OvertimeAdjustment{} // Leere Liste bei Fehler
+	}
+
+	// Anpassungen nach Status gruppieren
+	var approvedAdjustments []*model.OvertimeAdjustment
+	var pendingAdjustments []*model.OvertimeAdjustment
+	var rejectedAdjustments []*model.OvertimeAdjustment
+	var totalAdjustments float64
+
+	for _, adj := range adjustments {
+		switch adj.Status {
+		case "approved":
+			approvedAdjustments = append(approvedAdjustments, adj)
+			totalAdjustments += adj.Hours
+		case "pending":
+			pendingAdjustments = append(pendingAdjustments, adj)
+		case "rejected":
+			rejectedAdjustments = append(rejectedAdjustments, adj)
+		}
+	}
+
+	// Finales Saldo berechnen
+	baseBalance := overtimeSummary.CurrentBalance
+	finalBalance := baseBalance + totalAdjustments
+
+	// Erweiterte Response zusammenstellen
+	detailedResponse := gin.H{
+		"employeeId":        employee.ID.Hex(),
+		"employeeName":      employee.FirstName + " " + employee.LastName,
+		"weeklyTargetHours": overtimeSummary.WeeklyTargetHours,
+		"baseBalance":       baseBalance,
+		"adjustmentsTotal":  totalAdjustments,
+		"finalBalance":      finalBalance,
+		"lastCalculated":    overtimeSummary.LastCalculated,
+		"weeklyEntries":     overtimeSummary.WeeklyEntries,
+		"adjustments": gin.H{
+			"approved": approvedAdjustments,
+			"pending":  pendingAdjustments,
+			"rejected": rejectedAdjustments,
+			"total":    totalAdjustments,
+			"count":    len(adjustments),
+		},
+		"summary": gin.H{
+			"totalWorkedHours":   overtimeSummary.TotalWorkedHours,
+			"totalPlannedHours":  overtimeSummary.TotalPlannedHours,
+			"weeksCounted":       overtimeSummary.WeeksCounted,
+			"averageWeeklyHours": overtimeSummary.AverageWeeklyHours,
+		},
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    overtimeSummary,
+		"data":    detailedResponse,
 	})
 }
 

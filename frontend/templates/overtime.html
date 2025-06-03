@@ -829,21 +829,41 @@
             });
   }
 
-  // Überstunden-Details anzeigen
   function displayOvertimeDetails(data) {
     document.getElementById('overtimeModalTitle').textContent =
             `Überstunden-Details - ${data.employeeName}`;
 
-    let balanceClass = 'text-gray-900';
-    let balanceText = data.currentBalance.toFixed(1);
-
-    if (data.currentBalance > 0) {
-      balanceClass = 'text-green-600';
-      balanceText = '+' + balanceText;
-    } else if (data.currentBalance < 0) {
-      balanceClass = 'text-red-600';
+    // Basis-Saldo Styling
+    let baseBalanceClass = 'text-gray-900';
+    let baseBalanceText = data.baseBalance.toFixed(1);
+    if (data.baseBalance > 0) {
+      baseBalanceClass = 'text-green-600';
+      baseBalanceText = '+' + baseBalanceText;
+    } else if (data.baseBalance < 0) {
+      baseBalanceClass = 'text-red-600';
     }
 
+    // Anpassungen-Saldo Styling
+    let adjustmentsClass = 'text-gray-900';
+    let adjustmentsText = data.adjustmentsTotal.toFixed(1);
+    if (data.adjustmentsTotal > 0) {
+      adjustmentsClass = 'text-green-600';
+      adjustmentsText = '+' + adjustmentsText;
+    } else if (data.adjustmentsTotal < 0) {
+      adjustmentsClass = 'text-red-600';
+    }
+
+    // Finales Saldo Styling
+    let finalBalanceClass = 'text-gray-900';
+    let finalBalanceText = data.finalBalance.toFixed(1);
+    if (data.finalBalance > 0) {
+      finalBalanceClass = 'text-green-600';
+      finalBalanceText = '+' + finalBalanceText;
+    } else if (data.finalBalance < 0) {
+      finalBalanceClass = 'text-red-600';
+    }
+
+    // Wöchentliche Einträge aufbereiten
     let weeklyEntriesHtml = '';
     if (data.weeklyEntries && data.weeklyEntries.length > 0) {
       data.weeklyEntries.slice(-8).forEach(entry => {
@@ -853,58 +873,132 @@
         const overtimeText = entry.overtimeHours >= 0 ? '+' + entry.overtimeHours.toFixed(1) : entry.overtimeHours.toFixed(1);
 
         weeklyEntriesHtml += `
-          <tr>
-            <td class="px-4 py-2 text-sm text-gray-900">${weekStart} - ${weekEnd}</td>
-            <td class="px-4 py-2 text-sm text-gray-900">${entry.plannedHours.toFixed(1)} Std</td>
-            <td class="px-4 py-2 text-sm text-gray-900">${entry.actualHours.toFixed(1)} Std</td>
-            <td class="px-4 py-2 text-sm ${overtimeClass}">${overtimeText} Std</td>
-            <td class="px-4 py-2 text-sm text-gray-500">${entry.daysWorked} Tage</td>
-          </tr>
-        `;
+                <tr>
+                    <td class="px-4 py-2 text-sm text-gray-900">${weekStart} - ${weekEnd}</td>
+                    <td class="px-4 py-2 text-sm text-gray-900">${entry.plannedHours.toFixed(1)} Std</td>
+                    <td class="px-4 py-2 text-sm text-gray-900">${entry.actualHours.toFixed(1)} Std</td>
+                    <td class="px-4 py-2 text-sm ${overtimeClass}">${overtimeText} Std</td>
+                    <td class="px-4 py-2 text-sm text-gray-500">${entry.daysWorked} Tage</td>
+                </tr>
+            `;
       });
     } else {
       weeklyEntriesHtml = '<tr><td colspan="5" class="px-4 py-2 text-center text-gray-500">Keine Daten vorhanden</td></tr>';
     }
 
-    const content = `
-      <div class="space-y-6">
-        <!-- Übersicht -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="bg-gray-50 rounded-lg p-4">
-            <div class="text-sm font-medium text-gray-500">Aktuelles Saldo</div>
-            <div class="mt-1 text-2xl font-semibold ${balanceClass}">${balanceText} Std</div>
-          </div>
-          <div class="bg-gray-50 rounded-lg p-4">
-            <div class="text-sm font-medium text-gray-500">Wochenstunden (Soll)</div>
-            <div class="mt-1 text-2xl font-semibold text-gray-900">${data.weeklyTargetHours.toFixed(1)} Std</div>
-          </div>
-          <div class="bg-gray-50 rounded-lg p-4">
-            <div class="text-sm font-medium text-gray-500">Letzte Berechnung</div>
-            <div class="mt-1 text-sm text-gray-900">${new Date(data.lastCalculated).toLocaleString('de-DE')}</div>
-          </div>
-        </div>
+    // Anpassungen aufbereiten
+    let adjustmentsHtml = '';
+    if (data.adjustments && data.adjustments.approved && data.adjustments.approved.length > 0) {
+      data.adjustments.approved.forEach(adjustment => {
+        const adjustmentClass = adjustment.hours >= 0 ? 'text-green-600' : 'text-red-600';
+        const adjustmentText = adjustment.hours >= 0 ? '+' + adjustment.hours.toFixed(1) : adjustment.hours.toFixed(1);
+        const adjustmentDate = new Date(adjustment.createdAt).toLocaleDateString('de-DE');
 
-        <!-- Wöchentliche Aufschlüsselung -->
-        <div>
-          <h4 class="text-md font-medium text-gray-900 mb-3">Wöchentliche Aufschlüsselung (letzte 8 Wochen)</h4>
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
+        adjustmentsHtml += `
                 <tr>
-                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Woche</th>
-                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Soll</th>
-                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ist</th>
-                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Differenz</th>
-                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Arbeitstage</th>
+                    <td class="px-4 py-2 text-sm text-gray-900">${adjustmentDate}</td>
+                    <td class="px-4 py-2 text-sm text-gray-900">${getAdjustmentTypeDisplay(adjustment.type)}</td>
+                    <td class="px-4 py-2 text-sm ${adjustmentClass} font-medium">${adjustmentText} Std</td>
+                    <td class="px-4 py-2 text-sm text-gray-500">${adjustment.reason}</td>
+                    <td class="px-4 py-2 text-sm text-gray-400">${adjustment.adjusterName}</td>
                 </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                ${weeklyEntriesHtml}
-              </tbody>
-            </table>
-          </div>
+            `;
+      });
+    } else {
+      adjustmentsHtml = '<tr><td colspan="5" class="px-4 py-2 text-center text-gray-500">Keine manuellen Anpassungen</td></tr>';
+    }
+
+    const content = `
+        <div class="space-y-6">
+            <!-- Saldo-Übersicht -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="text-sm font-medium text-gray-500">Berechnetes Saldo</div>
+                    <div class="mt-1 text-2xl font-semibold ${baseBalanceClass}">${baseBalanceText} Std</div>
+                    <div class="text-xs text-gray-400">Aus Zeiterfassung</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="text-sm font-medium text-gray-500">Manuelle Anpassungen</div>
+                    <div class="mt-1 text-2xl font-semibold ${adjustmentsClass}">${adjustmentsText} Std</div>
+                    <div class="text-xs text-gray-400">${data.adjustments.approved.length} Anpassung(en)</div>
+                </div>
+                <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <div class="text-sm font-medium text-blue-700">Finales Saldo</div>
+                    <div class="mt-1 text-2xl font-semibold ${finalBalanceClass}">${finalBalanceText} Std</div>
+                    <div class="text-xs text-blue-600">Gesamt (inkl. Anpassungen)</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="text-sm font-medium text-gray-500">Wochenstunden (Soll)</div>
+                    <div class="mt-1 text-2xl font-semibold text-gray-900">${data.weeklyTargetHours.toFixed(1)} Std</div>
+                    <div class="text-xs text-gray-400">Vertragsstunden</div>
+                </div>
+            </div>
+
+            <!-- Manuelle Anpassungen -->
+            <div>
+                <h4 class="text-md font-medium text-gray-900 mb-3">Manuelle Anpassungen</h4>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Typ</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Stunden</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Begründung</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Von</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            ${adjustmentsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Wöchentliche Aufschlüsselung -->
+            <div>
+                <h4 class="text-md font-medium text-gray-900 mb-3">Wöchentliche Aufschlüsselung (letzte 8 Wochen)</h4>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Woche</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Soll</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ist</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Differenz</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Arbeitstage</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            ${weeklyEntriesHtml}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Zusätzliche Informationen -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h5 class="text-sm font-medium text-gray-900 mb-2">Zusätzliche Informationen</h5>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                        <span class="text-gray-500">Letzte Berechnung:</span>
+                        <div class="font-medium">${new Date(data.lastCalculated).toLocaleString('de-DE')}</div>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Erfasste Wochen:</span>
+                        <div class="font-medium">${data.summary.weeksCounted || 0}</div>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Ausstehende Anpassungen:</span>
+                        <div class="font-medium">${data.adjustments.pending.length}</div>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Abgelehnte Anpassungen:</span>
+                        <div class="font-medium">${data.adjustments.rejected.length}</div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
     `;
 
     document.getElementById('overtimeModalContent').innerHTML = content;
