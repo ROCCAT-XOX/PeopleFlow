@@ -290,6 +290,11 @@
             <button onclick="showOvertimeDetails('{{.EmployeeID}}')" class="text-green-600 hover:text-green-900 mr-3">
               Details
             </button>
+            {{if or (eq $.userRole "admin") (eq $.userRole "manager") (eq $.userRole "hr")}}
+            <button onclick="addOvertimeAdjustment('{{.EmployeeID}}', '{{.EmployeeName}}')" class="text-blue-600 hover:text-blue-900 mr-3">
+              Anpassung
+            </button>
+            {{end}}
             <a href="/employees/view/{{.EmployeeID}}#overtime" class="text-blue-600 hover:text-blue-900">
               Profil
             </a>
@@ -451,11 +456,14 @@
     </div>
   </div>
 </div>
-<script src="/static/js/overtime_adjustment.js"></script>
+
 <!-- Footer -->
 {{ template "footer" . }}
 
 <script>
+  // Globale Variablen
+  let currentAdjustmentId = null;
+
   // Modal-Funktionen
   function openModal(id) {
     document.getElementById(id).classList.remove('hidden');
@@ -467,10 +475,241 @@
     document.body.classList.remove('overflow-hidden');
   }
 
+  // DOM geladen Event
+  document.addEventListener('DOMContentLoaded', function() {
+    // Ausstehende Anpassungen laden (falls Admin/Manager)
+    {{if or (eq .userRole "admin") (eq .userRole "manager")}}
+    loadPendingAdjustments();
+    {{end}}
+
+    // Event Listeners hinzufügen
+    initializeEventListeners();
+  });
+
+  // Event Listeners initialisieren
+  function initializeEventListeners() {
+    // Überstunden neu berechnen
+    document.getElementById('recalculateOvertimeBtn').addEventListener('click', recalculateAllOvertime);
+
+    // Export-Funktion
+    document.getElementById('exportOvertimeBtn').addEventListener('click', exportOvertimeData);
+
+    // Filter anwenden
+    document.getElementById('applyOvertimeFilters').addEventListener('click', applyOvertimeFilters);
+
+    // Anpassungsformular
+    const addAdjustmentForm = document.getElementById('addAdjustmentForm');
+    if (addAdjustmentForm) {
+      addAdjustmentForm.addEventListener('submit', submitAdjustment);
+    }
+  }
+
+  // Ausstehende Anpassungen laden
+  function loadPendingAdjustments() {
+    fetch('/api/overtime/adjustments/pending')
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                displayPendingAdjustments(data.data || []);
+                updatePendingCount(data.data ? data.data.length : 0);
+              } else {
+                console.error('Error loading pending adjustments:', data.error);
+                displayPendingAdjustmentsError();
+              }
+            })
+            .catch(error => {
+              console.error('Error loading pending adjustments:', error);
+              displayPendingAdjustmentsError();
+            });
+  }
+
+  // Ausstehende Anpassungen anzeigen
+  function displayPendingAdjustments(adjustments) {
+    const container = document.getElementById('pendingAdjustments');
+    const noAdjustmentsDiv = document.getElementById('noPendingAdjustments');
+
+    if (!adjustments || adjustments.length === 0) {
+      container.innerHTML = '';
+      noAdjustmentsDiv.style.display = 'block';
+      return;
+    }
+
+    noAdjustmentsDiv.style.display = 'none';
+
+    const html = adjustments.map(adjustment => {
+      const hoursClass = adjustment.hours >= 0 ? 'text-green-600' : 'text-red-600';
+      const hoursText = adjustment.hours >= 0 ? `+${adjustment.hours.toFixed(1)}` : adjustment.hours.toFixed(1);
+
+      return `
+        <div class="px-4 py-4 sm:px-6">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <div class="flex items-center space-x-3 mb-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  ${getAdjustmentTypeDisplay(adjustment.type)}
+                </span>
+                <span class="text-lg font-medium ${hoursClass}">${hoursText} Std</span>
+                <span class="text-sm text-gray-600">${adjustment.employeeName || 'Unbekannter Mitarbeiter'}</span>
+              </div>
+
+              <h4 class="text-sm font-medium text-gray-900 mb-1">${adjustment.reason}</h4>
+              ${adjustment.description ? `<p class="text-sm text-gray-600 mb-2">${adjustment.description}</p>` : ''}
+
+              <div class="text-xs text-gray-500">
+                Eingereicht von ${adjustment.adjusterName} am ${new Date(adjustment.createdAt).toLocaleDateString('de-DE', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })}
+              </div>
+            </div>
+
+            <div class="flex space-x-2 ml-4">
+              <button onclick="openApprovalModal('${adjustment.id}', '${adjustment.reason}', '${hoursText}', '${adjustment.adjusterName}', '${adjustment.employeeName || ''}')"
+                      class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
+                <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+                Bearbeiten
+              </button>
+              <button onclick="approveAdjustmentDirect('${adjustment.id}', 'approve')"
+                      class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200">
+                <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Genehmigen
+              </button>
+              <button onclick="approveAdjustmentDirect('${adjustment.id}', 'reject')"
+                      class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200">
+                <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Ablehnen
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.innerHTML = html;
+  }
+
+  // Genehmigungsmodal öffnen
+  function openApprovalModal(adjustmentId, reason, hours, adjusterName, employeeName) {
+    currentAdjustmentId = adjustmentId;
+
+    const details = `
+      <div class="space-y-3">
+        <div>
+          <span class="text-sm font-medium text-gray-500">Mitarbeiter:</span>
+          <span class="text-sm text-gray-900 ml-2">${employeeName}</span>
+        </div>
+        <div>
+          <span class="text-sm font-medium text-gray-500">Stunden:</span>
+          <span class="text-sm text-gray-900 ml-2">${hours} Std</span>
+        </div>
+        <div>
+          <span class="text-sm font-medium text-gray-500">Begründung:</span>
+          <span class="text-sm text-gray-900 ml-2">${reason}</span>
+        </div>
+        <div>
+          <span class="text-sm font-medium text-gray-500">Eingereicht von:</span>
+          <span class="text-sm text-gray-900 ml-2">${adjusterName}</span>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('approvalDetails').innerHTML = details;
+    openModal('approveAdjustmentModal');
+  }
+
+  // Direkte Genehmigung/Ablehnung
+  function approveAdjustmentDirect(adjustmentId, action) {
+    const actionText = action === 'approve' ? 'genehmigen' : 'ablehnen';
+
+    if (!confirm(`Möchten Sie diese Anpassung wirklich ${actionText}?`)) {
+      return;
+    }
+
+    processAdjustmentApproval(adjustmentId, action);
+  }
+
+  // Genehmigung aus Modal
+  function approveAdjustment(action) {
+    if (!currentAdjustmentId) {
+      alert('Fehler: Keine Anpassung ausgewählt');
+      return;
+    }
+
+    processAdjustmentApproval(currentAdjustmentId, action);
+    closeModal('approveAdjustmentModal');
+  }
+
+  // Anpassung genehmigen/ablehnen
+  function processAdjustmentApproval(adjustmentId, action) {
+    const formData = new FormData();
+    formData.append('action', action);
+
+    fetch(`/api/overtime/adjustments/${adjustmentId}/approve`, {
+      method: 'POST',
+      body: formData
+    })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                const message = action === 'approve' ? 'Anpassung wurde genehmigt.' : 'Anpassung wurde abgelehnt.';
+                showNotification(message, 'success');
+
+                // Ausstehende Anpassungen neu laden
+                setTimeout(() => {
+                  loadPendingAdjustments();
+                }, 500);
+              } else {
+                throw new Error(data.error || 'Fehler beim Verarbeiten der Anpassung');
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              showNotification('Fehler: ' + error.message, 'error');
+            });
+  }
+
+  // Fehler beim Laden anzeigen
+  function displayPendingAdjustmentsError() {
+    const container = document.getElementById('pendingAdjustments');
+    const noAdjustmentsDiv = document.getElementById('noPendingAdjustments');
+
+    noAdjustmentsDiv.style.display = 'none';
+    container.innerHTML = `
+      <div class="px-4 py-8 text-center text-red-500">
+        <svg class="mx-auto h-12 w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">Fehler beim Laden</h3>
+        <p class="mt-1 text-sm text-gray-500">Die ausstehenden Anpassungen konnten nicht geladen werden.</p>
+      </div>
+    `;
+  }
+
+  // Anzahl ausstehender Anpassungen aktualisieren
+  function updatePendingCount(count) {
+    const countElement = document.getElementById('pendingCount');
+    if (countElement) {
+      countElement.textContent = count === 1 ? '1 ausstehend' : `${count} ausstehend`;
+      countElement.className = count > 0 ?
+              'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800' :
+              'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800';
+    }
+  }
+
   // Überstunden neu berechnen
-  document.getElementById('recalculateOvertimeBtn').addEventListener('click', function() {
-    this.disabled = true;
-    this.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Berechne...';
+  function recalculateAllOvertime() {
+    const button = document.getElementById('recalculateOvertimeBtn');
+    button.disabled = true;
+    button.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Berechne...';
 
     fetch('/api/overtime/recalculate', {
       method: 'POST',
@@ -481,36 +720,38 @@
             .then(response => response.json())
             .then(data => {
               if (data.success) {
-                alert('Überstunden wurden erfolgreich neu berechnet');
-                window.location.reload();
+                showNotification('Überstunden wurden erfolgreich neu berechnet', 'success');
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1500);
               } else {
-                alert('Fehler beim Berechnen der Überstunden');
+                throw new Error(data.error || 'Fehler beim Berechnen der Überstunden');
               }
             })
             .catch(error => {
               console.error('Error:', error);
-              alert('Ein Fehler ist aufgetreten');
+              showNotification('Fehler beim Berechnen der Überstunden: ' + error.message, 'error');
             })
             .finally(() => {
-              this.disabled = false;
-              this.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Neu berechnen</span>';
+              button.disabled = false;
+              button.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Neu berechnen</span>';
             });
-  });
+  }
 
   // Export-Funktion
-  document.getElementById('exportOvertimeBtn').addEventListener('click', function() {
+  function exportOvertimeData() {
     const balanceFilter = document.getElementById('balanceFilter').value;
     const departmentFilter = document.getElementById('departmentFilter').value;
 
     let url = '/api/overtime/export?';
-    if (balanceFilter) url += `balanceFilter=${balanceFilter}&`;
+    if (balanceFilter && balanceFilter !== 'all') url += `balanceFilter=${balanceFilter}&`;
     if (departmentFilter) url += `departmentFilter=${departmentFilter}&`;
 
     window.location.href = url;
-  });
+  }
 
-  // Filter-Funktionen
-  document.getElementById('applyOvertimeFilters').addEventListener('click', function() {
+  // Filter anwenden
+  function applyOvertimeFilters() {
     const balanceFilter = document.getElementById('balanceFilter').value;
     const departmentFilter = document.getElementById('departmentFilter').value;
     const sortBy = document.getElementById('sortBy').value;
@@ -543,8 +784,9 @@
     // Sortierung anwenden
     if (sortBy !== 'name') {
       console.log('Sortierung:', sortBy);
+      // TODO: Implementiere Sortierung falls gewünscht
     }
-  });
+  }
 
   // Überstunden-Details anzeigen
   function showOvertimeDetails(employeeId) {
@@ -648,9 +890,146 @@
     document.getElementById('overtimeModalContent').innerHTML = content;
   }
 
-  // Template-Hilfsfunktionen
+  // Hilfsfunktionen
+  function getAdjustmentTypeDisplay(type) {
+    const types = {
+      'correction': 'Korrektur',
+      'manual': 'Manuelle Anpassung',
+      'bonus': 'Bonus/Ausgleich',
+      'penalty': 'Abzug'
+    };
+    return types[type] || type;
+  }
+
   function getInitials(name) {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  }
+
+  // Benachrichtigungen anzeigen
+  function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 max-w-sm w-full p-4 rounded-md shadow-lg transform transition-all duration-300 ${
+            type === 'success' ? 'bg-green-100 border border-green-500 text-green-700' :
+                    type === 'error' ? 'bg-red-100 border border-red-500 text-red-700' :
+                            'bg-blue-100 border border-blue-500 text-blue-700'
+    }`;
+
+    notification.innerHTML = `
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          ${type === 'success' ?
+            '<svg class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' :
+            type === 'error' ?
+                    '<svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>' :
+                    '<svg class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+    }
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium">${message}</p>
+        </div>
+        <div class="ml-auto pl-3">
+          <button onclick="this.parentElement.parentElement.parentElement.remove()" class="inline-flex text-gray-400 hover:text-gray-600">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.style.opacity = '1';
+      notification.style.transform = 'translateX(0)';
+    }, 100);
+
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (notification.parentElement) {
+            notification.remove();
+          }
+        }, 300);
+      }
+    }, 5000);
+  }
+
+  // Anpassungsformular einreichen
+  function submitAdjustment(event) {
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const employeeId = formData.get('employeeId');
+
+    // Validierung
+    const hours = parseFloat(formData.get('hours'));
+    if (isNaN(hours)) {
+      showNotification('Bitte geben Sie eine gültige Stundenanzahl ein.', 'error');
+      return;
+    }
+
+    const reason = formData.get('reason').trim();
+    if (!reason) {
+      showNotification('Bitte geben Sie eine Begründung an.', 'error');
+      return;
+    }
+
+    // Button deaktivieren
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Wird eingereicht...';
+
+    // API-Aufruf
+    fetch(`/api/overtime/employee/${employeeId}/adjustment`, {
+      method: 'POST',
+      body: formData
+    })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                closeModal('addAdjustmentModal');
+                showNotification('Überstunden-Anpassung wurde eingereicht und wartet auf Genehmigung.', 'success');
+
+                // Formular zurücksetzen
+                event.target.reset();
+
+                // Ausstehende Anpassungen neu laden
+                setTimeout(() => {
+                  loadPendingAdjustments();
+                }, 500);
+              } else {
+                throw new Error(data.error || 'Fehler beim Einreichen der Anpassung');
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              showNotification('Fehler beim Einreichen der Anpassung: ' + error.message, 'error');
+            })
+            .finally(() => {
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = originalText;
+            });
+  }
+
+  // Anpassung für Mitarbeiter hinzufügen
+  function addOvertimeAdjustment(employeeId, employeeName) {
+    document.getElementById('adjustmentEmployeeId').value = employeeId;
+
+    // Modal-Titel aktualisieren
+    const modalTitle = document.querySelector('#addAdjustmentModal .text-lg.font-medium');
+    if (modalTitle && employeeName) {
+      modalTitle.textContent = `Überstunden-Anpassung - ${employeeName}`;
+    }
+
+    // Formular zurücksetzen
+    document.getElementById('addAdjustmentForm').reset();
+    document.getElementById('adjustmentEmployeeId').value = employeeId;
+
+    openModal('addAdjustmentModal');
   }
 </script>
 

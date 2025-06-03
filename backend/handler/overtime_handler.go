@@ -121,6 +121,19 @@ func (h *OvertimeHandler) GetOvertimeView(c *gin.Context) {
 	}
 	sort.Strings(departments)
 
+	// Ausstehende Anpassungen für Admin/Manager laden
+	var pendingAdjustments []*model.OvertimeAdjustment
+	var pendingCount int
+	if userRole == string(model.RoleAdmin) || userRole == string(model.RoleManager) {
+		pendingAdjustments, err = h.overtimeAdjustmentRepo.FindPending()
+		if err != nil {
+			// Fehler beim Laden der ausstehenden Anpassungen - loggen, aber nicht den ganzen Request fehlschlagen lassen
+			fmt.Printf("Error loading pending adjustments: %v\n", err)
+			pendingAdjustments = []*model.OvertimeAdjustment{}
+		}
+		pendingCount = len(pendingAdjustments)
+	}
+
 	// Daten an das Template übergeben
 	c.HTML(http.StatusOK, "overtime.html", gin.H{
 		"title":                       "Überstunden",
@@ -137,6 +150,8 @@ func (h *OvertimeHandler) GetOvertimeView(c *gin.Context) {
 		"neutralCount":                neutralCount,
 		"averageWeeklyHours":          averageWeeklyHours,
 		"departments":                 departments,
+		"pendingAdjustments":          pendingAdjustments,
+		"pendingCount":                pendingCount,
 	})
 }
 
