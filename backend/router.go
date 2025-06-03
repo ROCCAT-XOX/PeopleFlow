@@ -55,7 +55,9 @@ func InitializeRoutes(router *gin.Engine) {
 	authorized.Use(middleware.AuthMiddleware())
 	{
 		// In der InitializeRoutes-Funktion nach der Deklaration der Auth-Middleware
+		// Handler erstellen
 		userHandler := handler.NewUserHandler()
+		systemSettingsHandler := handler.NewSystemSettingsHandler()
 
 		// Root-Pfad zum Dashboard umleiten
 		router.GET("/", func(c *gin.Context) {
@@ -402,7 +404,7 @@ func InitializeRoutes(router *gin.Engine) {
 			c.HTML(http.StatusOK, "dashboard.html", commonData)
 		})
 
-		// Kalender-Handler erstellen
+		// Kalender-Handler und andere Handler
 		calendarHandler := handler.NewCalendarHandler()
 		planningHandler := handler.NewPlanningHandler()
 		timeTrackingHandler := handler.NewTimeTrackingHandler()
@@ -410,7 +412,7 @@ func InitializeRoutes(router *gin.Engine) {
 		statisticsAPIHandler := handler.NewStatisticsAPIHandler()
 		overtimeHandler := handler.NewOvertimeHandler()
 
-		// Hauptroute für den Kalender - innerhalb des authorized-Blocks
+		// Hauptrouten
 		authorized.GET("/absence", calendarHandler.GetAbsenceCalendar)
 		authorized.GET("/planning", planningHandler.GetProjectPlanningView)
 		authorized.GET("/timetracking", timeTrackingHandler.GetTimeTrackingView)
@@ -425,6 +427,12 @@ func InitializeRoutes(router *gin.Engine) {
 
 		// Einstellungsrouten (für alle Benutzer)
 		authorized.GET("/settings", userHandler.ShowSettings)
+		// System-Einstellungen Routen (nur für Admins)
+		authorized.POST("/api/settings/company-name", middleware.RoleMiddleware(model.RoleAdmin), systemSettingsHandler.UpdateCompanyName)
+		authorized.POST("/api/settings/language", middleware.RoleMiddleware(model.RoleAdmin), systemSettingsHandler.UpdateLanguage)
+		authorized.POST("/api/settings/state", middleware.RoleMiddleware(model.RoleAdmin), systemSettingsHandler.UpdateState)
+		authorized.GET("/api/settings", systemSettingsHandler.GetSystemSettings)
+		authorized.POST("/api/settings", middleware.RoleMiddleware(model.RoleAdmin), systemSettingsHandler.UpdateSystemSettings)
 
 		// Benutzerverwaltungsrouten (mit rollenbasierter Zugriffssteuerung)
 		authorized.GET("/users", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), userHandler.ListUsers)
@@ -434,13 +442,14 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.POST("/users/edit/:id", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), middleware.HRMiddleware(), userHandler.UpdateUser)
 		authorized.DELETE("/users/delete/:id", middleware.RoleMiddleware(model.RoleAdmin), middleware.HRMiddleware(), userHandler.DeleteUser)
 
-		// Passwortänderungsroute - ein Benutzer kann nur sein eigenes Passwort ändern
+		// Passwortänderungsroute
 		authorized.POST("/users/change-password", middleware.SelfOrAdminMiddleware(), userHandler.ChangePassword)
 
+		// Mitarbeiter-Handler und Routen
 		employeeHandler := handler.NewEmployeeHandler()
 		documentHandler := handler.NewDocumentHandler()
 
-		// Mitarbeiter-Routen zum autorisierten Bereich hinzufügen mit rollenbasierter Zugriffssteuerung
+		// Mitarbeiter-Routen
 		authorized.GET("/employees", middleware.SalaryViewMiddleware(), employeeHandler.ListEmployees)
 		authorized.GET("/employees/view/:id", middleware.SalaryViewMiddleware(), middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.GetEmployeeDetails)
 		authorized.GET("/employees/edit/:id", middleware.SalaryViewMiddleware(), middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.ShowEditEmployeeForm)
@@ -448,18 +457,17 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.POST("/employees/edit/:id", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.UpdateEmployee)
 		authorized.DELETE("/employees/delete/:id", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.DeleteEmployee)
 		authorized.GET("/employees/:id/profile-image", employeeHandler.GetProfileImage)
-
-		// Profilbil hinzufügen
 		authorized.POST("/employees/:id/profile-image", employeeHandler.UploadProfileImage)
+
 		// Überstunden Routen
 		authorized.POST("/api/timetracking/recalculate-overtime", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), timeTrackingHandler.RecalculateOvertime)
 		authorized.GET("/api/timetracking/employee/:id/overtime", timeTrackingHandler.GetEmployeeOvertimeDetails)
 		authorized.POST("/api/timetracking/employee/:id/overtime", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), employeeHandler.RecalculateEmployeeOvertime)
-		// NEUE ÜBERSTUNDEN-ROUTEN
 		authorized.GET("/overtime", overtimeHandler.GetOvertimeView)
 		authorized.POST("/api/overtime/recalculate", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), overtimeHandler.RecalculateAllOvertime)
 		authorized.GET("/api/overtime/export", overtimeHandler.ExportOvertimeData)
 		authorized.GET("/api/overtime/employee/:id", overtimeHandler.GetEmployeeOvertimeDetails)
+
 		// Überstunden-Anpassungen Routen
 		authorized.POST("/api/overtime/employee/:id/adjustment", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager, model.RoleHR), overtimeHandler.AddOvertimeAdjustment)
 		authorized.GET("/api/overtime/employee/:id/adjustments", overtimeHandler.GetEmployeeAdjustments)
@@ -495,25 +503,23 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.PUT("/employees/:id/conversations/:conversationId", documentHandler.UpdateConversation)
 		authorized.GET("/upcoming-conversations", employeeHandler.ListUpcomingConversations)
 
-		// Integrations-Handler erstellen
+		// Integrations-Handler
 		integrationHandler := handler.NewIntegrationHandler()
 
 		// API-Endpunkte für Integrationen
 		authorized.POST("/api/integrations/timebutler/save", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.SaveTimebutlerApiKey)
 		authorized.GET("/api/integrations/status", integrationHandler.GetIntegrationStatus)
 		authorized.GET("/api/integrations/timebutler/test", integrationHandler.TestTimebutlerConnection)
-		// API-Endpunkte für die Synchronisierung hinzufügen
 		authorized.POST("/api/integrations/timebutler/sync/users", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncTimebutlerUsers)
 		authorized.POST("/api/integrations/timebutler/sync/absences", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncTimebutlerAbsences)
 		authorized.POST("/api/integrations/timebutler/sync/holidayentitlements", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncTimebutlerHolidayEntitlements)
+
 		// API-Endpunkte für 123Erfasst
-		// API-Endpunkte für 123Erfasst erweitern
 		authorized.POST("/api/integrations/123erfasst/save", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.SaveErfasst123Credentials)
 		authorized.GET("/api/integrations/123erfasst/test", integrationHandler.TestErfasst123Connection)
 		authorized.POST("/api/integrations/123erfasst/sync/projects", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncErfasst123Projects)
 		authorized.POST("/api/integrations/123erfasst/remove", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.RemoveErfasst123Integration)
 		authorized.POST("/api/integrations/123erfasst/sync/times", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncErfasst123TimeEntries)
-		// Neue API-Endpunkte für automatische Synchronisierung
 		authorized.GET("/api/integrations/123erfasst/sync-status", integrationHandler.GetErfasst123SyncStatus)
 		authorized.POST("/api/integrations/123erfasst/set-auto-sync", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.SetErfasst123AutoSync)
 		authorized.POST("/api/integrations/123erfasst/set-sync-start-date", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.SetErfasst123SyncStartDate)

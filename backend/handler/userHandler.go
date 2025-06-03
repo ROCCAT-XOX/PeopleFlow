@@ -362,20 +362,39 @@ func (h *UserHandler) ShowSettings(c *gin.Context) {
 
 	// Erfolgsparameter aus der URL extrahieren
 	success := c.Query("success")
+	errorParam := c.Query("error")
+
+	// System-Einstellungen laden
+	systemSettingsRepo := repository.NewSystemSettingsRepository()
+	systemSettings, err := systemSettingsRepo.GetSettings()
+	if err != nil {
+		// Fallback auf Standard-Einstellungen
+		systemSettings = model.DefaultSystemSettings()
+	}
+
+	// Deutsche Bundesländer für Dropdown laden
+	germanStates := model.GetGermanStates()
 
 	// Vorbereitete Daten für die Einstellungsseite
 	data := gin.H{
-		"title":    "Einstellungen",
-		"active":   "settings",
-		"user":     userModel.FirstName + " " + userModel.LastName,
-		"email":    userModel.Email,
-		"year":     time.Now().Year(),
-		"userRole": userRole,
+		"title":          "Einstellungen",
+		"active":         "settings",
+		"user":           userModel.FirstName + " " + userModel.LastName,
+		"email":          userModel.Email,
+		"year":           time.Now().Year(),
+		"userRole":       userRole,
+		"systemSettings": systemSettings,
+		"germanStates":   germanStates,
 	}
 
 	// Erfolgsparameter hinzufügen, wenn vorhanden
 	if success != "" {
 		data["success"] = success
+	}
+
+	// Fehlerparameter hinzufügen, wenn vorhanden
+	if errorParam != "" {
+		data["error"] = errorParam
 	}
 
 	// Wenn der Benutzer ein Administrator ist, fügen wir Benutzerdaten hinzu
