@@ -68,7 +68,7 @@
     </div>
 
     <!-- Ausstehende Genehmigungen (nur für Admin/Manager) -->
-    {{if or (eq .userRole "admin") (eq .userRole "manager")}}
+    {{if or (eq .userRole "admin") (eq .userRole "manager") (eq .userRole "hr")}}
     <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-md">
       <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
         <div>

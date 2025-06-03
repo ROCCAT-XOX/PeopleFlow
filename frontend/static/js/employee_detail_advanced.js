@@ -810,15 +810,18 @@ function loadEmployeeAdjustments() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                displayEmployeeAdjustments(data.data);
-                updateAdjustmentsSummary(data.data);
+                // Sicherstellen, dass data.data ein Array ist, auch wenn es null oder undefined ist
+                const adjustments = data.data || [];
+                displayEmployeeAdjustments(adjustments);
+                updateAdjustmentsSummary(adjustments);
             } else {
-                displayAdjustmentsError('Fehler beim Laden der Anpassungen');
+                console.error('API returned error:', data.error);
+                displayAdjustmentsError('Fehler beim Laden der Anpassungen: ' + (data.error || 'Unbekannter Fehler'));
             }
         })
         .catch(error => {
             console.error('Error loading adjustments:', error);
-            displayAdjustmentsError('Fehler beim Laden der Anpassungen');
+            displayAdjustmentsError('Fehler beim Laden der Anpassungen: Netzwerkfehler');
         });
 }
 
@@ -827,7 +830,8 @@ function displayEmployeeAdjustments(adjustments) {
     const container = document.getElementById('adjustmentsContainer');
     if (!container) return;
 
-    if (adjustments.length === 0) {
+    // Sicherstellen, dass adjustments ein Array ist
+    if (!adjustments || !Array.isArray(adjustments) || adjustments.length === 0) {
         container.innerHTML = `
       <div class="text-center py-8">
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -907,6 +911,11 @@ function displayEmployeeAdjustments(adjustments) {
 
 // Anpassungs-Zusammenfassung aktualisieren
 function updateAdjustmentsSummary(adjustments) {
+    // Sicherstellen, dass adjustments ein Array ist
+    if (!adjustments || !Array.isArray(adjustments)) {
+        adjustments = [];
+    }
+
     const approvedAdjustments = adjustments.filter(adj => adj.status === 'approved');
     const totalAdjustments = approvedAdjustments.reduce((sum, adj) => sum + adj.hours, 0);
 
