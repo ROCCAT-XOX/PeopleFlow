@@ -67,36 +67,6 @@
       </div>
     </div>
 
-    <!-- Ausstehende Genehmigungen (nur für Admin/Manager) -->
-    {{if or (eq .userRole "admin") (eq .userRole "manager") (eq .userRole "hr")}}
-    <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-md">
-      <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-        <div>
-          <h3 class="text-lg leading-6 font-medium text-gray-900">Ausstehende Genehmigungen</h3>
-          <p class="mt-1 max-w-2xl text-sm text-gray-500">
-            Manuelle Überstunden-Anpassungen, die eine Genehmigung benötigen.
-          </p>
-        </div>
-        <span id="pendingCount" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-      0 ausstehend
-    </span>
-      </div>
-
-      <div class="border-t border-gray-200">
-        <div id="pendingAdjustments" class="divide-y divide-gray-200">
-          <!-- Wird dynamisch gefüllt -->
-        </div>
-        <div id="noPendingAdjustments" class="px-4 py-8 text-center text-gray-500">
-          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <h3 class="mt-2 text-sm font-medium text-gray-900">Keine ausstehenden Genehmigungen</h3>
-          <p class="mt-1 text-sm text-gray-500">Alle Überstunden-Anpassungen sind bearbeitet.</p>
-        </div>
-      </div>
-    </div>
-    {{end}}
-
     <!-- Mitarbeiter mit Überstunden -->
     <div class="bg-white overflow-hidden shadow rounded-lg">
       <div class="p-5">
@@ -201,6 +171,36 @@
       </div>
     </div>
   </div>
+
+  <!-- Ausstehende Genehmigungen (nur für Admin/Manager) -->
+  {{if or (eq .userRole "admin") (eq .userRole "manager")}}
+  <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-md">
+    <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+      <div>
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Ausstehende Genehmigungen</h3>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500">
+          Manuelle Überstunden-Anpassungen, die eine Genehmigung benötigen.
+        </p>
+      </div>
+      <span id="pendingCount" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+        0 ausstehend
+      </span>
+    </div>
+
+    <div class="border-t border-gray-200">
+      <div id="pendingAdjustments" class="divide-y divide-gray-200">
+        <!-- Wird dynamisch gefüllt -->
+      </div>
+      <div id="noPendingAdjustments" class="px-4 py-8 text-center text-gray-500">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">Keine ausstehenden Genehmigungen</h3>
+        <p class="mt-1 text-sm text-gray-500">Alle Überstunden-Anpassungen sind bearbeitet.</p>
+      </div>
+    </div>
+  </div>
+  {{end}}
 
   <!-- Mitarbeiter-Liste mit Überstunden -->
   <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-md">
