@@ -5,6 +5,7 @@ import (
 	"PeopleFlow/backend/repository"
 	"fmt"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -27,130 +28,118 @@ func NewAbsenceOverviewHandler() *AbsenceOverviewHandler {
 	}
 }
 
-// GetAbsenceOverview zeigt die Abwesenheitsübersicht an
 func (h *AbsenceOverviewHandler) GetAbsenceOverview(c *gin.Context) {
 	user, _ := c.Get("user")
 	userModel := user.(*model.User)
 	userRole, _ := c.Get("userRole")
 
+	// Repositories
+	employeeRepo := repository.NewEmployeeRepository()
+
 	// Alle Mitarbeiter abrufen
-	employees, err := h.employeeRepo.FindAll()
+	employees, err := employeeRepo.FindAll()
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"title":   "Fehler",
-			"message": "Fehler beim Abrufen der Mitarbeiter: " + err.Error(),
-			"year":    time.Now().Year(),
+		employees = []*model.Employee{}
+	}
+
+	// Verschiedene Abwesenheitslisten erstellen
+	var pendingRequests []gin.H
+	var upcomingAbsences []gin.H
+	var allAbsences []gin.H
+
+	pendingCount := 0
+	approvedCount := 0
+	rejectedCount := 0
+	upcomingCount := 0
+
+	now := time.Now()
+
+	// Durch alle Mitarbeiter iterieren und Abwesenheiten sammeln
+	for _, emp := range employees {
+		for _, absence := range emp.Absences {
+			absenceData := gin.H{
+				"ID":           absence.ID.Hex(),
+				"EmployeeID":   emp.ID.Hex(),
+				"EmployeeName": emp.FirstName + " " + emp.LastName,
+				"Department":   emp.Department,
+				"Type":         absence.Type,
+				"StartDate":    absence.StartDate,
+				"EndDate":      absence.EndDate,
+				"Days":         absence.Days,
+				"Status":       absence.Status,
+				"Reason":       absence.Reason,
+				"ApproverName": absence.ApproverName,
+				"CreatedAt":    absence.StartDate, // Falls CreatedAt nicht verfügbar
+			}
+
+			// In alle Abwesenheiten aufnehmen
+			allAbsences = append(allAbsences, absenceData)
+
+			// Nach Status kategorisieren
+			switch absence.Status {
+			case "requested":
+				pendingRequests = append(pendingRequests, absenceData)
+				pendingCount++
+			case "approved":
+				approvedCount++
+				// Prüfen ob es eine zukünftige Abwesenheit ist
+				if absence.StartDate.After(now) {
+					upcomingAbsences = append(upcomingAbsences, absenceData)
+					upcomingCount++
+				}
+			case "rejected":
+				rejectedCount++
+			}
+		}
+	}
+
+	// Nach Startdatum sortieren
+	sort.Slice(pendingRequests, func(i, j int) bool {
+		return pendingRequests[i]["StartDate"].(time.Time).Before(pendingRequests[j]["StartDate"].(time.Time))
+	})
+
+	sort.Slice(upcomingAbsences, func(i, j int) bool {
+		return upcomingAbsences[i]["StartDate"].(time.Time).Before(upcomingAbsences[j]["StartDate"].(time.Time))
+	})
+
+	c.HTML(http.StatusOK, "absence_overview.html", gin.H{
+		"title":            "Abwesenheitsanträge",
+		"active":           "absence-overview",
+		"user":             userModel.FirstName + " " + userModel.LastName,
+		"email":            userModel.Email,
+		"userRole":         userRole,
+		"year":             time.Now().Year(),
+		"currentDate":      time.Now().Format("Monday, 02. January 2006"),
+		"employees":        employees,
+		"pendingRequests":  pendingRequests,
+		"upcomingAbsences": upcomingAbsences,
+		"allAbsences":      allAbsences,
+		"pendingCount":     pendingCount,
+		"approvedCount":    approvedCount,
+		"rejectedCount":    rejectedCount,
+		"upcomingCount":    upcomingCount,
+	})
+}
+
+// AddAbsenceRequest fügt einen neuen Abwesenheitsantrag hinzu
+func (h *AbsenceOverviewHandler) AddAbsenceRequest(c *gin.Context) {
+	// Benutzer und Rolle abrufen
+	user, _ := c.Get("user")
+	userModel := user.(*model.User)
+	userRole, _ := c.Get("userRole")
+
+	// Prüfen ob der Benutzer berechtigt ist
+	if userRole != string(model.RoleAdmin) &&
+		userRole != string(model.RoleManager) &&
+		userRole != string(model.RoleHR) {
+		c.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"error":   "Keine Berechtigung, Abwesenheitsanträge zu stellen",
 		})
 		return
 	}
 
-	// Für normale User und HR: Eigenen Mitarbeiter finden
-	var currentEmployee *model.Employee
-	if userRole == string(model.RoleUser) || userRole == string(model.RoleHR) {
-		for _, emp := range employees {
-			if emp.Email == userModel.Email {
-				currentEmployee = emp
-				break
-			}
-		}
-	}
-
-	// Abwesenheiten sammeln und nach Status gruppieren
-	var allAbsences []AbsenceWithEmployee
-	var pendingAbsences []AbsenceWithEmployee
-	var upcomingAbsences []AbsenceWithEmployee
-
-	currentDate := time.Now()
-	currentYear := currentDate.Year()
-
-	for _, emp := range employees {
-		for _, absence := range emp.Absences {
-			absenceWithEmp := AbsenceWithEmployee{
-				Absence:       absence,
-				EmployeeID:    emp.ID.Hex(),
-				EmployeeName:  emp.FirstName + " " + emp.LastName,
-				Department:    string(emp.Department),
-				EmployeeEmail: emp.Email,
-			}
-
-			allAbsences = append(allAbsences, absenceWithEmp)
-
-			if absence.Status == "requested" {
-				pendingAbsences = append(pendingAbsences, absenceWithEmp)
-			}
-
-			if absence.Status == "approved" && absence.StartDate.After(currentDate) {
-				upcomingAbsences = append(upcomingAbsences, absenceWithEmp)
-			}
-		}
-	}
-
-	// Statistiken berechnen
-	var totalVacationDays, totalSickDays float64
-	employeesOnVacation := 0
-	employeesOnSick := 0
-
-	for _, emp := range employees {
-		for _, absence := range emp.Absences {
-			if absence.Status == "approved" && absence.StartDate.Year() == currentYear {
-				if absence.Type == "vacation" {
-					totalVacationDays += absence.Days
-				} else if absence.Type == "sick" {
-					totalSickDays += absence.Days
-				}
-
-				// Prüfen ob aktuell abwesend
-				if absence.StartDate.Before(currentDate) && absence.EndDate.After(currentDate) {
-					if absence.Type == "vacation" {
-						employeesOnVacation++
-					} else if absence.Type == "sick" {
-						employeesOnSick++
-					}
-				}
-			}
-		}
-	}
-
-	// Persönliche Statistiken für User/HR
-	var personalVacationDays, personalSickDays, personalRemainingVacation float64
-	if currentEmployee != nil {
-		for _, absence := range currentEmployee.Absences {
-			if absence.Status == "approved" && absence.StartDate.Year() == currentYear {
-				if absence.Type == "vacation" {
-					personalVacationDays += absence.Days
-				} else if absence.Type == "sick" {
-					personalSickDays += absence.Days
-				}
-			}
-		}
-		personalRemainingVacation = float64(currentEmployee.VacationDays) - personalVacationDays
-	}
-
-	c.HTML(http.StatusOK, "absence_overview.html", gin.H{
-		"title":                     "Abwesenheiten",
-		"active":                    "absences",
-		"user":                      userModel.FirstName + " " + userModel.LastName,
-		"email":                     userModel.Email,
-		"year":                      currentYear,
-		"userRole":                  userRole,
-		"currentEmployee":           currentEmployee,
-		"employees":                 employees,
-		"allAbsences":               allAbsences,
-		"pendingAbsences":           pendingAbsences,
-		"upcomingAbsences":          upcomingAbsences,
-		"pendingCount":              len(pendingAbsences),
-		"totalVacationDays":         totalVacationDays,
-		"totalSickDays":             totalSickDays,
-		"employeesOnVacation":       employeesOnVacation,
-		"employeesOnSick":           employeesOnSick,
-		"personalVacationDays":      personalVacationDays,
-		"personalSickDays":          personalSickDays,
-		"personalRemainingVacation": personalRemainingVacation,
-	})
-}
-
-// AddAbsenceRequest fügt eine neue Abwesenheitsanfrage hinzu
-func (h *AbsenceOverviewHandler) AddAbsenceRequest(c *gin.Context) {
+	// Formulardaten abrufen
 	employeeID := c.PostForm("employeeId")
 	absenceType := c.PostForm("type")
 	startDateStr := c.PostForm("startDate")
@@ -158,76 +147,55 @@ func (h *AbsenceOverviewHandler) AddAbsenceRequest(c *gin.Context) {
 	reason := c.PostForm("reason")
 	notes := c.PostForm("notes")
 
-	// Datumsvalidierung
-	startDate, err := time.Parse("2006-01-02", startDateStr)
+	// Mitarbeiter-Repository
+	employeeRepo := repository.NewEmployeeRepository()
+
+	// Mitarbeiter abrufen
+	employee, err := employeeRepo.FindByID(employeeID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültiges Startdatum"})
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "Mitarbeiter nicht gefunden",
+		})
 		return
 	}
 
-	endDate, err := time.Parse("2006-01-02", endDateStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Ungültiges Enddatum"})
-		return
-	}
+	// Datumsfelder parsen
+	var startDate, endDate time.Time
 
-	if endDate.Before(startDate) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Enddatum muss nach dem Startdatum liegen"})
-		return
-	}
-
-	// Tage berechnen
-	days := endDate.Sub(startDate).Hours()/24 + 1
-
-	// Aktuellen Benutzer abrufen
-	user, _ := c.Get("user")
-	userModel := user.(*model.User)
-	userRole, _ := c.Get("userRole")
-
-	// Mitarbeiter bestimmen
-	var targetEmployeeID string
-	if userRole == string(model.RoleUser) || userRole == string(model.RoleHR) {
-		// Eigene Abwesenheit
-		employee, err := h.employeeRepo.FindByEmail(userModel.Email)
+	if startDateStr != "" {
+		startDate, err = time.Parse("2006-01-02", startDateStr)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Mitarbeiterdaten nicht gefunden"})
-			return
-		}
-		targetEmployeeID = employee.ID.Hex()
-	} else {
-		// Manager/Admin kann für andere beantragen
-		if employeeID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Mitarbeiter muss ausgewählt werden"})
-			return
-		}
-		targetEmployeeID = employeeID
-	}
-
-	// Mitarbeiter laden
-	employee, err := h.employeeRepo.FindByID(targetEmployeeID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden"})
-		return
-	}
-
-	// Bei Urlaub: Verfügbare Tage prüfen
-	if absenceType == "vacation" {
-		currentYear := time.Now().Year()
-		usedDays := 0.0
-		for _, absence := range employee.Absences {
-			if absence.Status == "approved" && absence.Type == "vacation" && absence.StartDate.Year() == currentYear {
-				usedDays += absence.Days
-			}
-		}
-
-		remainingDays := float64(employee.VacationDays) - usedDays
-		if days > remainingDays {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf("Nicht genügend Urlaubstage. Verfügbar: %.0f, Angefordert: %.0f", remainingDays, days),
+				"success": false,
+				"error":   "Ungültiges Startdatum",
 			})
 			return
 		}
 	}
+
+	if endDateStr != "" {
+		endDate, err = time.Parse("2006-01-02", endDateStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "Ungültiges Enddatum",
+			})
+			return
+		}
+	}
+
+	// Validierung
+	if startDate.After(endDate) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Das Startdatum muss vor dem Enddatum liegen",
+		})
+		return
+	}
+
+	// Tage berechnen (inklusive Wochenenden erstmal)
+	days := int(endDate.Sub(startDate).Hours()/24) + 1
 
 	// Neue Abwesenheit erstellen
 	absence := model.Absence{
@@ -235,36 +203,43 @@ func (h *AbsenceOverviewHandler) AddAbsenceRequest(c *gin.Context) {
 		Type:      absenceType,
 		StartDate: startDate,
 		EndDate:   endDate,
-		Days:      days,
+		Days:      float64(days),
 		Status:    "requested",
 		Reason:    reason,
 		Notes:     notes,
 	}
 
-	// Zur Mitarbeiter-Abwesenheitsliste hinzufügen
+	// Abwesenheit zum Mitarbeiter hinzufügen
 	employee.Absences = append(employee.Absences, absence)
 
 	// Mitarbeiter aktualisieren
-	err = h.employeeRepo.Update(employee)
+	err = employeeRepo.Update(employee)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Speichern der Abwesenheit"})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Fehler beim Speichern des Abwesenheitsantrags",
+		})
 		return
 	}
 
 	// Aktivität loggen
-	_, _ = h.activityRepo.LogActivity(
+	activityRepo := repository.NewActivityRepository()
+	_, _ = activityRepo.LogActivity(
 		model.ActivityTypeVacationRequested,
 		userModel.ID,
 		userModel.FirstName+" "+userModel.LastName,
 		employee.ID,
 		"employee",
 		employee.FirstName+" "+employee.LastName,
-		fmt.Sprintf("%s-Antrag eingereicht: %.0f Tage", getAbsenceTypeDisplay(absenceType), days),
+		fmt.Sprintf("Abwesenheitsantrag gestellt: %s vom %s bis %s",
+			absenceType,
+			startDate.Format("02.01.2006"),
+			endDate.Format("02.01.2006")),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"message": "Abwesenheitsantrag wurde erfolgreich eingereicht",
+		"message": "Abwesenheitsantrag wurde erfolgreich gestellt",
 	})
 }
 
@@ -274,21 +249,41 @@ func (h *AbsenceOverviewHandler) ApproveAbsenceRequest(c *gin.Context) {
 	absenceID := c.Param("absenceId")
 	action := c.PostForm("action")
 
-	// Aktuellen Benutzer abrufen
+	// Benutzer und Rolle abrufen
 	user, _ := c.Get("user")
 	userModel := user.(*model.User)
+	userRole, _ := c.Get("userRole")
 
-	// Mitarbeiter laden
+	// Nur Admin und Manager dürfen genehmigen/ablehnen
+	if userRole != string(model.RoleAdmin) && userRole != string(model.RoleManager) {
+		c.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"error":   "Sie haben keine Berechtigung, Abwesenheitsanträge zu bearbeiten",
+		})
+		return
+	}
+
+	// Mitarbeiter aus der Datenbank laden
 	employee, err := h.employeeRepo.FindByID(employeeID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Mitarbeiter nicht gefunden"})
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "Mitarbeiter nicht gefunden",
+		})
 		return
 	}
 
 	// Abwesenheit finden und aktualisieren
-	absenceObjID, _ := primitive.ObjectIDFromHex(absenceID)
-	found := false
+	absenceObjID, err := primitive.ObjectIDFromHex(absenceID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Ungültige Abwesenheits-ID",
+		})
+		return
+	}
 
+	found := false
 	for i, absence := range employee.Absences {
 		if absence.ID == absenceObjID {
 			if action == "approve" {
@@ -322,14 +317,20 @@ func (h *AbsenceOverviewHandler) ApproveAbsenceRequest(c *gin.Context) {
 	}
 
 	if !found {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Abwesenheit nicht gefunden"})
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "Abwesenheit nicht gefunden",
+		})
 		return
 	}
 
 	// Mitarbeiter aktualisieren
 	err = h.employeeRepo.Update(employee)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Aktualisieren"})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Fehler beim Aktualisieren",
+		})
 		return
 	}
 

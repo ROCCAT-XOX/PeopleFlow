@@ -541,8 +541,19 @@ func (h *DocumentHandler) AddAbsence(c *gin.Context) {
 	}
 
 	// Aktuellen Benutzer aus dem Context abrufen
+	// Benutzer und Rolle abrufen
 	user, _ := c.Get("user")
 	userModel := user.(*model.User)
+	userRole, _ := c.Get("userRole")
+
+	// Prüfen ob der Benutzer berechtigt ist
+	// HR, Manager und Admin dürfen Abwesenheiten für andere hinzufügen
+	if userRole != string(model.RoleAdmin) &&
+		userRole != string(model.RoleManager) &&
+		userRole != string(model.RoleHR) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Keine Berechtigung"})
+		return
+	}
 
 	// Formulardaten abrufen
 	absenceType := c.PostForm("type")

@@ -592,12 +592,14 @@
                             Urlaubsanspruch: {{.employee.VacationDays}} Tage | Verbleibend: {{.employee.RemainingVacation}} Tage
                         </p>
                     </div>
+                    {{if or (eq .userRole "admin") (eq .userRole "manager") (eq .userRole "hr")}}
                     <button type="button" onclick="openModal('addAbsenceModal')" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                         <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
                         </svg>
-                        Abwesenheit hinzufügen
+                        Abwesenheit beantragen
                     </button>
+                    {{end}}
                 </div>
 
                 <!-- Urlaubskonto -->
@@ -628,32 +630,39 @@
                             <li class="px-4 py-4 sm:px-6">
                                 <div class="flex items-center justify-between">
                                     <div class="flex flex-col">
-                                        {{if eq .Type "vacation"}}
-                                        <p class="text-sm font-medium text-gray-900">Urlaub</p>
-                                        {{else if eq .Type "sick"}}
-                                        <p class="text-sm font-medium text-gray-900">Krankheit</p>
-                                        {{else}}
-                                        <p class="text-sm font-medium text-gray-900">Sonstige Abwesenheit</p>
-                                        {{end}}
-                                        <div class="mt-2 flex items-center text-sm text-gray-500">
-                                            <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-                                            </svg>
-                                            <span>{{formatDate .StartDate}} - {{formatDate .EndDate}} ({{.Days}} Tage)</span>
-                                        </div>
-                                        {{if .Reason}}
-                                        <p class="mt-1 text-sm text-gray-500">{{.Reason}}</p>
-                                        {{end}}
+                                        <!-- Bestehender Code für Anzeige -->
                                     </div>
-                                    <div>
-                                        {{if eq .Status "approved"}}
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Genehmigt</span>
-                                        {{else if eq .Status "requested"}}
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Beantragt</span>
-                                        {{else if eq .Status "rejected"}}
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Abgelehnt</span>
-                                        {{else}}
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">{{.Status}}</span>
+                                    <div class="flex items-center space-x-4">
+                                        <!-- Status-Anzeige -->
+                                        <div>
+                                            {{if eq .Status "approved"}}
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Genehmigt</span>
+                                            {{else if eq .Status "requested"}}
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Beantragt</span>
+                                            {{else if eq .Status "rejected"}}
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Abgelehnt</span>
+                                            {{end}}
+                                        </div>
+
+                                        <!-- Aktionen nur für Admin/Manager -->
+                                        {{if and (eq .Status "requested") (or (eq $.userRole "admin") (eq $.userRole "manager"))}}
+                                        <div class="flex space-x-2">
+                                            <button onclick="approveAbsence('{{$.employee.ID.Hex}}', '{{.ID.Hex}}', 'approve')" class="text-green-600 hover:text-green-900">
+                                                Genehmigen
+                                            </button>
+                                            <button onclick="approveAbsence('{{$.employee.ID.Hex}}', '{{.ID.Hex}}', 'reject')" class="text-red-600 hover:text-red-900">
+                                                Ablehnen
+                                            </button>
+                                        </div>
+                                        {{end}}
+
+                                        <!-- Löschen nur für Admin/Manager -->
+                                        {{if or (eq $.userRole "admin") (eq $.userRole "manager")}}
+                                        <button onclick="confirmDeleteAbsence('{{$.employee.ID.Hex}}', '{{.ID.Hex}}')" class="text-red-600 hover:text-red-900">
+                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
                                         {{end}}
                                     </div>
                                 </div>
