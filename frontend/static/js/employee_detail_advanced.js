@@ -581,6 +581,11 @@ function recalculateEmployeeOvertime() {
     const employeeId = getEmployeeIdFromUrl();
     const button = document.getElementById('recalculateEmployeeOvertimeBtn');
 
+    if (!employeeId) {
+        console.error('Employee ID not found in URL');
+        return;
+    }
+
     if (!button) {
         console.error('Recalculate button not found');
         return;
@@ -617,6 +622,11 @@ function recalculateEmployeeOvertime() {
 
                 // Überstunden-Balance aktualisieren
                 updateOvertimeDisplay(data.data);
+
+                // Anpassungen neu laden
+                setTimeout(() => {
+                    loadEmployeeAdjustments();
+                }, 500);
 
                 // Seite nach kurzer Verzögerung neu laden für vollständige Aktualisierung
                 setTimeout(() => {

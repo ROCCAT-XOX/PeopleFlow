@@ -270,6 +270,17 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 		return
 	}
 
+	// TimeAccountService für Überstunden-Details initialisieren
+	timeAccountService := service.NewTimeAccountService()
+
+	// Wenn noch keine Überstunden berechnet wurden, jetzt berechnen
+	if employee.LastTimeCalculated.IsZero() && len(employee.TimeEntries) > 0 {
+		err = timeAccountService.CalculateOvertimeForEmployee(employee)
+		if err != nil {
+			fmt.Printf("Error calculating overtime for employee %s: %v\n", employee.ID.Hex(), err)
+		}
+	}
+
 	// Aktuellen Benutzer aus dem Context abrufen
 	user, _ := c.Get("user")
 	userModel := user.(*model.User)
@@ -376,33 +387,37 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 	// Überstunden-Details berechnen
 	overtimeDetails := employee.GetOvertimeBalanceWithDetails()
 
+	// Basis-Überstunden-Saldo für Template-Attribute
+	baseOvertimeBalance := employee.OvertimeBalance
+
 	// Format total hours with 2 decimal places
 	totalHoursFormatted := fmt.Sprintf("%.2f", totalHours)
 
 	// Daten an das Template übergeben
 	c.HTML(http.StatusOK, "employee_detail_advanced.html", gin.H{
-		"title":             employee.FirstName + " " + employee.LastName,
-		"active":            "employees",
-		"user":              userModel.FirstName + " " + userModel.LastName,
-		"email":             userModel.Email,
-		"year":              time.Now().Year(),
-		"employee":          employee,
-		"manager":           manager,
-		"userRole":          userRole,
-		"formatFileSize":    formatFileSize,
-		"iterate":           iterate,
-		"now":               now,
-		"hideSalary":        hideSalary,
-		"usedVacationDays":  usedVacationDays,
-		"remainingVacation": employee.RemainingVacation,
-		"timeEntries":       timeEntries,
-		"totalHours":        totalHoursFormatted,
-		"projectCount":      len(projectMap),
-		"startDate":         startDate,
-		"endDate":           endDate,
-		"projectLabels":     projectLabels,
-		"projectHours":      projectHours,
-		"overtimeDetails":   overtimeDetails,
+		"title":               employee.FirstName + " " + employee.LastName,
+		"active":              "employees",
+		"user":                userModel.FirstName + " " + userModel.LastName,
+		"email":               userModel.Email,
+		"year":                time.Now().Year(),
+		"employee":            employee,
+		"manager":             manager,
+		"userRole":            userRole,
+		"formatFileSize":      formatFileSize,
+		"iterate":             iterate,
+		"now":                 now,
+		"hideSalary":          hideSalary,
+		"usedVacationDays":    usedVacationDays,
+		"remainingVacation":   employee.RemainingVacation,
+		"timeEntries":         timeEntries,
+		"totalHours":          totalHoursFormatted,
+		"projectCount":        len(projectMap),
+		"startDate":           startDate,
+		"endDate":             endDate,
+		"projectLabels":       projectLabels,
+		"projectHours":        projectHours,
+		"overtimeDetails":     overtimeDetails,
+		"baseOvertimeBalance": baseOvertimeBalance,
 	})
 }
 

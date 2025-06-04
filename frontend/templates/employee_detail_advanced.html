@@ -877,15 +877,11 @@
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div class="bg-gray-50 rounded-lg p-4">
                             <div class="text-sm font-medium text-gray-500">Berechnetes Saldo</div>
-                            <div id="currentOvertimeBalance" class="mt-1 text-3xl font-semibold">
-                                {{if .employee.OvertimeBalance}}
+                            <div id="currentOvertimeBalance" class="mt-1 text-3xl font-semibold" data-overtime-base="{{.baseOvertimeBalance}}">
                                 {{if ge .employee.OvertimeBalance 0}}
                                 <span class="text-green-600">+{{printf "%.1f" .employee.OvertimeBalance}} Std</span>
                                 {{else}}
                                 <span class="text-red-600">{{printf "%.1f" .employee.OvertimeBalance}} Std</span>
-                                {{end}}
-                                {{else}}
-                                <span class="text-gray-900">0.0 Std</span>
                                 {{end}}
                             </div>
                         </div>
