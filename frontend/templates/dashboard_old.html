@@ -1,0 +1,1326 @@
+{{ template "head" . }}
+<style>
+  .tab-btn {
+    transition: all 0.2s ease-in-out;
+  }
+  .tab-btn.active {
+    border-color: #10b981 !important;
+    color: #059669 !important;
+  }
+  .tab-content {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+<body class="h-full bg-gray-50">
+<!-- Navigation einfügen -->
+{{ template "navigation" . }}
+
+<!-- Hauptinhalt -->
+<main class="py-10">
+  <div class="px-4 sm:px-6 lg:px-8">
+    {{if eq .userRole "user"}}
+    <!-- Eingeschränktes Dashboard für einfache Benutzer -->
+    <div class="bg-white shadow rounded-lg p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">Willkommen, {{.user}}!</h2>
+      <p class="text-gray-600 mb-4">
+        Dies ist dein persönliches Dashboard. Hier findest du Informationen zu deinem Konto und deinen Aktivitäten.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <div class="bg-gray-50 p-4 rounded-lg">
+          <h3 class="text-md font-medium text-gray-800 mb-2">Dein Profil</h3>
+          <p class="text-sm text-gray-600 mb-4">Verwalte deine persönlichen Informationen und Passwort.</p>
+          <a href="/profile" class="text-green-600 hover:text-green-800 text-sm font-medium">Zum Profil →</a>
+        </div>
+
+        <div class="bg-gray-50 p-4 rounded-lg">
+          <h3 class="text-md font-medium text-gray-800 mb-2">Letzte Aktivitäten</h3>
+          <div class="space-y-2">
+            {{range .recentActivities}}
+            <div class="text-sm">
+              <span class="text-gray-500">{{.Time}}:</span>
+              <span class="text-gray-800">{{.Message | safeHTML}}</span>
+            </div>
+            {{else}}
+            <p class="text-sm text-gray-500">Keine kürzlichen Aktivitäten.</p>
+            {{end}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {{else if eq .userRole "hr"}}
+    <!-- HR-spezifisches Dashboard -->
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-gray-900">HR Dashboard</h1>
+      <p class="mt-1 text-sm text-gray-500">Überblick über Mitarbeiterdaten und HR-Kennzahlen</p>
+    </div>
+
+    <!-- HR Dashboard Header mit Statistiken -->
+    <div class="grid grid-cols-1 gap-6 mb-6 lg:grid-cols-4">
+      <!-- Gesamtmitarbeiter-Karte -->
+      <div class="flex items-center p-4 bg-white rounded-lg shadow-md">
+        <div class="flex-shrink-0 mr-4">
+          <div class="p-3 rounded-full bg-[#166534]/20">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#15803D]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+        </div>
+        <div>
+          <span class="block text-2xl font-bold text-black">{{.totalEmployees}}</span>
+          <span class="block text-gray-500">Gesamtmitarbeiter</span>
+        </div>
+      </div>
+
+      <!-- Aktuelle Abwesenheiten-Karte -->
+      <div class="flex items-center p-4 bg-white rounded-lg shadow-md">
+        <div class="flex-shrink-0 mr-4">
+          <div class="p-3 rounded-full bg-[#FBBF24]/20">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#F59E0B]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        </div>
+        <div>
+          <span class="block text-2xl font-bold text-black">{{.currentAbsences}}</span>
+          <span class="block text-gray-500">Abwesenheiten</span>
+          <span class="block text-xs text-gray-400">{{.absenceRate}}% Urlaub / {{.sickRate}}% Krank</span>
+        </div>
+      </div>
+
+      <!-- Neue Mitarbeiter-Karte -->
+      <div class="flex items-center p-4 bg-white rounded-lg shadow-md">
+        <div class="flex-shrink-0 mr-4">
+          <div class="p-3 rounded-full bg-[#DCFCE7]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#16A34A]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+          </div>
+        </div>
+        <div>
+          <span class="block text-2xl font-bold text-black">{{.newEmployeesThisMonth}}</span>
+          <span class="block text-gray-500">Neue Mitarbeiter</span>
+          <span class="block text-xs text-gray-400">Diesen Monat</span>
+        </div>
+      </div>
+
+      <!-- Review-Karte -->
+      <div class="flex items-center p-4 bg-white rounded-lg shadow-md">
+        <div class="flex-shrink-0 mr-4">
+          <div class="p-3 rounded-full bg-[#EF4444]/20">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#EF4444]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </div>
+        </div>
+        <div>
+          <span class="block text-2xl font-bold text-black">{{.upcomingReviews}}</span>
+          <span class="block text-gray-500">Anstehende Reviews</span>
+          <span class="block text-xs text-red-500">{{.overdueReviews}} überfällig</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Zusätzliche Kennzahlen-Leiste -->
+    <div class="grid grid-cols-1 gap-6 mb-6 lg:grid-cols-4">
+      <div class="bg-white rounded-lg shadow-md p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Fluktuationsrate</p>
+            <p class="text-2xl font-bold text-gray-900">{{.turnoverRate}}%</p>
+          </div>
+          <div class="p-2 bg-red-100 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Retentionsrate</p>
+            <p class="text-2xl font-bold text-gray-900">{{.retentionRate}}%</p>
+          </div>
+          <div class="p-2 bg-green-100 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Ø Betriebszugehörigkeit</p>
+            <p class="text-2xl font-bold text-gray-900">{{.averageEmployment}} Jahre</p>
+          </div>
+          <div class="p-2 bg-blue-100 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Mitarbeiterstatus</p>
+            <div class="flex items-center space-x-2 mt-1">
+              <span class="text-sm text-green-600">{{.activeEmployees}} Aktiv</span>
+              <span class="text-sm text-yellow-600">{{.onLeaveEmployees}} Urlaub</span>
+              <span class="text-sm text-red-600">{{.sickEmployees}} Krank</span>
+            </div>
+          </div>
+          <div class="p-2 bg-purple-100 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab-Navigation für verschiedene Ansichten -->
+    <div class="mb-6">
+      <div class="border-b border-gray-200">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+          <button id="tab-overview" class="tab-btn active border-green-500 text-green-600 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+            Übersicht
+          </button>
+          <button id="tab-demographics" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+            Demografie
+          </button>
+          <button id="tab-timeline" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+            Zeitverlauf
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Tab-Inhalte -->
+    <div id="tab-content-overview" class="tab-content">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Abteilungsverteilung -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="p-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Abteilungsverteilung</h3>
+          </div>
+          <div class="p-4">
+            <div class="h-64">
+              <canvas id="departmentChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status-Verteilung -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="p-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Mitarbeiterstatus</h3>
+          </div>
+          <div class="p-4">
+            <div class="h-64">
+              <canvas id="statusChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-content-demographics" class="tab-content hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Altersverteilung -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="p-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Altersverteilung</h3>
+          </div>
+          <div class="p-4">
+            <div class="h-64">
+              <canvas id="ageChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Betriebszugehörigkeit -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="p-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Betriebszugehörigkeit</h3>
+          </div>
+          <div class="p-4">
+            <div class="h-64">
+              <canvas id="tenureChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-content-timeline" class="tab-content hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Monatliche Einstellungen -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="p-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Neueinstellungen über das Jahr</h3>
+          </div>
+          <div class="p-4">
+            <div class="h-64">
+              <canvas id="hiresChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monatliche Abgänge -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="p-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Abgänge über das Jahr</h3>
+          </div>
+          <div class="p-4">
+            <div class="h-64">
+              <canvas id="departuresChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Abwesenheiten über Zeit -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="p-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Urlaub und Krankheit im Jahresverlauf</h3>
+          </div>
+          <div class="p-4">
+            <div class="h-64">
+              <canvas id="absenceTimeChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Netto-Personalentwicklung -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="p-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Netto-Personalentwicklung</h3>
+          </div>
+          <div class="p-4">
+            <div class="h-64">
+              <canvas id="netGrowthChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mitarbeiterübersicht (immer sichtbar) -->
+    <div class="mt-8">
+      <div class="bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">Mitarbeiterübersicht</h3>
+          <a href="/employees" class="text-sm text-green-600 hover:underline">Alle anzeigen</a>
+        </div>
+        <div class="p-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {{range .recentEmployees}}
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+              <div class="flex items-center p-4">
+                <div class="flex-shrink-0">
+                  {{if .ProfileImage}}
+                  <img class="h-12 w-12 rounded-full object-cover" src="{{.ProfileImage}}" alt="{{.Name}}">
+                  {{else}}
+                  <div class="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-sm font-medium">
+                    {{ getInitials .Name }}
+                  </div>
+                  {{end}}
+                </div>
+
+                <div class="flex-1 min-w-0 ml-4">
+                  <p class="text-sm font-medium text-gray-900 truncate">{{.Name}}</p>
+                  <p class="text-sm text-gray-500 truncate">{{.Position}}</p>
+                  {{if .Department}}
+                  <p class="text-xs text-gray-400 truncate">{{.Department}}</p>
+                  {{end}}
+                  <div class="flex items-center mt-1">
+                  <span class="flex h-2 w-2 rounded-full
+                    {{if eq .Status "Aktiv"}}bg-green-500
+                    {{else if eq .Status "Im Urlaub"}}bg-yellow-500
+                    {{else if eq .Status "Krank"}}bg-red-500
+                    {{else}}bg-gray-500{{end}}
+                    mr-1.5"></span>
+                    <span class="text-xs text-gray-500">{{.Status}}</span>
+                  </div>
+                  <div class="text-xs text-gray-400 mt-1">
+                    Seit: {{.HireDate}} ({{printf "%.1f" .Tenure}} Jahre)
+                  </div>
+                </div>
+
+                <a href="/employees/view/{{.ID}}" class="inline-flex items-center text-xs font-medium text-green-600 hover:text-green-800 ml-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                    <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                  </svg>
+                  Details
+                </a>
+              </div>
+            </div>
+            {{else}}
+            <div class="col-span-3 p-4 text-center text-gray-500">
+              Keine Mitarbeiter gefunden
+            </div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Letzte Aktivitäten (immer sichtbar) -->
+    <div class="mt-8">
+      <div class="bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">Letzte Aktivitäten</h3>
+        </div>
+        <div class="p-4">
+          <div class="flow-root">
+            <ul class="-mb-8">
+              {{range .recentActivities}}
+              <li>
+                <div class="relative pb-8">
+                  {{if not .IsLast}}
+                  <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                  {{end}}
+                  <div class="relative flex space-x-3">
+                    <div>
+                    <span class="h-8 w-8 rounded-full {{.IconBgClass}} flex items-center justify-center ring-8 ring-white">
+                      {{.IconSVG | safeHTML}}
+                    </span>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div>
+                        <div class="text-sm text-gray-500">
+                          {{.Message | safeHTML}}
+                        </div>
+                        <p class="mt-0.5 text-sm text-gray-500">{{.Time}}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+              {{else}}
+              <li class="text-center text-gray-500 py-2">
+                Keine Aktivitäten gefunden
+              </li>
+              {{end}}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {{else}}
+    <!-- Standard Dashboard für Admin/Manager (bestehender Code) -->
+    <!-- Dashboard Header mit Statistiken -->
+    <div class="grid grid-cols-1 gap-6 mb-6 lg:grid-cols-4">
+      <!-- Mitarbeiter-Karte -->
+      <div class="flex items-center p-4 bg-white rounded-lg shadow-md">
+        <div class="flex-shrink-0 mr-4">
+          <div class="p-3 rounded-full bg-[#166534]/20">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#15803D]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+        </div>
+        <div>
+          <span class="block text-2xl font-bold text-black">{{.totalEmployees}}</span>
+          <span class="block text-gray-500">Gesamtmitarbeiter</span>
+        </div>
+      </div>
+
+      <!-- Personalkosten-Karte mit neuem Euro-Icon -->
+      <div class="flex items-center p-4 bg-white rounded-lg shadow-md">
+        <div class="flex-shrink-0 mr-4">
+          <div class="p-3 rounded-full bg-[#DCFCE7]">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-8 w-8 text-[#16A34A]">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 7.756a4.5 4.5 0 1 0 0 8.488M7.5 10.5h5.25m-5.25 3h5.25M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+          </div>
+        </div>
+        <div>
+          <span class="block text-2xl font-bold text-black">{{.monthlyLaborCosts}} €</span>
+          <div class="flex items-center">
+            <span class="block text-gray-500">Monatliche Personalkosten</span>
+            <span class="relative ml-1 group">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 w-64 bg-gray-800 text-white text-xs p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+              Die Arbeitgeberkosten betragen zusätzlich 21,5% des Bruttogehalts für Sozialversicherungsbeiträge und andere gesetzliche Abgaben.
+            </span>
+          </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Anstehende Gespräche-Karte -->
+      <div class="flex items-center p-4 bg-white rounded-lg shadow-md">
+        <div class="flex-shrink-0 mr-4">
+          <div class="p-3 rounded-full bg-[#EFFDC5]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-[#C3E657]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+        </div>
+        <div>
+          <span class="block text-2xl font-bold text-black">{{.upcomingReviews}}</span>
+          <span class="block text-gray-500">Anstehende Gespräche</span>
+        </div>
+      </div>
+
+      <!-- Abgelaufene Dokumente-Karte mit neuem Dokument-Icon -->
+      <div class="flex items-center p-4 bg-white rounded-lg shadow-md">
+        <div class="flex-shrink-0 mr-4">
+          <div class="p-3 rounded-full bg-[#EFE176]/20">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-8 w-8  text-[#EFE176]">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+            </svg>
+          </div>
+        </div>
+        <div>
+          <span class="block text-2xl font-bold text-black">{{.expiredDocuments}}</span>
+          <span class="block text-gray-500">Abgelaufene Dokumente</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hauptbereich mit Karten für Admin/Manager -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Linke Spalte -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Mitarbeiterübersicht-Karte -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="flex items-center justify-between p-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Mitarbeiterübersicht</h3>
+            <div class="flex space-x-2">
+              <div class="relative">
+                <select id="employee-filter" class="text-sm border-gray-300 rounded-md pr-8 focus:ring-green-500 focus:border-green-500">
+                  <option value="all">Alle</option>
+                  <option value="active">Aktiv</option>
+                  <option value="onLeave">Im Urlaub</option>
+                  <option value="remote">Remote</option>
+                </select>
+              </div>
+              <a href="/employees" class="text-sm text-green-600 hover:underline">Alle anzeigen</a>
+            </div>
+          </div>
+          <div class="p-4">
+            <div id="employees-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+              {{range .recentEmployees}}
+              <div class="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center p-4">
+                  <div class="flex-shrink-0">
+                    {{if .ProfileImage}}
+                    <img class="h-12 w-12 rounded-full object-cover" src="{{.ProfileImage}}" alt="{{.Name}}">
+                    {{else}}
+                    <div class="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center text-green-800 text-sm font-medium">
+                      {{ getInitials .Name }}
+                    </div>
+                    {{end}}
+                  </div>
+
+                  <div class="flex-1 min-w-0 ml-4">
+                    <p class="text-sm font-medium text-gray-900 truncate">{{.Name}}</p>
+                    <p class="text-sm text-gray-500 truncate">{{.Position}}</p>
+                    <div class="flex items-center mt-1">
+                    <span class="flex h-2 w-2 rounded-full
+                      {{if eq .Status "Aktiv"}}bg-green-500
+                      {{else if eq .Status "Im Urlaub"}}bg-yellow-500
+                      {{else if eq .Status "Remote"}}bg-blue-500
+                      {{else}}bg-red-500{{end}}
+                      mr-1.5"></span>
+                      <span class="text-xs text-gray-500">{{.Status}}</span>
+                    </div>
+                  </div>
+
+                  <a href="/employees/view/{{.ID}}" class="inline-flex items-center text-xs font-medium text-green-600 hover:text-green-800 ml-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                      <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                    </svg>
+                    Details
+                  </a>
+                </div>
+              </div>
+              {{else}}
+              <div class="col-span-2 p-4 text-center text-gray-500">
+                Keine Mitarbeiter gefunden
+              </div>
+              {{end}}
+            </div>
+          </div>
+        </div>
+
+        <!-- Personalkosten-Diagramm -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="p-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Personalkosten über Zeit (inkl. Arbeitgeberanteil)</h3>
+          </div>
+          <div class="p-4">
+            <div class="relative h-64">
+              <canvas id="laborCostsChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Neue Charts -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Personalkostenverteilung nach Abteilung -->
+          <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="p-4 border-b border-gray-200">
+              <h3 class="text-lg font-semibold text-gray-800">Personalkosten nach Abteilung</h3>
+            </div>
+            <div class="p-4">
+              <div class="relative h-72">
+                <canvas id="deptCostsChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Altersstruktur -->
+          <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="p-4 border-b border-gray-200">
+              <h3 class="text-lg font-semibold text-gray-800">Altersstruktur</h3>
+            </div>
+            <div class="p-4">
+              <div class="relative h-72">
+                <canvas id="ageDistributionChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rechte Spalte -->
+      <div class="space-y-6">
+        <!-- Abteilungsverteilung -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="flex items-center justify-between p-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Abteilungsverteilung</h3>
+          </div>
+          <div class="p-4">
+            <div class="h-64">
+              <canvas id="departmentChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Anstehende Gespräche -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="flex items-center justify-between p-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Anstehende Gespräche</h3>
+            <a href="/upcoming-conversations" class="text-sm text-green-600 hover:underline">Alle anzeigen</a>
+          </div>
+          <div class="p-4">
+            <ul class="divide-y divide-gray-200">
+              {{range .upcomingReviewsList}}
+              <li class="py-3">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-sm font-medium text-gray-900">{{.EmployeeName}}</p>
+                    <p class="text-sm text-gray-500">{{.ReviewType}}</p>
+                  </div>
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  {{.Date}}
+                </span>
+                </div>
+              </li>
+              {{else}}
+              <li class="py-3 text-center text-gray-500">
+                Keine anstehenden Gespräche
+              </li>
+              {{end}}
+            </ul>
+          </div>
+        </div>
+
+        <!-- Letzte Aktivitäten -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="flex items-center justify-between p-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">Letzte Aktivitäten</h3>
+          </div>
+          <div class="p-4">
+            <div class="flow-root">
+              <ul class="-mb-8">
+                {{range .recentActivities}}
+                <li>
+                  <div class="relative pb-8">
+                    {{if not .IsLast}}
+                    <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                    {{end}}
+                    <div class="relative flex space-x-3">
+                      <div>
+                      <span class="h-8 w-8 rounded-full {{.IconBgClass}} flex items-center justify-center ring-8 ring-white">
+                        {{.IconSVG | safeHTML}}
+                      </span>
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <div>
+                          <div class="text-sm text-gray-500">
+                            {{.Message | safeHTML}}
+                          </div>
+                          <p class="mt-0.5 text-sm text-gray-500">{{.Time}}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+                {{else}}
+                <li class="text-center text-gray-500 py-2">
+                  Keine Aktivitäten gefunden
+                </li>
+                {{end}}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {{end}}
+  </div>
+</main>
+
+<!-- Footer -->
+{{ template "footer" . }}
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Farbpalette definieren
+    const chartColors = [
+      '#15803D', // Dunkelgrün
+      '#22C55E', // Grün
+      '#86EFAC', // Hellgrün
+      '#C3E657', // Gelbgrün
+      '#EFE176'  // Gelb
+    ];
+
+    // Nur für Admin/Manager Rollen - Kostencharts
+    {{if and (ne .userRole "user") (ne .userRole "hr")}}
+    // Personalkosten-Diagramm
+    const laborCtx = document.getElementById('laborCostsChart').getContext('2d');
+    const laborCostsChart = new Chart(laborCtx, {
+              type: 'line',
+              data: {
+                labels: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+                datasets: [
+                  {
+                    label: 'Gesamtpersonalkosten inkl. AG-Anteil (€)',
+                    data: {{.monthlyCostsData}},
+              borderColor: chartColors[0],
+              backgroundColor: `${chartColors[0]}20`,
+              fill: true,
+              tension: 0.4
+            },
+            {
+              label: 'Durchschnittskosten pro Mitarbeiter inkl. AG-Anteil (€)',
+              data: {{.avgCostsPerEmployeeData}},
+    borderColor: chartColors[1],
+            backgroundColor: `${chartColors[1]}20`,
+            fill: true,
+            tension: 0.4,
+            borderDash: [5, 5]
+  }
+  ]
+  },
+    options: {
+      responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+        tooltip: {
+          mode: 'index',
+                  intersect: false,
+                  callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              if (context.parsed.y !== null) {
+                label += new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(context.parsed.y);
+              }
+              return label;
+            }
+          }
+        },
+        legend: {
+          position: 'top',
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false
+          }
+        },
+        y: {
+          beginAtZero: true,
+                  ticks: {
+            callback: function(value, index, values) {
+              return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(value);
+            }
+          }
+        }
+      }
+    }
+  });
+
+    // Personalkostenverteilung nach Abteilung
+    const deptCostsCtx = document.getElementById('deptCostsChart').getContext('2d');
+    const deptLabels = {{.deptCostsLabels}};
+    const deptColors = deptLabels.map((_, index) => chartColors[index % chartColors.length]);
+
+    const deptCostsChart = new Chart(deptCostsCtx, {
+      type: 'bar',
+      data: {
+        labels: deptLabels,
+        datasets: [{
+          label: 'Personalkosten (€)',
+          data: {{.deptCostsData}},
+      backgroundColor: deptColors,
+      borderColor: deptColors,
+      borderWidth: 1,
+      borderRadius: {
+        topLeft: 8,
+        topRight: 8,
+        bottomLeft: 0,
+        bottomRight: 0
+      },
+      borderSkipped: 'bottom'
+    }]
+  },
+    options: {
+      responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+        y: {
+          beginAtZero: true,
+                  ticks: {
+            callback: function(value, index, values) {
+              return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(value);
+            }
+          }
+        }
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              if (context.parsed.y !== null) {
+                label += new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(context.parsed.y);
+              }
+              return label;
+            }
+          }
+        }
+      }
+    }
+  });
+
+    // Altersstruktur
+    const ageCtx = document.getElementById('ageDistributionChart').getContext('2d');
+    const ageGroups = {{.ageGroups}};
+    const ageColors = ageGroups.map((_, index) => chartColors[index % chartColors.length]);
+
+    const ageChart = new Chart(ageCtx, {
+      type: 'bar',
+      data: {
+        labels: ageGroups,
+        datasets: [{
+          label: 'Anzahl Mitarbeiter',
+          data: {{.ageCounts}},
+      backgroundColor: ageColors,
+      borderColor: ageColors,
+      borderWidth: 1,
+      borderRadius: {
+        topLeft: 8,
+        topRight: 8,
+        bottomLeft: 0,
+        bottomRight: 0
+      },
+      borderSkipped: 'bottom'
+    }]
+  },
+    options: {
+      responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+        y: {
+          beginAtZero: true,
+                  ticks: {
+            stepSize: 1,
+                    precision: 0
+          }
+        }
+      }
+    }
+  });
+    {{end}}
+
+    // Nur für HR Rolle - Charts erstellen
+    {{if eq .userRole "hr"}}
+
+    // Tab-Funktionalität
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        // Alle Tabs deaktivieren
+        tabButtons.forEach(btn => {
+          btn.classList.remove('active', 'border-green-500', 'text-green-600');
+          btn.classList.add('border-transparent', 'text-gray-500');
+        });
+
+        // Alle Tab-Inhalte verstecken
+        tabContents.forEach(content => {
+          content.classList.add('hidden');
+        });
+
+        // Aktiven Tab aktivieren
+        button.classList.remove('border-transparent', 'text-gray-500');
+        button.classList.add('active', 'border-green-500', 'text-green-600');
+
+        // Entsprechenden Inhalt zeigen
+        const targetId = button.id.replace('tab-', 'tab-content-');
+        document.getElementById(targetId).classList.remove('hidden');
+      });
+    });
+
+    // Abteilungsverteilung-Diagramm
+    const deptCtx = document.getElementById('departmentChart').getContext('2d');
+    const departmentChart = new Chart(deptCtx, {
+      type: 'doughnut',
+      data: {
+        labels: {{.departmentLabels}},
+    datasets: [{
+      data: {{.departmentData}},
+    backgroundColor: chartColors,
+            hoverOffset: 4
+  }]
+  },
+    options: {
+      responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+        legend: {
+          position: 'bottom',
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.label || '';
+              if (label) {
+                label += ': ';
+              }
+              if (context.parsed !== null) {
+                label += context.parsed;
+                label += ' Mitarbeiter';
+              }
+              return label;
+            }
+          }
+        }
+      }
+    }
+  });
+
+    // Status-Verteilung-Diagramm
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    const statusChart = new Chart(statusCtx, {
+      type: 'pie',
+      data: {
+        labels: {{.statusLabels}},
+    datasets: [{
+      data: {{.statusData}},
+    backgroundColor: ['#22C55E', '#F59E0B', '#EF4444', '#6B7280'], // Grün, Gelb, Rot, Grau
+            hoverOffset: 4
+  }]
+  },
+    options: {
+      responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+        legend: {
+          position: 'bottom',
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.label || '';
+              if (label) {
+                label += ': ';
+              }
+              if (context.parsed !== null) {
+                label += context.parsed;
+                label += ' Mitarbeiter';
+              }
+              return label;
+            }
+          }
+        }
+      }
+    }
+  });
+
+    // Altersverteilung-Diagramm
+    const ageCtx = document.getElementById('ageChart').getContext('2d');
+    const ageChart = new Chart(ageCtx, {
+      type: 'bar',
+      data: {
+        labels: {{.ageLabels}},
+    datasets: [{
+      label: 'Anzahl Mitarbeiter',
+      data: {{.ageData}},
+    backgroundColor: chartColors[1],
+            borderColor: chartColors[1],
+            borderWidth: 1,
+            borderRadius: {
+      topLeft: 8,
+              topRight: 8,
+              bottomLeft: 0,
+              bottomRight: 0
+    },
+    borderSkipped: 'bottom'
+  }]
+  },
+    options: {
+      responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+        y: {
+          beginAtZero: true,
+                  ticks: {
+            stepSize: 1,
+                    precision: 0
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        }
+      }
+    }
+  });
+
+    // Betriebszugehörigkeit-Diagramm
+    const tenureCtx = document.getElementById('tenureChart').getContext('2d');
+    const tenureChart = new Chart(tenureCtx, {
+      type: 'bar',
+      data: {
+        labels: {{.tenureLabels}},
+    datasets: [{
+      label: 'Anzahl Mitarbeiter',
+      data: {{.tenureData}},
+    backgroundColor: chartColors[2],
+            borderColor: chartColors[2],
+            borderWidth: 1,
+            borderRadius: {
+      topLeft: 8,
+              topRight: 8,
+              bottomLeft: 0,
+              bottomRight: 0
+    },
+    borderSkipped: 'bottom'
+  }]
+  },
+    options: {
+      responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+        y: {
+          beginAtZero: true,
+                  ticks: {
+            stepSize: 1,
+                    precision: 0
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        }
+      }
+    }
+  });
+
+    // Neueinstellungen-Diagramm
+    const hiresCtx = document.getElementById('hiresChart').getContext('2d');
+    const hiresChart = new Chart(hiresCtx, {
+      type: 'line',
+      data: {
+        labels: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+        datasets: [{
+          label: 'Neueinstellungen',
+          data: {{.monthlyHiresData}},
+      borderColor: chartColors[0],
+      backgroundColor: `${chartColors[0]}20`,
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: chartColors[0],
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      pointRadius: 5
+    }]
+  },
+    options: {
+      responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          mode: 'index',
+                  intersect: false,
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false
+          }
+        },
+        y: {
+          beginAtZero: true,
+                  ticks: {
+            stepSize: 1,
+                    precision: 0
+          }
+        }
+      }
+    }
+  });
+
+    // Abgänge-Diagramm
+    const departuresCtx = document.getElementById('departuresChart').getContext('2d');
+    const departuresChart = new Chart(departuresCtx, {
+      type: 'line',
+      data: {
+        labels: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+        datasets: [{
+          label: 'Abgänge',
+          data: {{.monthlyDeparturesData}},
+      borderColor: chartColors[4],
+      backgroundColor: `${chartColors[4]}20`,
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: chartColors[4],
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      pointRadius: 5
+    }]
+  },
+    options: {
+      responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          mode: 'index',
+                  intersect: false,
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false
+          }
+        },
+        y: {
+          beginAtZero: true,
+                  ticks: {
+            stepSize: 1,
+                    precision: 0
+          }
+        }
+      }
+    }
+  });
+
+    // Abwesenheiten über Zeit
+    const absenceTimeCtx = document.getElementById('absenceTimeChart').getContext('2d');
+    const absenceTimeChart = new Chart(absenceTimeCtx, {
+              type: 'line',
+              data: {
+                labels: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+                datasets: [
+                  {
+                    label: 'Urlaub',
+                    data: {{.absenceByMonthData}},
+              borderColor: '#F59E0B',
+              backgroundColor: '#F59E0B20',
+              fill: false,
+              tension: 0.4
+            },
+            {
+              label: 'Krankheit',
+              data: {{.sicknessByMonthData}},
+    borderColor: '#EF4444',
+            backgroundColor: '#EF444420',
+            fill: false,
+            tension: 0.4
+  }
+  ]
+  },
+    options: {
+      responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+        legend: {
+          position: 'bottom'
+        },
+        tooltip: {
+          mode: 'index',
+                  intersect: false,
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false
+          }
+        },
+        y: {
+          beginAtZero: true,
+                  ticks: {
+            stepSize: 1,
+                    precision: 0
+          }
+        }
+      }
+    }
+  });
+
+    // Netto-Personalentwicklung
+    const netGrowthCtx = document.getElementById('netGrowthChart').getContext('2d');
+
+    // Berechne Netto-Wachstum (Einstellungen - Abgänge)
+    const netGrowthData = {{.monthlyHiresData}}.map((hires, index) => {
+      return hires - {{.monthlyDeparturesData}}[index];
+    });
+
+    const netGrowthChart = new Chart(netGrowthCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+        datasets: [{
+          label: 'Netto-Personalentwicklung',
+          data: netGrowthData,
+          backgroundColor: netGrowthData.map(value => value >= 0 ? chartColors[1] : '#EF4444'),
+          borderColor: netGrowthData.map(value => value >= 0 ? chartColors[1] : '#EF4444'),
+          borderWidth: 1,
+          borderRadius: {
+            topLeft: 8,
+            topRight: 8,
+            bottomLeft: 0,
+            bottomRight: 0
+          },
+          borderSkipped: 'bottom'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const value = context.parsed.y;
+                return value >= 0 ? `+${value} Mitarbeiter` : `${value} Mitarbeiter`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              display: false
+            }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1,
+              precision: 0,
+              callback: function(value) {
+                return value >= 0 ? `+${value}` : value;
+              }
+            }
+          }
+        }
+      }
+    });
+
+    {{else if and (ne .userRole "user")}}
+    // Abteilungsverteilung-Diagramm (für Admin/Manager)
+    const deptCtx = document.getElementById('departmentChart').getContext('2d');
+    const departmentChart = new Chart(deptCtx, {
+      type: 'doughnut',
+      data: {
+        labels: {{.departmentLabels}},
+    datasets: [{
+      data: {{.departmentData}},
+    backgroundColor: chartColors,
+            hoverOffset: 4
+  }]
+  },
+    options: {
+      responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+        legend: {
+          position: 'bottom',
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.label || '';
+              if (label) {
+                label += ': ';
+              }
+              if (context.parsed !== null) {
+                label += context.parsed;
+                label += ' Mitarbeiter';
+              }
+              return label;
+            }
+          }
+        }
+      }
+    }
+  });
+    {{end}}
+
+    // Filter für Mitarbeiterübersicht (nur für Admin/Manager)
+    {{if and (ne .userRole "user") (ne .userRole "hr")}}
+    const employeeFilter = document.getElementById('employee-filter');
+    if (employeeFilter) {
+      employeeFilter.addEventListener('change', function() {
+        console.log('Filter geändert zu:', this.value);
+      });
+    }
+    {{end}}
+  });
+</script>
+</body>
+</html>
