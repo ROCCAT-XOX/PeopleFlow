@@ -1,6 +1,5 @@
 {{ define "navigation" }}
 
-
 <!-- Stil für die Schriftart auf der gesamten Seite -->
 <style>
     .container {
@@ -74,10 +73,10 @@
                             {{if or (eq .userRole "admin") (eq .userRole "manager") (eq .userRole "hr")}}
                             <li class="sidebar-item relative">
                                 <a href="/employees" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "employee" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
-                                    <svg class="h-6 w-6 shrink-0 text-[#16A34A]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"></path>
-                                    </svg>
-                                    <span class="menu-text" style="display: none;">Mitarbeiter</span>
+                                <svg class="h-6 w-6 shrink-0 {{ if eq .active "employee" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"></path>
+                                </svg>
+                                <span class="menu-text">Mitarbeiter</span>
                                 </a>
                             </li>
                             {{end}}
@@ -101,7 +100,6 @@
                                 </a>
                             </li>
 
-
                             <!-- Planung -->
                             <li class="sidebar-item relative">
                                 <a href="/planning" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "planning" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
@@ -113,13 +111,23 @@
                                 </a>
                             </li>
 
-                            <!-- Abwesenheiten/Urlaub -->
+                            <!-- Abwesenheiten/Urlaub (Kalender-Ansicht) -->
                             <li class="sidebar-item relative">
-                                <a href="/absence" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "absences" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
-                                <svg class="h-6 w-6 shrink-0 {{ if eq .active "absences" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <a href="/absence" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "absence" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
+                                <svg class="h-6 w-6 shrink-0 {{ if eq .active "absence" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
                                 </svg>
                                 <span class="menu-text">Abwesenheiten</span>
+                                </a>
+                            </li>
+
+                            <!-- Abwesenheitsanträge (Verwaltung) -->
+                            <li class="sidebar-item relative">
+                                <a href="/absence-overview" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "absence-overview" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
+                                <svg class="h-6 w-6 shrink-0 {{ if eq .active "absence-overview" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
+                                </svg>
+                                <span class="menu-text">Abwesenheitsanträge</span>
                                 </a>
                             </li>
 
@@ -150,7 +158,6 @@
                                     <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L14.586 10l-4.293-4.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd" />
                                 </svg>
                                 <span class="menu-text">Sidebar</span>
-
                             </button>
                         </div>
 
@@ -239,11 +246,20 @@
                                     </li>
 
                                     <li>
-                                        <a href="/absences" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "absences" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
-                                        <svg class="h-6 w-6 shrink-0 {{ if eq .active "absences" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <a href="/absence" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "absence" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
+                                        <svg class="h-6 w-6 shrink-0 {{ if eq .active "absence" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
                                         </svg>
                                         Abwesenheiten
+                                        </a>
+                                    </li>
+
+                                    <li>
+                                        <a href="/absence-overview" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "absence-overview" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
+                                        <svg class="h-6 w-6 shrink-0 {{ if eq .active "absence-overview" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
+                                        </svg>
+                                        Abwesenheitsanträge
                                         </a>
                                     </li>
                                 </ul>

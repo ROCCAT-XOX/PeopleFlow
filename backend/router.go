@@ -456,6 +456,8 @@ func InitializeRoutes(router *gin.Engine) {
 		// Mitarbeiter-Handler und Routen
 		employeeHandler := handler.NewEmployeeHandler()
 		documentHandler := handler.NewDocumentHandler()
+		// Abwesenheitsübersicht Handler
+		absenceOverviewHandler := handler.NewAbsenceOverviewHandler()
 
 		// Mitarbeiter-Routen
 		authorized.GET("/employees", middleware.SalaryViewMiddleware(), employeeHandler.ListEmployees)
@@ -482,6 +484,12 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.POST("/api/overtime/adjustments/:adjustmentId/approve", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), overtimeHandler.ApproveAdjustment)
 		authorized.GET("/api/overtime/adjustments/pending", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), overtimeHandler.GetPendingAdjustments)
 		authorized.DELETE("/api/overtime/adjustments/:adjustmentId", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), overtimeHandler.DeleteAdjustment)
+
+		// Abwesenheitsübersicht Route
+		authorized.GET("/absence-overview", absenceOverviewHandler.GetAbsenceOverview)
+		// API-Endpoints für Abwesenheitsanträge
+		authorized.POST("/api/absence/request", absenceOverviewHandler.AddAbsenceRequest)
+		authorized.POST("/api/absence/:employeeId/:absenceId/approve", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), absenceOverviewHandler.ApproveAbsenceRequest)
 
 		// Dokument-Routen
 		authorized.POST("/employees/:id/documents", documentHandler.UploadDocument)

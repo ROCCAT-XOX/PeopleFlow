@@ -1,0 +1,526 @@
+{{ template "head" . }}
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+<!-- Navigation -->
+{{ template "navigation" . }}
+
+<!-- Main Content -->
+<main class="container mx-auto px-4 py-6 flex-grow">
+    <div class="mb-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Abwesenheitsverwaltung</h1>
+                <p class="mt-1 text-sm text-gray-500">
+                    {{if or (eq .userRole "user") (eq .userRole "hr")}}
+                    Beantragen Sie Urlaub oder melden Sie sich krank
+                    {{else}}
+                    Übersicht und Genehmigung von Abwesenheitsanträgen
+                    {{end}}
+                </p>
+            </div>
+            <button onclick="openAbsenceModal()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Abwesenheit beantragen
+            </button>
+        </div>
+    </div>
+
+    {{if or (eq .userRole "user") (eq .userRole "hr")}}
+    <!-- Persönliche Ansicht für User/HR -->
+    {{if .currentEmployee}}
+    <div class="grid grid-cols-1 gap-6 mb-8 lg:grid-cols-4">
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Urlaubsanspruch {{.year}}</dt>
+                <dd class="mt-1 text-3xl font-semibold text-gray-900">{{.currentEmployee.VacationDays}} Tage</dd>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Genommener Urlaub</dt>
+                <dd class="mt-1 text-3xl font-semibold text-blue-600">{{printf "%.0f" .personalVacationDays}} Tage</dd>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Verbleibender Urlaub</dt>
+                <dd class="mt-1 text-3xl font-semibold {{if lt .personalRemainingVacation 5}}text-red-600{{else}}text-green-600{{end}}">
+                    {{printf "%.0f" .personalRemainingVacation}} Tage
+                </dd>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Krankheitstage {{.year}}</dt>
+                <dd class="mt-1 text-3xl font-semibold text-orange-600">{{printf "%.0f" .personalSickDays}} Tage</dd>
+            </div>
+        </div>
+    </div>
+
+    <!-- Eigene Abwesenheiten -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Meine Abwesenheiten</h3>
+        </div>
+        <ul class="divide-y divide-gray-200">
+            {{range .currentEmployee.Absences}}
+            <li class="px-4 py-4 sm:px-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center space-x-3">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {{if eq .Type "vacation"}}bg-blue-100 text-blue-800
+                                {{else if eq .Type "sick"}}bg-orange-100 text-orange-800
+                                {{else}}bg-purple-100 text-purple-800{{end}}">
+                                {{if eq .Type "vacation"}}Urlaub
+                                {{else if eq .Type "sick"}}Krankheit
+                                {{else}}Sonderurlaub{{end}}
+                                </span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {{if eq .Status "approved"}}bg-green-100 text-green-800
+                                {{else if eq .Status "requested"}}bg-yellow-100 text-yellow-800
+                                {{else if eq .Status "rejected"}}bg-red-100 text-red-800
+                                {{else}}bg-gray-100 text-gray-800{{end}}">
+                                {{if eq .Status "approved"}}Genehmigt
+                                {{else if eq .Status "requested"}}Ausstehend
+                                {{else if eq .Status "rejected"}}Abgelehnt
+                                {{else}}{{.Status}}{{end}}
+                                </span>
+                            </div>
+                            <p class="mt-2 flex items-center text-sm text-gray-900">
+                                <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                {{.StartDate.Format "02.01.2006"}} - {{.EndDate.Format "02.01.2006"}}
+                                ({{printf "%.0f" .Days}} {{if eq .Days 1}}Tag{{else}}Tage{{end}})
+                            </p>
+                            {{if .Reason}}
+                            <p class="mt-1 text-sm text-gray-500">{{.Reason}}</p>
+                            {{end}}
+                        </div>
+                    </div>
+                </div>
+            </li>
+            {{else}}
+            <li class="px-4 py-8 text-center text-gray-500">
+                Keine Abwesenheiten vorhanden
+            </li>
+            {{end}}
+        </ul>
+    </div>
+    {{else}}
+    <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+        <p class="text-sm text-yellow-800">
+            Es wurde kein Mitarbeitereintrag für Ihren Benutzeraccount gefunden.
+            Bitte wenden Sie sich an die Personalabteilung.
+        </p>
+    </div>
+    {{end}}
+
+    {{else}}
+    <!-- Management Ansicht für Admin/Manager -->
+
+    <!-- Statistik-Karten -->
+    <div class="grid grid-cols-1 gap-6 mb-8 lg:grid-cols-4">
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Ausstehende Anträge</dt>
+                <dd class="mt-1 text-3xl font-semibold text-yellow-600">{{.pendingCount}}</dd>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Aktuell im Urlaub</dt>
+                <dd class="mt-1 text-3xl font-semibold text-blue-600">{{.employeesOnVacation}}</dd>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Aktuell krank</dt>
+                <dd class="mt-1 text-3xl font-semibold text-orange-600">{{.employeesOnSick}}</dd>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <dt class="text-sm font-medium text-gray-500 truncate">Urlaubstage {{.year}}</dt>
+                <dd class="mt-1 text-3xl font-semibold text-gray-900">{{printf "%.0f" .totalVacationDays}}</dd>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="border-b border-gray-200">
+            <nav class="-mb-px flex">
+                <button onclick="showTab('pending')" data-tab="pending" class="tab-btn active border-green-500 text-green-600 whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                    Ausstehende Anträge {{if gt .pendingCount 0}}({{.pendingCount}}){{end}}
+                </button>
+                <button onclick="showTab('upcoming')" data-tab="upcoming" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                    Kommende Abwesenheiten
+                </button>
+                <button onclick="showTab('all')" data-tab="all" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm">
+                    Alle Abwesenheiten
+                </button>
+            </nav>
+        </div>
+
+        <!-- Tab: Ausstehende Anträge -->
+        <div id="pending-tab" class="tab-content">
+            {{if .pendingAbsences}}
+            <ul class="divide-y divide-gray-200">
+                {{range .pendingAbsences}}
+                <li class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3">
+                                <h3 class="text-lg font-medium text-gray-900">{{.EmployeeName}}</h3>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {{if eq .Type "vacation"}}bg-blue-100 text-blue-800
+                                {{else if eq .Type "sick"}}bg-orange-100 text-orange-800
+                                {{else}}bg-purple-100 text-purple-800{{end}}">
+                                {{if eq .Type "vacation"}}Urlaub
+                                {{else if eq .Type "sick"}}Krankheit
+                                {{else}}Sonderurlaub{{end}}
+                                </span>
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">{{.Department}}</p>
+                            <div class="mt-2 flex items-center text-sm text-gray-900">
+                                <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                {{.StartDate.Format "02.01.2006"}} - {{.EndDate.Format "02.01.2006"}}
+                                ({{printf "%.0f" .Days}} {{if eq .Days 1}}Tag{{else}}Tage{{end}})
+                            </div>
+                            {{if .Reason}}
+                            <p class="mt-1 text-sm text-gray-700">Grund: {{.Reason}}</p>
+                            {{end}}
+                        </div>
+                        <div class="ml-5 flex-shrink-0 flex space-x-2">
+                            <button onclick="approveAbsence('{{.EmployeeID}}', '{{.ID.Hex}}', 'approve')"
+                                    class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                Genehmigen
+                            </button>
+                            <button onclick="approveAbsence('{{.EmployeeID}}', '{{.ID.Hex}}', 'reject')"
+                                    class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                Ablehnen
+                            </button>
+                        </div>
+                    </div>
+                </li>
+                {{end}}
+            </ul>
+            {{else}}
+            <div class="text-center py-12">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">Keine ausstehenden Anträge</h3>
+                <p class="mt-1 text-sm text-gray-500">Alle Abwesenheitsanträge wurden bearbeitet.</p>
+            </div>
+            {{end}}
+        </div>
+
+        <!-- Tab: Kommende Abwesenheiten -->
+        <div id="upcoming-tab" class="tab-content hidden">
+            {{if .upcomingAbsences}}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mitarbeiter</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typ</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zeitraum</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tage</th>
+                    </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                    {{range .upcomingAbsences}}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{.EmployeeName}}</div>
+                            <div class="text-sm text-gray-500">{{.Department}}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {{if eq .Type "vacation"}}bg-blue-100 text-blue-800
+                            {{else if eq .Type "sick"}}bg-orange-100 text-orange-800
+                            {{else}}bg-purple-100 text-purple-800{{end}}">
+                            {{if eq .Type "vacation"}}Urlaub
+                            {{else if eq .Type "sick"}}Krankheit
+                            {{else}}Sonderurlaub{{end}}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{.StartDate.Format "02.01.2006"}} - {{.EndDate.Format "02.01.2006"}}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{printf "%.0f" .Days}}
+                        </td>
+                    </tr>
+                    {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{else}}
+            <div class="text-center py-12">
+                <p class="text-sm text-gray-500">Keine kommenden Abwesenheiten</p>
+            </div>
+            {{end}}
+        </div>
+
+        <!-- Tab: Alle Abwesenheiten -->
+        <div id="all-tab" class="tab-content hidden">
+            <div class="p-4">
+                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Suche nach Mitarbeiter..."
+                       class="mb-4 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm">
+            </div>
+            <div class="overflow-x-auto">
+                <table id="absenceTable" class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mitarbeiter</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typ</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zeitraum</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tage</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Genehmigt von</th>
+                    </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                    {{range .allAbsences}}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{.EmployeeName}}</div>
+                            <div class="text-sm text-gray-500">{{.Department}}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {{if eq .Type "vacation"}}bg-blue-100 text-blue-800
+                            {{else if eq .Type "sick"}}bg-orange-100 text-orange-800
+                            {{else}}bg-purple-100 text-purple-800{{end}}">
+                            {{if eq .Type "vacation"}}Urlaub
+                            {{else if eq .Type "sick"}}Krankheit
+                            {{else}}Sonderurlaub{{end}}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{.StartDate.Format "02.01.2006"}} - {{.EndDate.Format "02.01.2006"}}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{printf "%.0f" .Days}}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {{if eq .Status "approved"}}bg-green-100 text-green-800
+                            {{else if eq .Status "requested"}}bg-yellow-100 text-yellow-800
+                            {{else if eq .Status "rejected"}}bg-red-100 text-red-800
+                            {{else}}bg-gray-100 text-gray-800{{end}}">
+                            {{if eq .Status "approved"}}Genehmigt
+                            {{else if eq .Status "requested"}}Ausstehend
+                            {{else if eq .Status "rejected"}}Abgelehnt
+                            {{else}}{{.Status}}{{end}}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{if .ApproverName}}{{.ApproverName}}{{else}}-{{end}}
+                        </td>
+                    </tr>
+                    {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {{end}}
+</main>
+
+<!-- Modal: Abwesenheit beantragen -->
+<div id="absenceModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"></div>
+        <div class="relative bg-white rounded-lg max-w-lg w-full mx-auto shadow-xl">
+            <div class="flex justify-between items-center px-6 py-4 border-b">
+                <h3 class="text-lg font-medium text-gray-900">Abwesenheit beantragen</h3>
+                <button type="button" onclick="closeAbsenceModal()" class="text-gray-400 hover:text-gray-500">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form id="absenceForm" class="px-6 py-4">
+                <div class="space-y-4">
+                    {{if and (ne .userRole "user") (ne .userRole "hr")}}
+                    <div>
+                        <label for="employeeId" class="block text-sm font-medium text-gray-700">Mitarbeiter</label>
+                        <select name="employeeId" id="employeeId" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                            <option value="">Bitte wählen...</option>
+                            {{range .employees}}
+                            <option value="{{.ID.Hex}}">{{.FirstName}} {{.LastName}} - {{.Department}}</option>
+                            {{end}}
+                        </select>
+                    </div>
+                    {{end}}
+
+                    <div>
+                        <label for="type" class="block text-sm font-medium text-gray-700">Art der Abwesenheit</label>
+                        <select name="type" id="type" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                            <option value="vacation">Urlaub</option>
+                            <option value="sick">Krankheit</option>
+                            <option value="special">Sonderurlaub</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="startDate" class="block text-sm font-medium text-gray-700">Von</label>
+                            <input type="date" name="startDate" id="startDate" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="endDate" class="block text-sm font-medium text-gray-700">Bis</label>
+                            <input type="date" name="endDate" id="endDate" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="reason" class="block text-sm font-medium text-gray-700">Grund</label>
+                        <input type="text" name="reason" id="reason" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                    </div>
+
+                    <div>
+                        <label for="notes" class="block text-sm font-medium text-gray-700">Bemerkungen</label>
+                        <textarea name="notes" id="notes" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button type="button" onclick="closeAbsenceModal()" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        Abbrechen
+                    </button>
+                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        Antrag einreichen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{ template "footer" . }}
+
+<script>
+    // Tab-Funktionalität
+    function showTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.add('hidden');
+        });
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('border-green-500', 'text-green-600');
+            btn.classList.add('border-transparent', 'text-gray-500');
+        });
+
+        document.getElementById(tabName + '-tab').classList.remove('hidden');
+        document.querySelector(`[data-tab="${tabName}"]`).classList.remove('border-transparent', 'text-gray-500');
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('border-green-500', 'text-green-600');
+    }
+
+    // Modal-Funktionen
+    function openAbsenceModal() {
+        document.getElementById('absenceModal').classList.remove('hidden');
+        document.getElementById('absenceForm').reset();
+
+        // Standarddaten setzen
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('startDate').value = today;
+        document.getElementById('endDate').value = today;
+    }
+
+    function closeAbsenceModal() {
+        document.getElementById('absenceModal').classList.add('hidden');
+    }
+
+    // Formular-Submission
+    document.getElementById('absenceForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        try {
+            const response = await fetch('/api/absence/request', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert(data.message);
+                closeAbsenceModal();
+                location.reload();
+            } else {
+                alert('Fehler: ' + data.error);
+            }
+        } catch (error) {
+            alert('Ein Fehler ist aufgetreten: ' + error.message);
+        }
+    });
+
+    // Abwesenheit genehmigen/ablehnen
+    async function approveAbsence(employeeId, absenceId, action) {
+        if (!confirm(`Möchten Sie diese Abwesenheit wirklich ${action === 'approve' ? 'genehmigen' : 'ablehnen'}?`)) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('action', action);
+
+        try {
+            const response = await fetch(`/api/absence/${employeeId}/${absenceId}/approve`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Fehler: ' + data.error);
+            }
+        } catch (error) {
+            alert('Ein Fehler ist aufgetreten: ' + error.message);
+        }
+    }
+
+    // Filter-Funktion für die Tabelle
+    function filterTable() {
+        const input = document.getElementById("searchInput");
+        const filter = input.value.toUpperCase();
+        const table = document.getElementById("absenceTable");
+        const tr = table.getElementsByTagName("tr");
+
+        for (let i = 1; i < tr.length; i++) {
+            const td = tr[i].getElementsByTagName("td")[0];
+            if (td) {
+                const txtValue = td.textContent || td.innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+    }
+</script>
+</body>
+</html>
