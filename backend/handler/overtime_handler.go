@@ -413,6 +413,72 @@ func (h *OvertimeHandler) GetEmployeeOvertimeDetails(c *gin.Context) {
 	})
 }
 
+// DeleteAdjustment löscht eine Überstunden-Anpassung (nur für Admin/Manager)
+func (h *OvertimeHandler) DeleteAdjustment(c *gin.Context) {
+	adjustmentID := c.Param("adjustmentId")
+
+	// Aktuellen Benutzer abrufen
+	user, _ := c.Get("user")
+	userModel := user.(*model.User)
+	userRole, _ := c.Get("userRole")
+
+	// Nur Admin und Manager dürfen löschen
+	if userRole != string(model.RoleAdmin) && userRole != string(model.RoleManager) {
+		c.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"error":   "Keine Berechtigung zum Löschen von Anpassungen",
+		})
+		return
+	}
+
+	// Anpassung abrufen für Logging
+	adjustment, err := h.overtimeAdjustmentRepo.FindByID(adjustmentID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   "Anpassung nicht gefunden",
+		})
+		return
+	}
+
+	// Mitarbeiter für Aktivitäts-Log abrufen
+	employee, err := h.employeeRepo.FindByID(adjustment.EmployeeID.Hex())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Fehler beim Abrufen des Mitarbeiters",
+		})
+		return
+	}
+
+	// Anpassung löschen
+	err = h.overtimeAdjustmentRepo.Delete(adjustmentID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Fehler beim Löschen der Anpassung",
+		})
+		return
+	}
+
+	// Aktivität loggen
+	activityRepo := repository.NewActivityRepository()
+	_, _ = activityRepo.LogActivity(
+		model.ActivityTypeEmployeeUpdated,
+		userModel.ID,
+		userModel.FirstName+" "+userModel.LastName,
+		employee.ID,
+		"employee",
+		employee.FirstName+" "+employee.LastName,
+		fmt.Sprintf("Überstunden-Anpassung gelöscht: %s (%s)", adjustment.FormatHours(), adjustment.Reason),
+	)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Anpassung wurde erfolgreich gelöscht",
+	})
+}
+
 // AddOvertimeAdjustment fügt eine manuelle Überstunden-Anpassung hinzu
 func (h *OvertimeHandler) AddOvertimeAdjustment(c *gin.Context) {
 	employeeID := c.Param("id")

@@ -481,6 +481,7 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.GET("/api/overtime/employee/:id/adjustments", overtimeHandler.GetEmployeeAdjustments)
 		authorized.POST("/api/overtime/adjustments/:adjustmentId/approve", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), overtimeHandler.ApproveAdjustment)
 		authorized.GET("/api/overtime/adjustments/pending", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), overtimeHandler.GetPendingAdjustments)
+		authorized.DELETE("/api/overtime/adjustments/:adjustmentId", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), overtimeHandler.DeleteAdjustment)
 
 		// Dokument-Routen
 		authorized.POST("/employees/:id/documents", documentHandler.UploadDocument)

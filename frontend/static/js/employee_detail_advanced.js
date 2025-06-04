@@ -899,8 +899,8 @@ function displayEmployeeAdjustments(adjustments) {
             </div>
           </div>
           
-          ${adjustment.status === 'pending' && (window.userRole === 'admin' || window.userRole === 'manager') ? `
-            <div class="flex space-x-2 ml-4">
+          <div class="flex space-x-2 ml-4">
+            ${adjustment.status === 'pending' && (window.userRole === 'admin' || window.userRole === 'manager') ? `
               <button onclick="approveEmployeeAdjustment('${adjustment.id}', 'approve')" 
                       class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200">
                 Genehmigen
@@ -909,14 +909,61 @@ function displayEmployeeAdjustments(adjustments) {
                       class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200">
                 Ablehnen
               </button>
-            </div>
-          ` : ''}
+            ` : ''}
+            
+            ${(window.userRole === 'admin' || window.userRole === 'manager') ? `
+              <button onclick="confirmDeleteAdjustment('${adjustment.id}', '${adjustment.reason}')" 
+                      class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200"
+                      title="Anpassung löschen">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            ` : ''}
+          </div>
         </div>
       </div>
     `;
     }).join('');
 
     container.innerHTML = html;
+}
+
+// Bestätigung für das Löschen einer Anpassung
+function confirmDeleteAdjustment(adjustmentId, reason) {
+    confirmDelete(
+        'Anpassung löschen',
+        `Sind Sie sicher, dass Sie die Anpassung "${reason}" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.`,
+        () => deleteAdjustment(adjustmentId)
+    );
+}
+
+// Anpassung löschen
+function deleteAdjustment(adjustmentId) {
+    fetch(`/api/overtime/adjustments/${adjustmentId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal('confirmationModal');
+                showNotification('Anpassung wurde erfolgreich gelöscht.', 'success');
+
+                // Anpassungen neu laden
+                setTimeout(() => {
+                    loadEmployeeAdjustments();
+                }, 500);
+            } else {
+                throw new Error(data.error || 'Fehler beim Löschen der Anpassung');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Fehler beim Löschen der Anpassung: ' + error.message, 'error');
+        });
 }
 
 // Anpassungs-Zusammenfassung aktualisieren
@@ -1043,6 +1090,3 @@ function displayAdjustmentsError(message) {
     </div>
   `;
 }
-
-// Globale Variable für User Role (für Berechtigungsprüfungen)
-window.userRole = '{{.userRole}}';

@@ -1529,6 +1529,11 @@
         </div>
     </div>
 </div>
+<script>
+    // Globale Variable für User Role (für Berechtigungsprüfungen)
+    window.userRole = '{{.userRole}}';
+    window.employeeId = '{{.employee.ID.Hex}}';
+</script>
 <!-- Footer -->
 {{ template "footer" . }}
 <script src="/static/js/employee_detail_advanced.js"></script>
