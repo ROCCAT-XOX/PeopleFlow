@@ -113,8 +113,12 @@ func SelfOrAdminMiddleware() gin.HandlerFunc {
 		// Rolle aus dem Kontext abrufen
 		userRole, _ := c.Get("userRole")
 
-		// Angeforderte ID aus dem Parameter abrufen
+		// Angeforderte ID aus dem Parameter ODER aus dem Formular abrufen
 		requestedID := c.Param("id")
+		if requestedID == "" {
+			// Versuche ID aus dem Formular zu lesen (für POST-Requests wie Passwortänderung)
+			requestedID = c.PostForm("id")
+		}
 
 		// Wenn der Benutzer ein Admin ist oder auf seine eigenen Daten zugreift, hat er Zugriff
 		if userRole == string(model.RoleAdmin) || userId == requestedID {
