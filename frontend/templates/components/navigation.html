@@ -72,8 +72,8 @@
                             <!-- Mitarbeiter - nur für berechtigte Rollen -->
                             {{if or (eq .userRole "admin") (eq .userRole "manager") (eq .userRole "hr")}}
                             <li class="sidebar-item relative">
-                                <a href="/employees" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "employee" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
-                                <svg class="h-6 w-6 shrink-0 {{ if eq .active "employee" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <a href="/employees" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "employees" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
+                                <svg class="h-6 w-6 shrink-0 {{ if eq .active "employees" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"></path>
                                 </svg>
                                 <span class="menu-text">Mitarbeiter</span>
@@ -113,8 +113,8 @@
 
                             <!-- Abwesenheiten/Urlaub (Kalender-Ansicht) -->
                             <li class="sidebar-item relative">
-                                <a href="/absence" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "absence" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
-                                <svg class="h-6 w-6 shrink-0 {{ if eq .active "absence" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <a href="/absence" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if or (eq .active "absence") (eq .active "calendar") }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
+                                <svg class="h-6 w-6 shrink-0 {{ if or (eq .active "absence") (eq .active "calendar") }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
                                 </svg>
                                 <span class="menu-text">Abwesenheiten</span>
@@ -123,8 +123,8 @@
 
                             <!-- Abwesenheitsanträge (Verwaltung) -->
                             <li class="sidebar-item relative">
-                                <a href="/absence-overview" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "absence-overview" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
-                                <svg class="h-6 w-6 shrink-0 {{ if eq .active "absence-overview" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <a href="/absence-overview" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if or (eq .active "absence-overview") (eq .active "absences") }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
+                                <svg class="h-6 w-6 shrink-0 {{ if or (eq .active "absence-overview") (eq .active "absences") }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
                                 </svg>
                                 <span class="menu-text">Abwesenheitsanträge</span>
@@ -237,11 +237,30 @@
 
                                     <!-- Weitere Menüpunkte für mobile Ansicht mit angepassten Farben -->
                                     <li>
-                                        <a href="/documents" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "documents" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
-                                        <svg class="h-6 w-6 shrink-0 {{ if eq .active "documents" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+                                        <a href="/timetracking" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "timetracking" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
+                                        <svg class="h-6 w-6 shrink-0 {{ if eq .active "timetracking" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
-                                        Dokumente
+                                        Zeiterfassung
+                                        </a>
+                                    </li>
+
+                                    <li>
+                                        <a href="/overtime" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "overtime" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
+                                        <svg class="h-6 w-6 shrink-0 {{ if eq .active "overtime" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
+                                        </svg>
+                                        Überstunden
+                                        </a>
+                                    </li>
+
+                                    <li>
+                                        <a href="/planning" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "planning" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                                             class="h-6 w-6 shrink-0 {{ if eq .active "planning" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z" />
+                                        </svg>
+                                        Planung
                                         </a>
                                     </li>
 
@@ -260,6 +279,16 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
                                         </svg>
                                         Abwesenheitsanträge
+                                        </a>
+                                    </li>
+
+                                    <li>
+                                        <a href="/statistics" class="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold {{ if eq .active "statistics" }}bg-[#22C55E]/20 text-[#16A34A]{{ else }}text-[#5F5F5F] hover:bg-[#22C55E]/30 hover:text-[#16A34A]{{ end }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                                             class="h-6 w-6 shrink-0 {{ if eq .active "statistics" }}text-[#16A34A]{{ else }}text-[#5F5F5F] group-hover:text-[#16A34A]{{ end }}">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                                        </svg>
+                                        Statistiken
                                         </a>
                                     </li>
                                 </ul>
