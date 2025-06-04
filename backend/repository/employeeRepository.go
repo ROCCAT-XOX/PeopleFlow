@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"PeopleFlow/backend/db"
@@ -27,10 +28,12 @@ func NewEmployeeRepository() *EmployeeRepository {
 	}
 }
 
-// Create erstellt einen neuen Mitarbeiter
 func (r *EmployeeRepository) Create(employee *model.Employee) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	// E-Mail normalisieren
+	employee.Email = strings.ToLower(strings.TrimSpace(employee.Email))
 
 	// Prüfen, ob bereits ein Mitarbeiter mit dieser E-Mail existiert
 	count, err := r.collection.CountDocuments(ctx, bson.M{"email": employee.Email})
@@ -84,6 +87,9 @@ func (r *EmployeeRepository) FindByID(id string) (*model.Employee, error) {
 func (r *EmployeeRepository) FindByEmail(email string) (*model.Employee, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	// E-Mail normalisieren
+	email = strings.ToLower(strings.TrimSpace(email))
 
 	var employee model.Employee
 	err := r.collection.FindOne(ctx, bson.M{"email": email}).Decode(&employee)
@@ -160,6 +166,9 @@ func (r *EmployeeRepository) FindManagers() ([]*model.Employee, error) {
 func (r *EmployeeRepository) Update(employee *model.Employee) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	// E-Mail normalisieren
+	employee.Email = strings.ToLower(strings.TrimSpace(employee.Email))
 
 	// Update timestamp
 	employee.UpdatedAt = time.Now()

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"PeopleFlow/backend/model"
@@ -45,6 +46,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		})
 		return
 	}
+
+	// E-Mail normalisieren (Kleinbuchstaben und Whitespace entfernen)
+	email = strings.ToLower(strings.TrimSpace(email))
 
 	// Benutzer anhand der E-Mail finden
 	user, err := h.userRepo.FindByEmail(email)

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"PeopleFlow/backend/db"
@@ -31,6 +32,9 @@ func (r *UserRepository) Create(user *model.User) error {
 
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
+
+	// E-Mail normalisieren (Kleinbuchstaben und Whitespace entfernen)
+	user.Email = strings.ToLower(strings.TrimSpace(user.Email))
 
 	// Passwort hashen
 	if err := user.HashPassword(); err != nil {
@@ -69,6 +73,9 @@ func (r *UserRepository) FindByID(id string) (*model.User, error) {
 func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	// E-Mail normalisieren (Kleinbuchstaben und Whitespace entfernen)
+	email = strings.ToLower(strings.TrimSpace(email))
 
 	var user model.User
 	err := r.collection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
@@ -113,6 +120,9 @@ func (r *UserRepository) Update(user *model.User) error {
 
 	user.UpdatedAt = time.Now()
 
+	// E-Mail normalisieren (Kleinbuchstaben und Whitespace entfernen)
+	user.Email = strings.ToLower(strings.TrimSpace(user.Email))
+
 	_, err := r.collection.UpdateOne(
 		ctx,
 		bson.M{"_id": user.ID},
@@ -155,13 +165,16 @@ func (r *UserRepository) CreateAdminUserIfNotExists() error {
 	admin := &model.User{
 		FirstName: "Admin",
 		LastName:  "User",
-		Email:     "admin@PeopleFlow.com",
+		Email:     "admin@peopleflow.com", // Wird automatisch in Kleinbuchstaben konvertiert
 		Password:  "admin",
 		Role:      model.RoleAdmin,
 		Status:    model.StatusActive,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
+
+	// E-Mail normalisieren
+	admin.Email = strings.ToLower(strings.TrimSpace(admin.Email))
 
 	// Passwort hashen
 	if err := admin.HashPassword(); err != nil {
