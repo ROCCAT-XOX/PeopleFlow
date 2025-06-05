@@ -633,8 +633,39 @@ func (h *OvertimeHandler) GetPendingAdjustments(c *gin.Context) {
 		return
 	}
 
+	// Anreicherung der Anpassungen mit Mitarbeiternamen
+	var enrichedAdjustments []gin.H
+	for _, adj := range adjustments {
+		// Mitarbeiter-Namen abrufen
+		employee, err := h.employeeRepo.FindByID(adj.EmployeeID.Hex())
+
+		employeeName := "Unbekannter Mitarbeiter"
+		department := ""
+		if err == nil {
+			employeeName = employee.FirstName + " " + employee.LastName
+			department = string(employee.Department)
+		}
+
+		enrichedAdjustment := gin.H{
+			"id":           adj.ID.Hex(),
+			"employeeId":   adj.EmployeeID.Hex(),
+			"employeeName": employeeName,
+			"department":   department,
+			"type":         adj.Type,
+			"hours":        adj.Hours,
+			"reason":       adj.Reason,
+			"description":  adj.Description,
+			"status":       adj.Status,
+			"adjustedBy":   adj.AdjustedBy.Hex(),
+			"adjusterName": adj.AdjusterName,
+			"createdAt":    adj.CreatedAt,
+		}
+
+		enrichedAdjustments = append(enrichedAdjustments, enrichedAdjustment)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    adjustments,
+		"data":    enrichedAdjustments,
 	})
 }
