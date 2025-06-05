@@ -73,8 +73,8 @@ func (s *TimeAccountService) CalculateOvertimeForEmployee(employee *model.Employ
 	for _, weekStart := range weeks {
 		entries := weeklyData[weekStart]
 
-		// Geplante Stunden für diese Woche (unter Berücksichtigung von Feiertagen)
-		plannedHours := s.CalculateTargetHoursForWeek(employee, weekStart, state)
+		// Geplante Stunden für diese Woche (unter Berücksichtigung von Feiertagen UND Abwesenheiten)
+		plannedHours := s.CalculateTargetHoursForWeekWithAbsences(employee, weekStart, state)
 
 		// Tatsächlich gearbeitete Stunden
 		var actualHours float64
@@ -118,9 +118,9 @@ func (s *TimeAccountService) CalculateOvertimeForEmployee(employee *model.Employ
 	return s.employeeRepo.Update(employee)
 }
 
-// CalculateTargetHoursForWeek berechnet die Soll-Arbeitszeit für eine Woche
-// unter Berücksichtigung von Feiertagen
-func (s *TimeAccountService) CalculateTargetHoursForWeek(employee *model.Employee, weekStart time.Time, state model.GermanState) float64 {
+// CalculateTargetHoursForWeekWithAbsences berechnet die Soll-Arbeitszeit für eine Woche
+// unter Berücksichtigung von Feiertagen, Krankheit und Urlaub
+func (s *TimeAccountService) CalculateTargetHoursForWeekWithAbsences(employee *model.Employee, weekStart time.Time, state model.GermanState) float64 {
 	// Grundlegende Wochenstunden
 	weeklyHours := employee.GetWeeklyTargetHours()
 	if weeklyHours == 0 {
@@ -132,19 +132,31 @@ func (s *TimeAccountService) CalculateTargetHoursForWeek(employee *model.Employe
 		dailyHours = 8.0 // Standard
 	}
 
-	// Zähle Arbeitstage in dieser Woche (Mo-Fr)
+	// Wochenende berechnen
 	weekEnd := weekStart.AddDate(0, 0, 6) // Sonntag
+
+	// Zähle Arbeitstage in dieser Woche (Mo-Fr) und berücksichtige Abwesenheiten
 	workingDaysInWeek := 0
 	holidaysInWeek := 0
+	absenceDaysInWeek := 0
 
 	for d := weekStart; d.Before(weekEnd.AddDate(0, 0, 1)); d = d.AddDate(0, 0, 1) {
 		// Nur Montag bis Freitag zählen
 		if d.Weekday() >= time.Monday && d.Weekday() <= time.Friday {
+			// Prüfe ob es ein Feiertag ist
 			if s.holidayService.IsHoliday(d, state) {
 				holidaysInWeek++
-			} else {
-				workingDaysInWeek++
+				continue
 			}
+
+			// Prüfe ob der Mitarbeiter an diesem Tag abwesend war (Krankheit oder Urlaub)
+			if s.isEmployeeAbsentOnDate(employee, d) {
+				absenceDaysInWeek++
+				continue
+			}
+
+			// Wenn weder Feiertag noch abwesend, dann ist es ein Arbeitstag
+			workingDaysInWeek++
 		}
 	}
 
@@ -155,8 +167,34 @@ func (s *TimeAccountService) CalculateTargetHoursForWeek(employee *model.Employe
 		return actualWorkingDays * dailyHours
 	}
 
-	// Vollzeit: Reduziere um Feiertage
+	// Vollzeit: Berechne Soll-Stunden nur für tatsächliche Arbeitstage
+	// (ohne Feiertage, Krankheit und Urlaub)
 	return float64(workingDaysInWeek) * dailyHours
+}
+
+// isEmployeeAbsentOnDate prüft ob ein Mitarbeiter an einem bestimmten Tag abwesend war
+func (s *TimeAccountService) isEmployeeAbsentOnDate(employee *model.Employee, date time.Time) bool {
+	for _, absence := range employee.Absences {
+		// Nur genehmigte Abwesenheiten berücksichtigen
+		if absence.Status != "approved" {
+			continue
+		}
+
+		// Prüfe ob das Datum in den Abwesenheitszeitraum fällt
+		if !date.Before(absence.StartDate) && !date.After(absence.EndDate) {
+			// Mitarbeiter war abwesend (Urlaub, Krankheit, etc.)
+			return true
+		}
+	}
+
+	return false
+}
+
+// CalculateTargetHoursForWeek berechnet die Soll-Arbeitszeit für eine Woche
+// unter Berücksichtigung von Feiertagen (DEPRECATED - use CalculateTargetHoursForWeekWithAbsences)
+func (s *TimeAccountService) CalculateTargetHoursForWeek(employee *model.Employee, weekStart time.Time, state model.GermanState) float64 {
+	// Diese Funktion ist veraltet, verwende CalculateTargetHoursForWeekWithAbsences
+	return s.CalculateTargetHoursForWeekWithAbsences(employee, weekStart, state)
 }
 
 // CalculateTargetHoursForMonth berechnet die Soll-Arbeitszeit für einen Monat
@@ -168,8 +206,8 @@ func (s *TimeAccountService) CalculateTargetHoursForMonth(employee *model.Employ
 		state = model.GermanState(settings.State)
 	}
 
-	// Arbeitstage im Monat berechnen (ohne Wochenenden und Feiertage)
-	workingDays := s.holidayService.GetWorkingDaysInMonth(year, month, state)
+	// Arbeitstage im Monat berechnen (ohne Wochenenden, Feiertage und Abwesenheiten)
+	workingDays := s.GetWorkingDaysInMonthForEmployee(employee, year, month, state)
 
 	// Bei Teilzeit: Proportional reduzieren
 	dailyHours := employee.GetWorkingHoursPerDay()
@@ -184,6 +222,41 @@ func (s *TimeAccountService) CalculateTargetHoursForMonth(employee *model.Employ
 	}
 
 	return float64(workingDays) * dailyHours
+}
+
+// GetWorkingDaysInMonthForEmployee gibt die Anzahl der Arbeitstage in einem Monat zurück
+// abzüglich Wochenenden, Feiertage und Abwesenheiten des Mitarbeiters
+func (s *TimeAccountService) GetWorkingDaysInMonthForEmployee(employee *model.Employee, year int, month time.Month, state model.GermanState) int {
+	firstDay := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+	lastDay := firstDay.AddDate(0, 1, -1)
+
+	holidays := s.holidayService.GetHolidaysForState(year, state)
+	holidayMap := make(map[string]bool)
+	for _, holiday := range holidays {
+		holidayMap[holiday.Date.Format("2006-01-02")] = true
+	}
+
+	workingDays := 0
+	for d := firstDay; !d.After(lastDay); d = d.AddDate(0, 0, 1) {
+		// Überspringe Wochenenden
+		if d.Weekday() == time.Saturday || d.Weekday() == time.Sunday {
+			continue
+		}
+
+		// Überspringe Feiertage
+		if holidayMap[d.Format("2006-01-02")] {
+			continue
+		}
+
+		// Überspringe Tage an denen der Mitarbeiter abwesend war
+		if s.isEmployeeAbsentOnDate(employee, d) {
+			continue
+		}
+
+		workingDays++
+	}
+
+	return workingDays
 }
 
 // RecalculateAllEmployeeOvertimes berechnet Überstunden für alle Mitarbeiter neu
@@ -342,8 +415,8 @@ func (s *TimeAccountService) CalculateOvertimeForPeriod(employee *model.Employee
 	var totalOvertime float64
 
 	for weekStart, entries := range weeklyData {
-		// Geplante Stunden für diese Woche
-		plannedHours := s.CalculateTargetHoursForWeek(employee, weekStart, state)
+		// Geplante Stunden für diese Woche (mit Abwesenheiten)
+		plannedHours := s.CalculateTargetHoursForWeekWithAbsences(employee, weekStart, state)
 
 		// Tatsächlich gearbeitete Stunden
 		var actualHours float64
@@ -403,7 +476,7 @@ func (s *TimeAccountService) CalculateExpectedHoursForEmployee(employee *model.E
 		state = model.GermanState(settings.State)
 	}
 
-	workingDays := s.holidayService.GetWorkingDaysBetween(startDate, endDate, state)
+	workingDays := s.GetWorkingDaysForEmployeeBetween(employee, startDate, endDate, state)
 	dailyHours := employee.GetWorkingHoursPerDay()
 
 	if employee.WorkingDaysPerWeek > 0 && employee.WorkingDaysPerWeek < 5 {
@@ -413,6 +486,48 @@ func (s *TimeAccountService) CalculateExpectedHoursForEmployee(employee *model.E
 	}
 
 	return float64(workingDays) * dailyHours, nil
+}
+
+// GetWorkingDaysForEmployeeBetween gibt die Anzahl der Arbeitstage zwischen zwei Daten zurück
+// abzüglich Wochenenden, Feiertage und Abwesenheiten des Mitarbeiters
+func (s *TimeAccountService) GetWorkingDaysForEmployeeBetween(employee *model.Employee, startDate, endDate time.Time, state model.GermanState) int {
+	if startDate.After(endDate) {
+		return 0
+	}
+
+	// Hole alle Feiertage für die betroffenen Jahre
+	startYear := startDate.Year()
+	endYear := endDate.Year()
+
+	holidayMap := make(map[string]bool)
+	for year := startYear; year <= endYear; year++ {
+		holidays := s.holidayService.GetHolidaysForState(year, state)
+		for _, holiday := range holidays {
+			holidayMap[holiday.Date.Format("2006-01-02")] = true
+		}
+	}
+
+	workingDays := 0
+	for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) {
+		// Überspringe Wochenenden
+		if d.Weekday() == time.Saturday || d.Weekday() == time.Sunday {
+			continue
+		}
+
+		// Überspringe Feiertage
+		if holidayMap[d.Format("2006-01-02")] {
+			continue
+		}
+
+		// Überspringe Tage an denen der Mitarbeiter abwesend war
+		if s.isEmployeeAbsentOnDate(employee, d) {
+			continue
+		}
+
+		workingDays++
+	}
+
+	return workingDays
 }
 
 // GetOvertimeStatistics erstellt Überstunden-Statistiken für alle Mitarbeiter
