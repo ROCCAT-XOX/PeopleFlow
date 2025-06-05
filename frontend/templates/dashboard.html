@@ -240,6 +240,7 @@
           </div>
         </div>
       </div>
+
     </div>
 
     <!-- Abwesenheitsanträge für HR (GRID LAYOUT) -->
@@ -395,6 +396,159 @@
           <p class="text-sm text-gray-500">Alle Anpassungen sind bearbeitet.</p>
         </div>
         {{end}}
+      </div>
+    </div>
+
+    <!-- Anstehende Weiterbildungen und Gespräche (nebeneinander) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <!-- Anstehende Weiterbildungen -->
+      <div class="bg-white rounded-lg shadow-md">
+        <div class="px-6 py-3 border-b border-gray-200 flex items-center justify-between">
+          <div class="flex items-center">
+            <svg class="h-5 w-5 text-purple-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            <h3 class="text-lg font-semibold">Anstehende Weiterbildungen</h3>
+            {{if gt .upcomingTrainingsCount 0}}
+            <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+          {{.upcomingTrainingsCount}}
+        </span>
+            {{end}}
+          </div>
+        </div>
+
+        <div class="p-4">
+          {{if gt .upcomingTrainingsCount 0}}
+          <div class="space-y-3 max-h-96 overflow-y-auto">
+            {{range $index, $training := .upcomingTrainings}}
+            {{if lt $index 6}}
+            <div class="border border-gray-200 rounded-lg p-3 hover:border-purple-500 hover:shadow-md transition-all duration-200">
+              <div class="flex items-start justify-between mb-2">
+                <div class="flex items-center">
+                  <div class="h-6 w-6 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center text-purple-700 text-xs font-medium mr-2 flex-shrink-0">
+                    {{ getInitials $training.EmployeeName }}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="font-medium text-gray-900 text-sm truncate">{{$training.EmployeeName}}</p>
+                    <p class="text-xs text-gray-500">{{$training.Department}}</p>
+                  </div>
+                </div>
+                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{if eq $training.Status "ongoing"}}bg-green-100 text-green-800{{else}}bg-purple-100 text-purple-800{{end}}">
+                {{if eq $training.Status "ongoing"}}Läuft{{else}}Geplant{{end}}
+                </span>
+              </div>
+
+              <div class="mb-2">
+                <p class="font-medium text-sm text-gray-900 truncate">{{$training.Title}}</p>
+                {{if $training.Provider}}
+                <p class="text-xs text-gray-500">Anbieter: {{$training.Provider}}</p>
+                {{end}}
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-gray-600">Zeitraum:</span>
+                  <span class="text-gray-900 font-medium">{{$training.StartDate}} - {{$training.EndDate}}</span>
+                </div>
+              </div>
+
+              {{if $training.Description}}
+              <div class="border-t border-gray-100 pt-2 mt-2">
+                <p class="text-xs text-gray-600 line-clamp-2">{{$training.Description}}</p>
+              </div>
+              {{end}}
+            </div>
+            {{end}}
+            {{end}}
+          </div>
+          {{else}}
+          <div class="text-center py-6">
+            <div class="mx-auto h-12 w-12 text-gray-400 mb-3">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-medium text-gray-900">Keine anstehenden Weiterbildungen</h3>
+            <p class="text-sm text-gray-500">Aktuell sind keine Weiterbildungen geplant.</p>
+          </div>
+          {{end}}
+        </div>
+      </div>
+
+      <!-- Anstehende Mitarbeitergespräche -->
+      <div class="bg-white rounded-lg shadow-md">
+        <div class="px-6 py-3 border-b border-gray-200 flex items-center justify-between">
+          <div class="flex items-center">
+            <svg class="h-5 w-5 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <h3 class="text-lg font-semibold">Anstehende Mitarbeitergespräche</h3>
+            {{if gt .upcomingConversationsCount 0}}
+            <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+          {{.upcomingConversationsCount}}
+        </span>
+            {{end}}
+          </div>
+          <a href="/upcoming-conversations" class="text-sm text-green-600 hover:text-green-700 font-medium">Alle anzeigen →</a>
+        </div>
+
+        <div class="p-4">
+          {{if gt .upcomingConversationsCount 0}}
+          <div class="space-y-3 max-h-96 overflow-y-auto">
+            {{range $index, $conversation := .upcomingConversations}}
+            {{if lt $index 6}}
+            <div onclick="window.location.href='/employees/view/{{$conversation.EmployeeID}}'" class="border border-gray-200 rounded-lg p-3 hover:border-indigo-500 hover:shadow-md transition-all duration-200 cursor-pointer">
+              <div class="flex items-start justify-between mb-2">
+                <div class="flex items-center">
+                  <div class="h-6 w-6 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center text-indigo-700 text-xs font-medium mr-2 flex-shrink-0">
+                    {{ getInitials $conversation.EmployeeName }}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="font-medium text-gray-900 text-sm truncate">{{$conversation.EmployeeName}}</p>
+                    <p class="text-xs text-gray-500">{{$conversation.Department}}</p>
+                  </div>
+                </div>
+                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+              {{if le $conversation.DaysUntil 7}}bg-red-100 text-red-800
+              {{else if le $conversation.DaysUntil 14}}bg-yellow-100 text-yellow-800
+              {{else}}bg-indigo-100 text-indigo-800{{end}}">
+              {{if eq $conversation.DaysUntil 0}}Heute
+              {{else if eq $conversation.DaysUntil 1}}Morgen
+              {{else}}In {{$conversation.DaysUntil}} Tagen{{end}}
+            </span>
+              </div>
+
+              <div class="mb-2">
+                <p class="font-medium text-sm text-gray-900">{{$conversation.Title}}</p>
+                <p class="text-xs text-gray-600">
+                  <svg class="h-3 w-3 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {{$conversation.Date}}
+                </p>
+              </div>
+
+              {{if $conversation.Description}}
+              <div class="border-t border-gray-100 pt-2">
+                <p class="text-xs text-gray-600 line-clamp-2">{{$conversation.Description}}</p>
+              </div>
+              {{end}}
+            </div>
+            {{end}}
+            {{end}}
+          </div>
+          {{else}}
+          <div class="text-center py-6">
+            <div class="mx-auto h-12 w-12 text-gray-400 mb-3">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-medium text-gray-900">Keine anstehenden Gespräche</h3>
+            <p class="text-sm text-gray-500">Aktuell sind keine Mitarbeitergespräche geplant.</p>
+          </div>
+          {{end}}
+        </div>
       </div>
     </div>
 
@@ -695,6 +849,159 @@
           <p class="text-sm text-gray-500">Alle Anpassungen sind bearbeitet.</p>
         </div>
         {{end}}
+      </div>
+    </div>
+
+    <!-- Anstehende Weiterbildungen und Gespräche (nebeneinander) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <!-- Anstehende Weiterbildungen -->
+      <div class="bg-white rounded-lg shadow-md">
+        <div class="px-6 py-3 border-b border-gray-200 flex items-center justify-between">
+          <div class="flex items-center">
+            <svg class="h-5 w-5 text-purple-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            <h3 class="text-lg font-semibold">Anstehende Weiterbildungen</h3>
+            {{if gt .upcomingTrainingsCount 0}}
+            <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+          {{.upcomingTrainingsCount}}
+        </span>
+            {{end}}
+          </div>
+        </div>
+
+        <div class="p-4">
+          {{if gt .upcomingTrainingsCount 0}}
+          <div class="space-y-3 max-h-96 overflow-y-auto">
+            {{range $index, $training := .upcomingTrainings}}
+            {{if lt $index 6}}
+            <div class="border border-gray-200 rounded-lg p-3 hover:border-purple-500 hover:shadow-md transition-all duration-200">
+              <div class="flex items-start justify-between mb-2">
+                <div class="flex items-center">
+                  <div class="h-6 w-6 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center text-purple-700 text-xs font-medium mr-2 flex-shrink-0">
+                    {{ getInitials $training.EmployeeName }}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="font-medium text-gray-900 text-sm truncate">{{$training.EmployeeName}}</p>
+                    <p class="text-xs text-gray-500">{{$training.Department}}</p>
+                  </div>
+                </div>
+                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{if eq $training.Status "ongoing"}}bg-green-100 text-green-800{{else}}bg-purple-100 text-purple-800{{end}}">
+                {{if eq $training.Status "ongoing"}}Läuft{{else}}Geplant{{end}}
+                </span>
+              </div>
+
+              <div class="mb-2">
+                <p class="font-medium text-sm text-gray-900 truncate">{{$training.Title}}</p>
+                {{if $training.Provider}}
+                <p class="text-xs text-gray-500">Anbieter: {{$training.Provider}}</p>
+                {{end}}
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-gray-600">Zeitraum:</span>
+                  <span class="text-gray-900 font-medium">{{$training.StartDate}} - {{$training.EndDate}}</span>
+                </div>
+              </div>
+
+              {{if $training.Description}}
+              <div class="border-t border-gray-100 pt-2 mt-2">
+                <p class="text-xs text-gray-600 line-clamp-2">{{$training.Description}}</p>
+              </div>
+              {{end}}
+            </div>
+            {{end}}
+            {{end}}
+          </div>
+          {{else}}
+          <div class="text-center py-6">
+            <div class="mx-auto h-12 w-12 text-gray-400 mb-3">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-medium text-gray-900">Keine anstehenden Weiterbildungen</h3>
+            <p class="text-sm text-gray-500">Aktuell sind keine Weiterbildungen geplant.</p>
+          </div>
+          {{end}}
+        </div>
+      </div>
+
+      <!-- Anstehende Mitarbeitergespräche -->
+      <div class="bg-white rounded-lg shadow-md">
+        <div class="px-6 py-3 border-b border-gray-200 flex items-center justify-between">
+          <div class="flex items-center">
+            <svg class="h-5 w-5 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <h3 class="text-lg font-semibold">Anstehende Mitarbeitergespräche</h3>
+            {{if gt .upcomingConversationsCount 0}}
+            <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+          {{.upcomingConversationsCount}}
+        </span>
+            {{end}}
+          </div>
+          <a href="/upcoming-conversations" class="text-sm text-green-600 hover:text-green-700 font-medium">Alle anzeigen →</a>
+        </div>
+
+        <div class="p-4">
+          {{if gt .upcomingConversationsCount 0}}
+          <div class="space-y-3 max-h-96 overflow-y-auto">
+            {{range $index, $conversation := .upcomingConversations}}
+            {{if lt $index 6}}
+            <div onclick="window.location.href='/employees/view/{{$conversation.EmployeeID}}'" class="border border-gray-200 rounded-lg p-3 hover:border-indigo-500 hover:shadow-md transition-all duration-200 cursor-pointer">
+              <div class="flex items-start justify-between mb-2">
+                <div class="flex items-center">
+                  <div class="h-6 w-6 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center text-indigo-700 text-xs font-medium mr-2 flex-shrink-0">
+                    {{ getInitials $conversation.EmployeeName }}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="font-medium text-gray-900 text-sm truncate">{{$conversation.EmployeeName}}</p>
+                    <p class="text-xs text-gray-500">{{$conversation.Department}}</p>
+                  </div>
+                </div>
+                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+              {{if le $conversation.DaysUntil 7}}bg-red-100 text-red-800
+              {{else if le $conversation.DaysUntil 14}}bg-yellow-100 text-yellow-800
+              {{else}}bg-indigo-100 text-indigo-800{{end}}">
+              {{if eq $conversation.DaysUntil 0}}Heute
+              {{else if eq $conversation.DaysUntil 1}}Morgen
+              {{else}}In {{$conversation.DaysUntil}} Tagen{{end}}
+            </span>
+              </div>
+
+              <div class="mb-2">
+                <p class="font-medium text-sm text-gray-900">{{$conversation.Title}}</p>
+                <p class="text-xs text-gray-600">
+                  <svg class="h-3 w-3 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {{$conversation.Date}}
+                </p>
+              </div>
+
+              {{if $conversation.Description}}
+              <div class="border-t border-gray-100 pt-2">
+                <p class="text-xs text-gray-600 line-clamp-2">{{$conversation.Description}}</p>
+              </div>
+              {{end}}
+            </div>
+            {{end}}
+            {{end}}
+          </div>
+          {{else}}
+          <div class="text-center py-6">
+            <div class="mx-auto h-12 w-12 text-gray-400 mb-3">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-medium text-gray-900">Keine anstehenden Gespräche</h3>
+            <p class="text-sm text-gray-500">Aktuell sind keine Mitarbeitergespräche geplant.</p>
+          </div>
+          {{end}}
+        </div>
       </div>
     </div>
 

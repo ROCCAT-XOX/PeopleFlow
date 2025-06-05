@@ -170,6 +170,16 @@ func InitializeRoutes(router *gin.Engine) {
 					}
 				}
 
+				// If VacationDays is not set, provide a default
+				if employee.VacationDays == 0 {
+					employee.VacationDays = 30 // Default value if not set
+				}
+
+				// Calculate remaining vacation days if not already set
+				if employee.RemainingVacation == 0 {
+					employee.RemainingVacation = employee.VacationDays - int(usedVacationDays)
+				}
+
 				// User-spezifische Daten
 				userData := gin.H{
 					"employee":          employee,
@@ -227,6 +237,7 @@ func InitializeRoutes(router *gin.Engine) {
 								"EndDate":      absence.EndDate.Format("02.01.2006"),
 								"Days":         absence.Days,
 								"Reason":       absence.Reason,
+								"Department":   emp.Department,
 							})
 						}
 					}
@@ -258,6 +269,61 @@ func InitializeRoutes(router *gin.Engine) {
 					}
 				}
 
+				// NEU: Anstehende Weiterbildungen und Gespräche sammeln
+				upcomingTrainings := []gin.H{}
+				upcomingConversations := []gin.H{}
+				now := time.Now()
+
+				for _, emp := range allEmployees {
+					// Weiterbildungen
+					for _, training := range emp.Trainings {
+						if (training.Status == "planned" || training.Status == "ongoing") &&
+							training.StartDate.After(now.AddDate(0, 0, -7)) {
+							upcomingTrainings = append(upcomingTrainings, gin.H{
+								"EmployeeID":   emp.ID.Hex(),
+								"EmployeeName": emp.FirstName + " " + emp.LastName,
+								"Department":   string(emp.Department),
+								"Title":        training.Title,
+								"Provider":     training.Provider,
+								"StartDate":    training.StartDate.Format("02.01.2006"),
+								"EndDate":      training.EndDate.Format("02.01.2006"),
+								"Status":       training.Status,
+								"Description":  training.Description,
+							})
+						}
+					}
+
+					// Gespräche
+					for _, conv := range emp.Conversations {
+						if conv.Status == "planned" &&
+							conv.Date.After(now) &&
+							conv.Date.Before(now.AddDate(0, 0, 30)) {
+							upcomingConversations = append(upcomingConversations, gin.H{
+								"EmployeeID":   emp.ID.Hex(),
+								"EmployeeName": emp.FirstName + " " + emp.LastName,
+								"Department":   string(emp.Department),
+								"Title":        conv.Title,
+								"Date":         conv.Date.Format("02.01.2006"),
+								"Description":  conv.Description,
+								"DaysUntil":    int(conv.Date.Sub(now).Hours() / 24),
+							})
+						}
+					}
+				}
+
+				// Sortierung
+				sort.Slice(upcomingTrainings, func(i, j int) bool {
+					date1, _ := time.Parse("02.01.2006", upcomingTrainings[i]["StartDate"].(string))
+					date2, _ := time.Parse("02.01.2006", upcomingTrainings[j]["StartDate"].(string))
+					return date1.Before(date2)
+				})
+
+				sort.Slice(upcomingConversations, func(i, j int) bool {
+					date1, _ := time.Parse("02.01.2006", upcomingConversations[i]["Date"].(string))
+					date2, _ := time.Parse("02.01.2006", upcomingConversations[j]["Date"].(string))
+					return date1.Before(date2)
+				})
+
 				// Chart-Daten
 				departmentLabels, departmentData := hrService.GetDepartmentLabelsAndData(hrData.DepartmentCounts)
 				statusLabels, statusData := hrService.GetStatusLabelsAndData(hrData.StatusDistribution)
@@ -273,6 +339,10 @@ func InitializeRoutes(router *gin.Engine) {
 					"pendingAbsencesCount":       len(pendingAbsences),
 					"pendingOvertimeAdjustments": pendingOvertimeAdjustments,
 					"pendingOvertimeCount":       len(pendingOvertimeAdjustments),
+					"upcomingTrainings":          upcomingTrainings,
+					"upcomingTrainingsCount":     len(upcomingTrainings),
+					"upcomingConversations":      upcomingConversations,
+					"upcomingConversationsCount": len(upcomingConversations),
 					"departmentLabels":           departmentLabels,
 					"departmentData":             departmentData,
 					"statusLabels":               statusLabels,
@@ -398,6 +468,61 @@ func InitializeRoutes(router *gin.Engine) {
 				}
 			}
 
+			// NEU: Anstehende Weiterbildungen und Gespräche für Admin/Manager
+			upcomingTrainings := []gin.H{}
+			upcomingConversations := []gin.H{}
+			now := time.Now()
+
+			for _, emp := range allEmployees {
+				// Weiterbildungen
+				for _, training := range emp.Trainings {
+					if (training.Status == "planned" || training.Status == "ongoing") &&
+						training.StartDate.After(now.AddDate(0, 0, -7)) {
+						upcomingTrainings = append(upcomingTrainings, gin.H{
+							"EmployeeID":   emp.ID.Hex(),
+							"EmployeeName": emp.FirstName + " " + emp.LastName,
+							"Department":   string(emp.Department),
+							"Title":        training.Title,
+							"Provider":     training.Provider,
+							"StartDate":    training.StartDate.Format("02.01.2006"),
+							"EndDate":      training.EndDate.Format("02.01.2006"),
+							"Status":       training.Status,
+							"Description":  training.Description,
+						})
+					}
+				}
+
+				// Gespräche
+				for _, conv := range emp.Conversations {
+					if conv.Status == "planned" &&
+						conv.Date.After(now) &&
+						conv.Date.Before(now.AddDate(0, 0, 30)) {
+						upcomingConversations = append(upcomingConversations, gin.H{
+							"EmployeeID":   emp.ID.Hex(),
+							"EmployeeName": emp.FirstName + " " + emp.LastName,
+							"Department":   string(emp.Department),
+							"Title":        conv.Title,
+							"Date":         conv.Date.Format("02.01.2006"),
+							"Description":  conv.Description,
+							"DaysUntil":    int(conv.Date.Sub(now).Hours() / 24),
+						})
+					}
+				}
+			}
+
+			// Sortierung
+			sort.Slice(upcomingTrainings, func(i, j int) bool {
+				date1, _ := time.Parse("02.01.2006", upcomingTrainings[i]["StartDate"].(string))
+				date2, _ := time.Parse("02.01.2006", upcomingTrainings[j]["StartDate"].(string))
+				return date1.Before(date2)
+			})
+
+			sort.Slice(upcomingConversations, func(i, j int) bool {
+				date1, _ := time.Parse("02.01.2006", upcomingConversations[i]["Date"].(string))
+				date2, _ := time.Parse("02.01.2006", upcomingConversations[j]["Date"].(string))
+				return date1.Before(date2)
+			})
+
 			// Sortiere Abwesenheitsanträge nach Datum
 			sort.Slice(pendingAbsences, func(i, j int) bool {
 				date1, _ := time.Parse("02.01.2006", pendingAbsences[i]["StartDate"].(string))
@@ -407,7 +532,6 @@ func InitializeRoutes(router *gin.Engine) {
 
 			// Krankheitsverlauf (letzte 12 Monate)
 			sicknessTrend := make([]int, 12)
-			now := time.Now()
 			for i := 0; i < 12; i++ {
 				month := now.AddDate(0, -i, 0)
 				count := 0
@@ -439,7 +563,7 @@ func InitializeRoutes(router *gin.Engine) {
 			// Aktivitäten
 			recentActivitiesData, _ := activityRepo.FindRecent(5)
 
-			// Abteilungsverteilung KORRIGIERT
+			// Abteilungsverteilung
 			departmentCounts := make(map[string]int)
 			for _, emp := range allEmployees {
 				if emp.Status == model.EmployeeStatusActive {
@@ -468,6 +592,10 @@ func InitializeRoutes(router *gin.Engine) {
 				"pendingAbsencesCount":       len(pendingAbsences),
 				"pendingOvertimeAdjustments": pendingOvertimeAdjustments,
 				"pendingOvertimeCount":       len(pendingOvertimeAdjustments),
+				"upcomingTrainings":          upcomingTrainings,
+				"upcomingTrainingsCount":     len(upcomingTrainings),
+				"upcomingConversations":      upcomingConversations,
+				"upcomingConversationsCount": len(upcomingConversations),
 				"approvedAbsencesToday":      approvedAbsencesToday,
 				"sickToday":                  sickToday,
 				"sicknessTrend":              sicknessTrend,
