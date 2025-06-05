@@ -21,32 +21,35 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ========== TAB-FUNKTIONEN ==========
+// Tab-Funktionalität initialisieren
 function initTabs() {
-    showTab('personal'); // Standardmäßig den 'personal' Tab anzeigen
-
-    // Tab-Button-Handler hinzufügen
+    // Event-Listener für alle Tab-Buttons
     const tabButtons = document.querySelectorAll('.tab-btn');
-    if (tabButtons.length > 0) {
-        tabButtons.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const tab = this.getAttribute('data-tab');
-                showTab(tab);
-            });
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const tab = this.getAttribute('data-tab');
+            showTab(tab);
+
+            // URL-Hash aktualisieren
+            window.location.hash = tab;
         });
-    }
+    });
+
+    // Initial Tab anzeigen
+    showTab('personal');
 }
 
-// Tab-Funktionen erweitern für den neuen Überstunden-Tab
+// Tab-Funktionen erweitern
 function showTab(tabId) {
     // Alle Tab-Inhalte ausblenden
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.add('hidden');
     });
 
-    // Aktive Klasse von allen Tab-Buttons entfernen
+    // Alle Tab-Buttons inaktiv setzen
     document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('bg-green-100', 'text-green-700');
-        btn.classList.add('text-gray-500', 'hover:text-gray-700', 'hover:bg-gray-100');
+        btn.classList.remove('active');
     });
 
     // Gewählten Tab-Inhalt anzeigen
@@ -55,23 +58,27 @@ function showTab(tabId) {
         tabElement.classList.remove('hidden');
     }
 
-    // Aktive Klasse zum gewählten Tab-Button hinzufügen
+    // Gewählten Tab-Button aktiv setzen
     const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
     if (activeBtn) {
-        activeBtn.classList.remove('text-gray-500', 'hover:text-gray-700', 'hover:bg-gray-100');
-        activeBtn.classList.add('bg-green-100', 'text-green-700');
+        activeBtn.classList.add('active');
     }
 
-    // Spezielle Behandlung für Überstunden-Tab
-    if (tabId === 'overtime') {
-        // Überstunden-Chart neu laden falls nötig
+    // Spezielle Behandlung für verschiedene Tabs
+    if (tabId === 'vacation') {
+        // Vacation-Filter initialisieren falls noch nicht geschehen
+        if (document.getElementById('vacation-year-filter')) {
+            initVacationFilters();
+        }
+    } else if (tabId === 'overtime') {
+        // Überstunden-Anpassungen laden
+        loadEmployeeAdjustments();
+
+        // Chart initialisieren falls nötig
         setTimeout(() => {
             const canvas = document.getElementById('overtimeChart');
-            if (canvas && typeof Chart !== 'undefined') {
-                // Chart nur neu initialisieren wenn er noch nicht existiert
-                if (!canvas.chart) {
-                    initializeOvertimeChart();
-                }
+            if (canvas && typeof Chart !== 'undefined' && !canvas.chart) {
+                initializeOvertimeChart();
             }
         }, 100);
     }
