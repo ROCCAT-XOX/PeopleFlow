@@ -3,6 +3,25 @@
 <!-- Verbesserte Container-Größe für Detailseiten -->
 <style>
     /* Tab Styles mit neuen Farben */
+    .tab-btn.active {
+        background-color: #22C55E !important;
+        color: white !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.3), 0 2px 4px -1px rgba(34, 197, 94, 0.2) !important;
+        transform: scale(1.02) !important;
+        border-color: #15803D !important;
+    }
+
+    .tab-btn.active svg {
+        color: white !important;
+        stroke-width: 2.5 !important;
+    }
+
+    /* Force Override für Tailwind */
+    .tab-btn.active * {
+        color: white !important;
+    }
+
     .tab-btn {
         position: relative;
         white-space: nowrap;

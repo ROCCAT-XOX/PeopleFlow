@@ -1,4 +1,5 @@
-// employee_detail_advanced.js
+// employee_detail_advanced.js - Ersetze den kompletten Tab-Bereich mit diesem Code
+
 document.addEventListener('DOMContentLoaded', function() {
     // Tab-Funktionalität initialisieren
     initTabs();
@@ -23,66 +24,162 @@ document.addEventListener('DOMContentLoaded', function() {
 // ========== TAB-FUNKTIONEN ==========
 // Tab-Funktionalität initialisieren
 function initTabs() {
-    // Event-Listener für alle Tab-Buttons
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    tabButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const tab = this.getAttribute('data-tab');
-            showTab(tab);
+    // Stelle sicher, dass der erste Tab initial aktiv ist
+    const firstTab = document.querySelector('.tab-btn[data-tab="personal"]');
+    if (firstTab && !document.querySelector('.tab-btn.active')) {
+        firstTab.classList.add('active');
+    }
 
-            // URL-Hash aktualisieren
-            window.location.hash = tab;
+    // Event-Listener für alle Tab-Buttons mit Event Delegation
+    const tabContainer = document.querySelector('.flex.space-x-2.p-2.bg-gray-100.rounded-lg.m-2.w-full');
+    if (tabContainer) {
+        tabContainer.addEventListener('click', function(e) {
+            const tabButton = e.target.closest('.tab-btn');
+            if (tabButton) {
+                e.preventDefault();
+                const tab = tabButton.getAttribute('data-tab');
+                showTab(tab);
+
+                // URL-Hash aktualisieren
+                window.location.hash = tab;
+            }
         });
-    });
+    }
 
     // Initial Tab anzeigen
-    showTab('personal');
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (activeTab) {
+        const tabId = activeTab.getAttribute('data-tab');
+        showTab(tabId);
+    } else {
+        showTab('personal');
+    }
 }
 
-// Tab-Funktionen erweitern
+// Tab anzeigen und aktiv markieren
 function showTab(tabId) {
+    // Debug-Log
+    console.log('Showing tab:', tabId);
+
     // Alle Tab-Inhalte ausblenden
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.add('hidden');
     });
 
-    // Alle Tab-Buttons inaktiv setzen
+    // Alle Tab-Buttons inaktiv setzen - entferne active Klasse komplett
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
+        // Stelle sicher, dass die Styles zurückgesetzt werden
+        btn.style.backgroundColor = '';
+        btn.style.color = '';
+        btn.style.fontWeight = '';
+        btn.style.transform = '';
+        btn.style.boxShadow = '';
     });
 
     // Gewählten Tab-Inhalt anzeigen
     const tabElement = document.getElementById(tabId + '-tab');
     if (tabElement) {
         tabElement.classList.remove('hidden');
+        // Animationsklasse hinzufügen
+        tabElement.style.animation = 'slideIn 0.4s ease-out';
     }
 
     // Gewählten Tab-Button aktiv setzen
     const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
     if (activeBtn) {
         activeBtn.classList.add('active');
+
+        // Stelle sicher, dass die Styles angewendet werden
+        setTimeout(() => {
+            activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }, 100);
     }
 
     // Spezielle Behandlung für verschiedene Tabs
-    if (tabId === 'vacation') {
-        // Vacation-Filter initialisieren falls noch nicht geschehen
-        if (document.getElementById('vacation-year-filter')) {
-            initVacationFilters();
-        }
-    } else if (tabId === 'overtime') {
-        // Überstunden-Anpassungen laden
-        loadEmployeeAdjustments();
-
-        // Chart initialisieren falls nötig
-        setTimeout(() => {
-            const canvas = document.getElementById('overtimeChart');
-            if (canvas && typeof Chart !== 'undefined' && !canvas.chart) {
-                initializeOvertimeChart();
+    switch(tabId) {
+        case 'vacation':
+            if (document.getElementById('vacation-year-filter')) {
+                initVacationFilters();
             }
-        }, 100);
+            break;
+        case 'overtime':
+            loadEmployeeAdjustments();
+            setTimeout(() => {
+                const canvas = document.getElementById('overtimeChart');
+                if (canvas && typeof Chart !== 'undefined' && !canvas.chart) {
+                    initializeOvertimeChart();
+                }
+            }, 100);
+            break;
     }
 }
+
+// URL-Hash-Behandlung erweitern
+function handleUrlHash() {
+    if (window.location.hash) {
+        const tabName = window.location.hash.substring(1);
+        const validTabs = ['personal', 'documents', 'trainings', 'development', 'projects', 'vacation', 'conversations', 'timeentries', 'overtime'];
+
+        if (validTabs.includes(tabName)) {
+            // Warte kurz, bis das DOM vollständig geladen ist
+            setTimeout(() => {
+                showTab(tabName);
+                // Scrolle nach dem Tab-Wechsel
+                setTimeout(() => {
+                    const tabSection = document.querySelector('.border-b.border-gray-200.bg-white.rounded-t-lg.shadow-sm');
+                    if (tabSection) {
+                        tabSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
+            }, 100);
+        }
+    }
+}
+
+// Browser Back/Forward Button Support
+window.addEventListener('hashchange', function() {
+    handleUrlHash();
+});
+
+// Stelle sicher, dass die Tab-Styles korrekt angewendet werden
+function ensureTabStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .tab-btn {
+            position: relative;
+            white-space: nowrap;
+            border: 2px solid transparent;
+            color: #6B7280;
+            background-color: transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:not(.active):hover {
+            color: #15803D !important;
+            background-color: rgba(255, 255, 255, 0.8) !important;
+            border-color: rgba(34, 197, 94, 0.2) !important;
+        }
+
+        .tab-btn.active {
+            background-color: #22C55E !important;
+            color: white !important;
+            font-weight: 600 !important;
+            box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.3), 0 2px 4px -1px rgba(34, 197, 94, 0.2) !important;
+            transform: scale(1.02) !important;
+            border-color: #15803D !important;
+        }
+
+        .tab-btn.active svg {
+            color: white !important;
+            stroke-width: 2.5 !important;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Stelle sicher, dass die Styles geladen werden
+ensureTabStyles();
 
 // URL-Hash-Behandlung erweitern
 function handleUrlHash() {
