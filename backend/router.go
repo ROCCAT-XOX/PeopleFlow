@@ -232,28 +232,56 @@ func InitializeRoutes(router *gin.Engine) {
 					}
 				}
 
+				// Ausstehende Überstunden-Anpassungen für HR
+				pendingOvertimeAdjustments := []gin.H{}
+				if userRole == string(model.RoleAdmin) || userRole == string(model.RoleManager) || userRole == string(model.RoleHR) {
+					adjustments, err := overtimeAdjustmentRepo.FindPending()
+					if err == nil {
+						for _, adj := range adjustments {
+							// Mitarbeiter-Namen abrufen
+							employee, err := employeeRepo.FindByID(adj.EmployeeID.Hex())
+							if err == nil {
+								pendingOvertimeAdjustments = append(pendingOvertimeAdjustments, gin.H{
+									"ID":           adj.ID.Hex(),
+									"EmployeeID":   adj.EmployeeID.Hex(),
+									"EmployeeName": employee.FirstName + " " + employee.LastName,
+									"Department":   employee.Department,
+									"Type":         adj.GetTypeDisplayName(),
+									"Hours":        adj.FormatHours(),
+									"Reason":       adj.Reason,
+									"Description":  adj.Description,
+									"AdjusterName": adj.AdjusterName,
+									"CreatedAt":    adj.CreatedAt.Format("02.01.2006"),
+								})
+							}
+						}
+					}
+				}
+
 				// Chart-Daten
 				departmentLabels, departmentData := hrService.GetDepartmentLabelsAndData(hrData.DepartmentCounts)
 				statusLabels, statusData := hrService.GetStatusLabelsAndData(hrData.StatusDistribution)
 				ageLabels, ageData := hrService.GetAgeLabelsAndData(hrData.AgeDistribution)
 
 				hrDashboardData := gin.H{
-					"activeEmployees":      hrData.ActiveEmployees,
-					"onLeaveEmployees":     hrData.OnLeaveEmployees,
-					"sickEmployees":        hrData.SickEmployees,
-					"inactiveEmployees":    hrData.InactiveEmployees,
-					"currentAbsences":      hrData.CurrentAbsences,
-					"pendingAbsences":      pendingAbsences,
-					"pendingAbsencesCount": len(pendingAbsences),
-					"departmentLabels":     departmentLabels,
-					"departmentData":       departmentData,
-					"statusLabels":         statusLabels,
-					"statusData":           statusData,
-					"ageLabels":            ageLabels,
-					"ageData":              ageData,
-					"recentActivities":     formatActivities(recentActivitiesData),
-					"absenceByMonthData":   hrData.AbsenceByMonth,
-					"sicknessByMonthData":  hrData.SicknessByMonth,
+					"activeEmployees":            hrData.ActiveEmployees,
+					"onLeaveEmployees":           hrData.OnLeaveEmployees,
+					"sickEmployees":              hrData.SickEmployees,
+					"inactiveEmployees":          hrData.InactiveEmployees,
+					"currentAbsences":            hrData.CurrentAbsences,
+					"pendingAbsences":            pendingAbsences,
+					"pendingAbsencesCount":       len(pendingAbsences),
+					"pendingOvertimeAdjustments": pendingOvertimeAdjustments,
+					"pendingOvertimeCount":       len(pendingOvertimeAdjustments),
+					"departmentLabels":           departmentLabels,
+					"departmentData":             departmentData,
+					"statusLabels":               statusLabels,
+					"statusData":                 statusData,
+					"ageLabels":                  ageLabels,
+					"ageData":                    ageData,
+					"recentActivities":           formatActivities(recentActivitiesData),
+					"absenceByMonthData":         hrData.AbsenceByMonth,
+					"sicknessByMonthData":        hrData.SicknessByMonth,
 				}
 
 				for k, v := range hrDashboardData {
@@ -344,6 +372,32 @@ func InitializeRoutes(router *gin.Engine) {
 				}
 			}
 
+			// Ausstehende Überstunden-Anpassungen für Admin/Manager
+			pendingOvertimeAdjustments := []gin.H{}
+			if userRole == string(model.RoleAdmin) || userRole == string(model.RoleManager) {
+				adjustments, err := overtimeAdjustmentRepo.FindPending()
+				if err == nil {
+					for _, adj := range adjustments {
+						// Mitarbeiter-Namen abrufen
+						employee, err := employeeRepo.FindByID(adj.EmployeeID.Hex())
+						if err == nil {
+							pendingOvertimeAdjustments = append(pendingOvertimeAdjustments, gin.H{
+								"ID":           adj.ID.Hex(),
+								"EmployeeID":   adj.EmployeeID.Hex(),
+								"EmployeeName": employee.FirstName + " " + employee.LastName,
+								"Department":   employee.Department,
+								"Type":         adj.GetTypeDisplayName(),
+								"Hours":        adj.FormatHours(),
+								"Reason":       adj.Reason,
+								"Description":  adj.Description,
+								"AdjusterName": adj.AdjusterName,
+								"CreatedAt":    adj.CreatedAt.Format("02.01.2006"),
+							})
+						}
+					}
+				}
+			}
+
 			// Sortiere Abwesenheitsanträge nach Datum
 			sort.Slice(pendingAbsences, func(i, j int) bool {
 				date1, _ := time.Parse("02.01.2006", pendingAbsences[i]["StartDate"].(string))
@@ -385,23 +439,7 @@ func InitializeRoutes(router *gin.Engine) {
 			// Aktivitäten
 			recentActivitiesData, _ := activityRepo.FindRecent(5)
 
-			// Admin/Manager spezifische Daten
-			adminData := gin.H{
-				"monthlyLaborCosts":     fmt.Sprintf("%.2f", monthlyLaborCosts),
-				"monthlyCostsData":      monthlyCostsData,
-				"totalOvertime":         totalOvertime,
-				"overtimeEmployees":     overtimeEmployees,
-				"pendingAbsences":       pendingAbsences,
-				"pendingAbsencesCount":  len(pendingAbsences),
-				"approvedAbsencesToday": approvedAbsencesToday,
-				"sickToday":             sickToday,
-				"sicknessTrend":         sicknessTrend,
-				"overtimeTrend":         overtimeTrend,
-				"monthLabels":           monthLabels,
-				"recentActivities":      formatActivities(recentActivitiesData),
-			}
-
-			// Abteilungsverteilung
+			// Abteilungsverteilung KORRIGIERT
 			departmentCounts := make(map[string]int)
 			for _, emp := range allEmployees {
 				if emp.Status == model.EmployeeStatusActive {
@@ -420,8 +458,25 @@ func InitializeRoutes(router *gin.Engine) {
 				departmentData = append(departmentData, count)
 			}
 
-			adminData["departmentLabels"] = departmentLabels
-			adminData["departmentData"] = departmentData
+			// Admin/Manager spezifische Daten
+			adminData := gin.H{
+				"monthlyLaborCosts":          fmt.Sprintf("%.2f", monthlyLaborCosts),
+				"monthlyCostsData":           monthlyCostsData,
+				"totalOvertime":              totalOvertime,
+				"overtimeEmployees":          overtimeEmployees,
+				"pendingAbsences":            pendingAbsences,
+				"pendingAbsencesCount":       len(pendingAbsences),
+				"pendingOvertimeAdjustments": pendingOvertimeAdjustments,
+				"pendingOvertimeCount":       len(pendingOvertimeAdjustments),
+				"approvedAbsencesToday":      approvedAbsencesToday,
+				"sickToday":                  sickToday,
+				"sicknessTrend":              sicknessTrend,
+				"overtimeTrend":              overtimeTrend,
+				"monthLabels":                monthLabels,
+				"recentActivities":           formatActivities(recentActivitiesData),
+				"departmentLabels":           departmentLabels,
+				"departmentData":             departmentData,
+			}
 
 			// Daten zusammenführen
 			for k, v := range adminData {

@@ -26,6 +26,16 @@
   .overtime-bar {
     transition: width 0.5s ease-in-out;
   }
+
+  .adjustment-card {
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+  }
+
+  .adjustment-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+  }
 </style>
 
 <body class="h-full bg-gray-50">
@@ -36,7 +46,7 @@
 <main class="py-10">
   <div class="px-4 sm:px-6 lg:px-8">
     {{if eq .userRole "user"}}
-    <!-- USER DASHBOARD -->
+    <!-- USER DASHBOARD - bleibt unverändert -->
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-900">Mein Dashboard</h1>
       <p class="mt-1 text-sm text-gray-500">Persönliche Übersicht</p>
@@ -262,13 +272,43 @@
     </div>
     {{end}}
 
+    <!-- Ausstehende Überstunden-Genehmigungen für HR -->
+    {{if gt .pendingOvertimeCount 0}}
+    <div class="bg-white rounded-lg shadow-md mb-6">
+      <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <h3 class="text-lg font-semibold">Ausstehende Überstunden-Genehmigungen</h3>
+        <a href="/overtime" class="text-sm text-green-600 hover:text-green-700">Alle anzeigen →</a>
+      </div>
+      <div class="p-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {{range $index, $adjustment := .pendingOvertimeAdjustments}}
+          {{if lt $index 4}}
+          <div onclick="window.location.href='/overtime'" class="adjustment-card border border-gray-200 rounded-lg p-4 hover:border-green-500">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="font-medium text-gray-900">{{$adjustment.EmployeeName}}</p>
+                <p class="text-sm text-gray-500">{{$adjustment.Type}} - {{$adjustment.Hours}}</p>
+                <p class="text-xs text-gray-400 mt-1">{{$adjustment.Reason}}</p>
+              </div>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                Ausstehend
+              </span>
+            </div>
+          </div>
+          {{end}}
+          {{end}}
+        </div>
+      </div>
+    </div>
+    {{end}}
+
     <!-- Charts für HR -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Abteilungsverteilung -->
       <div class="bg-white rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold mb-4">Abteilungsverteilung</h3>
         <div class="chart-container">
-          <canvas id="departmentChart"></canvas>
+          <canvas id="hrDepartmentChart"></canvas>
         </div>
       </div>
 
@@ -276,7 +316,7 @@
       <div class="bg-white rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold mb-4">Mitarbeiterstatus</h3>
         <div class="chart-container">
-          <canvas id="statusChart"></canvas>
+          <canvas id="hrStatusChart"></canvas>
         </div>
       </div>
 
@@ -284,7 +324,7 @@
       <div class="bg-white rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold mb-4">Altersverteilung</h3>
         <div class="chart-container">
-          <canvas id="ageChart"></canvas>
+          <canvas id="hrAgeChart"></canvas>
         </div>
       </div>
 
@@ -292,7 +332,7 @@
       <div class="bg-white rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold mb-4">Krankheitsverlauf (12 Monate)</h3>
         <div class="chart-container">
-          <canvas id="sicknessChart"></canvas>
+          <canvas id="hrSicknessChart"></canvas>
         </div>
       </div>
     </div>
@@ -419,13 +459,47 @@
     </div>
     {{end}}
 
+    <!-- Ausstehende Überstunden-Genehmigungen für Admin/Manager -->
+    {{if gt .pendingOvertimeCount 0}}
+    <div class="bg-white rounded-lg shadow-md mb-6">
+      <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <h3 class="text-lg font-semibold">Ausstehende Überstunden-Genehmigungen</h3>
+        <a href="/overtime" class="text-sm text-green-600 hover:text-green-700">Alle anzeigen →</a>
+      </div>
+      <div class="p-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {{range $index, $adjustment := .pendingOvertimeAdjustments}}
+          {{if lt $index 6}}
+          <div onclick="window.location.href='/overtime'" class="adjustment-card border border-gray-200 rounded-lg p-4 hover:border-green-500">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <p class="font-medium text-gray-900">{{$adjustment.EmployeeName}}</p>
+                <p class="text-xs text-gray-500">{{$adjustment.Department}}</p>
+              </div>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                {{$adjustment.Type}}
+              </span>
+            </div>
+            <p class="text-sm text-gray-700">{{$adjustment.Hours}} - {{$adjustment.CreatedAt}}</p>
+            <p class="text-sm font-medium text-gray-900">von {{$adjustment.AdjusterName}}</p>
+            {{if $adjustment.Reason}}
+            <p class="text-xs text-gray-500 mt-1 truncate">{{$adjustment.Reason}}</p>
+            {{end}}
+          </div>
+          {{end}}
+          {{end}}
+        </div>
+      </div>
+    </div>
+    {{end}}
+
     <!-- Charts Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <!-- Personalkosten Verlauf -->
       <div class="bg-white rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold mb-4">Personalkosten Verlauf</h3>
         <div class="chart-container">
-          <canvas id="laborCostsChart"></canvas>
+          <canvas id="adminLaborCostsChart"></canvas>
         </div>
       </div>
 
@@ -433,7 +507,7 @@
       <div class="bg-white rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold mb-4">Überstunden Verlauf</h3>
         <div class="chart-container">
-          <canvas id="overtimeChart"></canvas>
+          <canvas id="adminOvertimeChart"></canvas>
         </div>
       </div>
 
@@ -441,7 +515,7 @@
       <div class="bg-white rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold mb-4">Krankheitsverlauf (12 Monate)</h3>
         <div class="chart-container">
-          <canvas id="sicknessChart"></canvas>
+          <canvas id="adminSicknessChart"></canvas>
         </div>
       </div>
 
@@ -449,7 +523,7 @@
       <div class="bg-white rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold mb-4">Abteilungsverteilung</h3>
         <div class="chart-container">
-          <canvas id="departmentChart"></canvas>
+          <canvas id="adminDepartmentChart"></canvas>
         </div>
       </div>
     </div>
@@ -547,528 +621,371 @@
       paletteCycle: ['#05402D', '#15803D', '#22C55E', '#86EFAC', '#C3E657']
     };
 
-    // Helper Funktion für Währungsformatierung (aus Skript 1)
+    // Helper Funktion für Währungsformatierung
     function formatCurrency(value) {
       return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(value);
     }
 
+    // Validierungsfunktion für Chart-Daten
+    function isValidChartData(labels, data) {
+      return labels && data &&
+              Array.isArray(labels) && Array.isArray(data) &&
+              labels.length > 0 && data.length > 0 &&
+              labels.length === data.length;
+    }
+
     // --- BEGINN: Nur für Admin/Manager Rollen (nicht HR) ---
     {{if and (ne .userRole "user") (ne .userRole "hr")}}
+
     // Personalkosten-Diagramm
-    const laborCtx = document.getElementById('laborCostsChart');
-    if (laborCtx) {
-      new Chart(laborCtx.getContext('2d'), {
-        type: 'line',
-        data: {
-          labels: {{.monthLabels}} || ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
-              datasets: [
-        {
-          label: 'Gesamtpersonalkosten inkl. AG-Anteil (€)',
-          data: {{.monthlyCostsData}},
-      borderColor: globalChartColors.darkGreen, // Dunkelgrün
-              backgroundColor: `${globalChartColors.darkGreen}33`, // Transparenz angepasst
+    const adminLaborCtx = document.getElementById('adminLaborCostsChart');
+    if (adminLaborCtx) {
+      const monthLabels = {{.monthLabels}} || ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+      const costsData = {{.monthlyCostsData}} || [];
+
+      if (costsData.length > 0) {
+        new Chart(adminLaborCtx.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: monthLabels,
+            datasets: [{
+              label: 'Personalkosten (€)',
+              data: costsData,
+              borderColor: globalChartColors.darkGreen,
+              backgroundColor: `${globalChartColors.darkGreen}33`,
               fill: true,
               tension: 0.4
-    },
-      {
-        label: 'Durchschnittskosten pro Mitarbeiter inkl. AG-Anteil (€)',
-                data: {{.avgCostsPerEmployeeData}},
-        borderColor: globalChartColors.mediumGreen, // Mittleres Grün
-                backgroundColor: `${globalChartColors.mediumGreen}33`,
-              fill: true,
-              tension: 0.4,
-              borderDash: [5, 5]
-      }
-    ]
-    },
-      options: {
-        responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-          tooltip: {
-            mode: 'index',
-                    intersect: false,
-                    callbacks: {
-              label: function(context) {
-                let label = context.dataset.label || '';
-                if (label) { label += ': '; }
-                if (context.parsed.y !== null) { label += formatCurrency(context.parsed.y); }
-                return label;
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return 'Personalkosten: ' + formatCurrency(context.parsed.y);
+                  }
+                }
+              },
+              legend: { position: 'top' }
+            },
+            scales: {
+              x: { grid: { display: false } },
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(value) {
+                    return formatCurrency(value);
+                  }
+                }
               }
             }
-          },
-          legend: { position: 'top' }
-        },
-        scales: {
-          x: { grid: { display: false } },
-          y: { beginAtZero: true, ticks: { callback: function(value) { return formatCurrency(value); } } }
-        }
+          }
+        });
       }
-    });
-    }
-
-    // Personalkostenverteilung nach Abteilung (Balkendiagramm)
-    const deptCostsCtx = document.getElementById('deptCostsChart');
-    if (deptCostsCtx) {
-      const deptCostsLabels = {{.deptCostsLabels}};
-      const deptCostsColors = deptCostsLabels.map((_, index) => globalChartColors.paletteCycle[index % globalChartColors.paletteCycle.length]);
-      new Chart(deptCostsCtx.getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: deptCostsLabels,
-          datasets: [{
-            label: 'Personalkosten (€)',
-            data: {{.deptCostsData}},
-        backgroundColor: deptCostsColors,
-        borderColor: deptCostsColors,
-        borderWidth: 1,
-        borderRadius: { topLeft: 8, topRight: 8, bottomLeft: 0, bottomRight: 0 },
-        borderSkipped: 'bottom'
-      }]
-    },
-      options: {
-        responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true, ticks: { callback: function(value) { return formatCurrency(value); } } } },
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                let label = context.dataset.label || '';
-                if (label) { label += ': '; }
-                if (context.parsed.y !== null) { label += formatCurrency(context.parsed.y); }
-                return label;
-              }
-            }
-          },
-          legend: { display: true, position: 'top' }
-        }
-      }
-    });
-    }
-
-    // Altersstruktur (Admin/Manager Version)
-    const ageDistCtx = document.getElementById('ageDistributionChart');
-    if (ageDistCtx) {
-      const ageDistGroups = {{.ageGroups}};
-      const ageDistColors = ageDistGroups.map((_, index) => globalChartColors.paletteCycle[index % globalChartColors.paletteCycle.length]);
-      new Chart(ageDistCtx.getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: ageDistGroups,
-          datasets: [{
-            label: 'Anzahl Mitarbeiter',
-            data: {{.ageCounts}},
-        backgroundColor: ageDistColors,
-        borderColor: ageDistColors,
-        borderWidth: 1,
-        borderRadius: { topLeft: 8, topRight: 8, bottomLeft: 0, bottomRight: 0 },
-        borderSkipped: 'bottom'
-      }]
-    },
-      options: {
-        responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } },
-        plugins: { legend: { display: false } }
-      }
-    });
     }
 
     // Überstunden Verlauf
-    const overtimeCtx = document.getElementById('overtimeChart');
-    if (overtimeCtx) {
-      new Chart(overtimeCtx.getContext('2d'), {
-        type: 'line',
-        data: {
-          labels: {{.monthLabels}} || ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
-              datasets: [{
-        label: 'Überstunden Gesamt',
-        data: {{.overtimeTrend}},
-      borderColor: globalChartColors.mediumGreen, // Mittleres Grün statt Blau
+    const adminOvertimeCtx = document.getElementById('adminOvertimeChart');
+    if (adminOvertimeCtx) {
+      const monthLabels = {{.monthLabels}} || ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+      const overtimeData = {{.overtimeTrend}} || [];
+
+      if (overtimeData.length > 0) {
+        new Chart(adminOvertimeCtx.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: monthLabels,
+            datasets: [{
+              label: 'Überstunden Gesamt',
+              data: overtimeData,
+              borderColor: globalChartColors.mediumGreen,
               backgroundColor: `${globalChartColors.mediumGreen}33`,
               tension: 0.4,
               fill: true
-    }]
-    },
-      options: {
-        responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true, ticks: { callback: function(value) { return value + ' Std'; } } } },
-        plugins: { legend: { display: true, position: 'top' } }
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(value) {
+                    return value + ' Std';
+                  }
+                }
+              }
+            },
+            plugins: { legend: { display: true, position: 'top' } }
+          }
+        });
       }
-    });
     }
 
-    // Krankheitsverlauf (Admin/Manager - Balken Version)
-    const sickTrendCtx = document.getElementById('sicknessChart');
-    if (sickTrendCtx) {
-      new Chart(sickTrendCtx.getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: {{.monthLabels}} || ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
-              datasets: [{
-        label: 'Krankmeldungen (Tage/Anzahl)',
-        data: {{.sicknessTrend}},
-      backgroundColor: globalChartColors.darkGreen, // Dunkelgrün statt Rot
+    // Krankheitsverlauf (Admin/Manager)
+    const adminSickCtx = document.getElementById('adminSicknessChart');
+    if (adminSickCtx) {
+      const monthLabels = {{.monthLabels}} || ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+      const sicknessData = {{.sicknessTrend}} || [];
+
+      if (sicknessData.length > 0) {
+        new Chart(adminSickCtx.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: monthLabels,
+            datasets: [{
+              label: 'Krankmeldungen',
+              data: sicknessData,
+              backgroundColor: globalChartColors.darkGreen,
               borderColor: globalChartColors.darkGreen,
               borderWidth: 1,
               borderRadius: { topLeft: 8, topRight: 8, bottomLeft: 0, bottomRight: 0 },
-      borderSkipped: 'bottom'
-    }]
-    },
-      options: {
-        responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } },
-        plugins: { legend: { display: false } }
+              borderSkipped: 'bottom'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } },
+            plugins: { legend: { display: false } }
+          }
+        });
       }
-    });
     }
 
-    // Abteilungsverteilung (Doughnut - für Admin/Manager)
+    // Abteilungsverteilung (Admin/Manager - KORRIGIERT)
     const adminDeptCtx = document.getElementById('adminDepartmentChart');
     if (adminDeptCtx) {
-      new Chart(adminDeptCtx.getContext('2d'), {
-        type: 'doughnut',
-        data: {
-          labels: {{.departmentLabels}},
-      datasets: [{
-        data: {{.departmentData}},
-      backgroundColor: globalChartColors.paletteCycle.slice(0, {{.departmentLabels}}.length),
-      hoverOffset: 4
-    }]
-    },
-      options: {
-        responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-          legend: { position: 'bottom' },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                let label = context.label || '';
-                if (label) { label += ': '; }
-                if (context.parsed !== null) {
-                  label += context.parsed;
-                  label += ' Mitarbeiter';
+      const deptLabels = {{.departmentLabels}} || [];
+      const deptData = {{.departmentData}} || [];
+
+      console.log('Admin Department Chart - Labels:', deptLabels, 'Data:', deptData); // Debug
+
+      if (isValidChartData(deptLabels, deptData)) {
+        const chartColors = deptLabels.map((_, index) => globalChartColors.paletteCycle[index % globalChartColors.paletteCycle.length]);
+
+        new Chart(adminDeptCtx.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: deptLabels,
+            datasets: [{
+              data: deptData,
+              backgroundColor: chartColors,
+              hoverOffset: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    let label = context.label || '';
+                    if (label) { label += ': '; }
+                    if (context.parsed !== null) {
+                      label += context.parsed;
+                      label += ' Mitarbeiter';
+                    }
+                    return label;
+                  }
                 }
-                return label;
               }
             }
           }
-        }
+        });
+      } else {
+        // Fallback wenn keine Daten vorhanden
+        const ctx = adminDeptCtx.getContext('2d');
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#9CA3AF';
+        ctx.textAlign = 'center';
+        ctx.fillText('Keine Abteilungsdaten verfügbar', adminDeptCtx.width / 2, adminDeptCtx.height / 2);
       }
-    });
     }
 
-    // Filter für Mitarbeiterübersicht
-    const employeeFilter = document.getElementById('employee-filter');
-    if (employeeFilter) {
-      employeeFilter.addEventListener('change', function() {
-        console.log('Admin/Manager Mitarbeiter-Filter geändert zu:', this.value);
-      });
-    }
     {{end}}
-    // --- ENDE: Nur für Admin/Manager Rollen (nicht HR) ---
-
+    // --- ENDE: Nur für Admin/Manager Rollen ---
 
     // --- BEGINN: Nur für HR Rolle ---
     {{if eq .userRole "hr"}}
-    // Tab-Funktionalität
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    const tabContents = document.querySelectorAll('.tab-content');
-    if (tabButtons.length > 0 && tabContents.length > 0) {
-      tabButtons.forEach(button => {
-        button.addEventListener('click', () => {
-          tabButtons.forEach(btn => {
-            btn.classList.remove('active', 'border-green-500', 'text-green-600'); // Farben ggf. anpassen, falls Theme betroffen
-            btn.classList.add('border-transparent', 'text-gray-500');
-          });
-          tabContents.forEach(content => {
-            content.classList.add('hidden');
-          });
-          button.classList.remove('border-transparent', 'text-gray-500');
-          button.classList.add('active', 'border-green-500', 'text-green-600'); // Farben ggf. anpassen
-          const targetId = button.id.replace('tab-', 'tab-content-');
-          const targetContent = document.getElementById(targetId);
-          if(targetContent) targetContent.classList.remove('hidden');
-        });
-      });
-      if(tabButtons[0]) tabButtons[0].click();
-    }
 
-    // Abteilungsverteilung-Diagramm (HR - Doughnut)
-    const hrDeptCtx = document.getElementById('departmentChart');
+    // Abteilungsverteilung-Diagramm (HR - KORRIGIERT)
+    const hrDeptCtx = document.getElementById('hrDepartmentChart');
     if (hrDeptCtx) {
-      new Chart(hrDeptCtx.getContext('2d'), {
-        type: 'doughnut',
-        data: {
-          labels: {{.departmentLabels}},
-      datasets: [{
-        data: {{.departmentData}},
-      backgroundColor: globalChartColors.paletteCycle.slice(0, {{.departmentLabels}}.length),
-      hoverOffset: 4
-    }]
-    },
-      options: {
-        responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-          legend: { position: 'bottom' },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                let label = context.label || '';
-                if (label) { label += ': '; }
-                if (context.parsed !== null) {
-                  label += context.parsed;
-                  label += ' Mitarbeiter';
+      const deptLabels = {{.departmentLabels}} || [];
+      const deptData = {{.departmentData}} || [];
+
+      console.log('HR Department Chart - Labels:', deptLabels, 'Data:', deptData); // Debug
+
+      if (isValidChartData(deptLabels, deptData)) {
+        const chartColors = deptLabels.map((_, index) => globalChartColors.paletteCycle[index % globalChartColors.paletteCycle.length]);
+
+        new Chart(hrDeptCtx.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: deptLabels,
+            datasets: [{
+              data: deptData,
+              backgroundColor: chartColors,
+              hoverOffset: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    let label = context.label || '';
+                    if (label) { label += ': '; }
+                    if (context.parsed !== null) {
+                      label += context.parsed;
+                      label += ' Mitarbeiter';
+                    }
+                    return label;
+                  }
                 }
-                return label;
               }
             }
           }
-        }
+        });
+      } else {
+        // Fallback wenn keine Daten vorhanden
+        const ctx = hrDeptCtx.getContext('2d');
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#9CA3AF';
+        ctx.textAlign = 'center';
+        ctx.fillText('Keine Abteilungsdaten verfügbar', hrDeptCtx.width / 2, hrDeptCtx.height / 2);
       }
-    });
     }
 
-    // Status-Verteilung-Diagramm (HR - Pie)
-    const statusCtx = document.getElementById('statusChart');
-    if (statusCtx) {
-      new Chart(statusCtx.getContext('2d'), {
-        type: 'pie',
-        data: {
-          labels: {{.statusLabels}},
-      datasets: [{
-        data: {{.statusData}},
-      backgroundColor: [ // Verschiedene Grüntöne zur Unterscheidung
-        globalChartColors.mediumGreen,    // Früher: Aktiv (grün)
-        globalChartColors.lightGreen,     // Früher: Gekündigt/Ausstehend (orange)
-        globalChartColors.darkGreen,      // Früher: Inaktiv/Probezeit Ende (rot)
-        globalChartColors.limeGreen       // Früher: Sonstige (grau)
-      ].slice(0, {{.statusLabels}}.length),
-      hoverOffset: 4
-    }]
-    },
-      options: {
-        responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-          legend: { position: 'bottom' },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                let label = context.label || '';
-                if (label) { label += ': '; }
-                if (context.parsed !== null) {
-                  label += context.parsed;
-                  label += ' Mitarbeiter';
+    // Status-Verteilung-Diagramm (HR)
+    const hrStatusCtx = document.getElementById('hrStatusChart');
+    if (hrStatusCtx) {
+      const statusLabels = {{.statusLabels}} || [];
+      const statusData = {{.statusData}} || [];
+
+      if (isValidChartData(statusLabels, statusData)) {
+        const statusColors = [
+          globalChartColors.mediumGreen,
+          globalChartColors.lightGreen,
+          globalChartColors.darkGreen,
+          globalChartColors.limeGreen
+        ].slice(0, statusLabels.length);
+
+        new Chart(hrStatusCtx.getContext('2d'), {
+          type: 'pie',
+          data: {
+            labels: statusLabels,
+            datasets: [{
+              data: statusData,
+              backgroundColor: statusColors,
+              hoverOffset: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    let label = context.label || '';
+                    if (label) { label += ': '; }
+                    if (context.parsed !== null) {
+                      label += context.parsed;
+                      label += ' Mitarbeiter';
+                    }
+                    return label;
+                  }
                 }
-                return label;
               }
             }
           }
-        }
+        });
       }
-    });
     }
 
-    // Altersverteilung-Diagramm (HR - Bar)
-    const hrAgeCtx = document.getElementById('ageChart');
+    // Altersverteilung-Diagramm (HR)
+    const hrAgeCtx = document.getElementById('hrAgeChart');
     if (hrAgeCtx) {
-      new Chart(hrAgeCtx.getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: {{.ageLabels}},
-      datasets: [{
-        label: 'Anzahl Mitarbeiter',
-        data: {{.ageData}},
-      backgroundColor: globalChartColors.mediumGreen, // Mittleres Grün
+      const ageLabels = {{.ageLabels}} || [];
+      const ageData = {{.ageData}} || [];
+
+      if (isValidChartData(ageLabels, ageData)) {
+        new Chart(hrAgeCtx.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: ageLabels,
+            datasets: [{
+              label: 'Anzahl Mitarbeiter',
+              data: ageData,
+              backgroundColor: globalChartColors.mediumGreen,
               borderColor: globalChartColors.mediumGreen,
               borderWidth: 1,
               borderRadius: { topLeft: 8, topRight: 8, bottomLeft: 0, bottomRight: 0 },
-      borderSkipped: 'bottom'
-    }]
-    },
-      options: {
-        responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } },
-        plugins: { legend: { display: false } }
-      }
-    });
-    }
-
-    // Betriebszugehörigkeit-Diagramm (HR - Bar)
-    const tenureCtx = document.getElementById('tenureChart');
-    if (tenureCtx) {
-      new Chart(tenureCtx.getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: {{.tenureLabels}},
-      datasets: [{
-        label: 'Anzahl Mitarbeiter',
-        data: {{.tenureData}},
-      backgroundColor: globalChartColors.lightGreen, // Helles Grün
-              borderColor: globalChartColors.lightGreen,
-              borderWidth: 1,
-              borderRadius: { topLeft: 8, topRight: 8, bottomLeft: 0, bottomRight: 0 },
-      borderSkipped: 'bottom'
-    }]
-    },
-      options: {
-        responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } },
-        plugins: { legend: { display: false } }
-      }
-    });
-    }
-
-    // Neueinstellungen-Diagramm (HR - Line)
-    const hiresCtx = document.getElementById('hiresChart');
-    if (hiresCtx) {
-      new Chart(hiresCtx.getContext('2d'), {
-        type: 'line',
-        data: {
-          labels: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
-          datasets: [{
-            label: 'Neueinstellungen',
-            data: {{.monthlyHiresData}},
-        borderColor: globalChartColors.darkGreen, // Dunkelgrün
-        backgroundColor: `${globalChartColors.darkGreen}33`,
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: globalChartColors.darkGreen,
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointRadius: 5
-      }]
-    },
-      options: {
-        responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
-        scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } }
-      }
-    });
-    }
-
-    // Abgänge-Diagramm (HR - Line)
-    const departuresCtx = document.getElementById('departuresChart');
-    if (departuresCtx) {
-      new Chart(departuresCtx.getContext('2d'), {
-        type: 'line',
-        data: {
-          labels: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
-          datasets: [{
-            label: 'Abgänge',
-            data: {{.monthlyDeparturesData}},
-        borderColor: globalChartColors.darkestGreen, // Sehr dunkles Grün (statt Gelb/Rot)
-        backgroundColor: `${globalChartColors.darkestGreen}33`,
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: globalChartColors.darkestGreen,
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointRadius: 5
-      }]
-    },
-      options: {
-        responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
-        scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } }
-      }
-    });
-    }
-
-    // Abwesenheiten über Zeit (HR - Line, Urlaub & Krankheit)
-    const absenceTimeCtx = document.getElementById('absenceTimeChart');
-    if (absenceTimeCtx) {
-      new Chart(absenceTimeCtx.getContext('2d'), {
-                type: 'line',
-                data: {
-                  labels: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
-                  datasets: [
-                    {
-                      label: 'Urlaub (Tage)',
-                      data: {{.absenceByMonthData}},
-                borderColor: globalChartColors.mediumGreen, // Mittleres Grün (statt Orange)
-                backgroundColor: `${globalChartColors.mediumGreen}33`,
-                fill: false,
-                tension: 0.4
-              },
-              {
-                label: 'Krankheit (Tage)',
-                data: {{.sicknessByMonthData}},
-      borderColor: globalChartColors.darkGreen, // Dunkelgrün (statt Rot)
-              backgroundColor: `${globalChartColors.darkGreen}33`,
-              fill: false,
-              tension: 0.4
-    }
-    ]
-    },
-      options: {
-        responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' }, tooltip: { mode: 'index', intersect: false } },
-        scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0, callback: function(value) { return value + ' Tage';} } } }
-      }
-    });
-    }
-
-    // Netto-Personalentwicklung (HR - Bar)
-    const netGrowthCtx = document.getElementById('netGrowthChart');
-    if (netGrowthCtx && typeof {{.monthlyHiresData}} !== 'undefined' && typeof {{.monthlyDeparturesData}} !== 'undefined') {
-      const netGrowthData = {{.monthlyHiresData}}.map((hires, index) => {
-        return hires - {{.monthlyDeparturesData}}[index];
-      });
-      new Chart(netGrowthCtx.getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
-          datasets: [{
-            label: 'Netto-Personalentwicklung',
-            data: netGrowthData,
-            backgroundColor: netGrowthData.map(value => value >= 0 ? globalChartColors.mediumGreen : globalChartColors.darkestGreen), // Hellgrün für positiv, Dunkelgrün für negativ
-            borderColor: netGrowthData.map(value => value >= 0 ? globalChartColors.mediumGreen : globalChartColors.darkestGreen),
-            borderWidth: 1,
-            borderRadius: { topLeft: 8, topRight: 8, bottomLeft: 0, bottomRight: 0 },
-            borderSkipped: 'bottom'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const value = context.parsed.y;
-                  return value >= 0 ? `+${value} Mitarbeiter` : `${value} Mitarbeiter`;
-                }
-              }
-            }
+              borderSkipped: 'bottom'
+            }]
           },
-          scales: {
-            x: { grid: { display: false } },
-            y: {
-              ticks: {
-                stepSize: 1,
-                precision: 0,
-                callback: function(value) {
-                  return value >= 0 ? `+${value}` : value;
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } },
+            plugins: { legend: { display: false } }
+          }
+        });
+      }
+    }
+
+    // Krankheitsverlauf (HR)
+    const hrSicknessCtx = document.getElementById('hrSicknessChart');
+    if (hrSicknessCtx) {
+      const monthLabels = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+      const sicknessData = {{.sicknessByMonthData}} || [];
+
+      if (sicknessData.length > 0) {
+        new Chart(hrSicknessCtx.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: monthLabels,
+            datasets: [{
+              label: 'Krankheitstage',
+              data: sicknessData,
+              borderColor: globalChartColors.darkGreen,
+              backgroundColor: `${globalChartColors.darkGreen}33`,
+              fill: true,
+              tension: 0.4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1,
+                  precision: 0,
+                  callback: function(value) {
+                    return value + ' Tage';
+                  }
                 }
               }
             }
           }
-        }
-      });
+        });
+      }
     }
+
     {{end}}
     // --- ENDE: Nur für HR Rolle ---
 
