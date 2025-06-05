@@ -193,6 +193,30 @@ func TemplateHelpers() template.FuncMap {
 				},
 			}
 		},
+		// NEU: contains Funktion hinzufügen
+		"contains": func(s, substr string) bool {
+			return strings.Contains(s, substr)
+		},
+		// NEU: hasPrefix Funktion hinzufügen
+		"hasPrefix": func(s, prefix string) bool {
+			return strings.HasPrefix(s, prefix)
+		},
+		// NEU: hasSuffix Funktion hinzufügen
+		"hasSuffix": func(s, suffix string) bool {
+			return strings.HasSuffix(s, suffix)
+		},
+		// NEU: trim Funktion hinzufügen
+		"trim": func(s, cutset string) string {
+			return strings.Trim(s, cutset)
+		},
+		// NEU: toLower Funktion hinzufügen
+		"toLower": func(s string) string {
+			return strings.ToLower(s)
+		},
+		// NEU: toUpper Funktion hinzufügen
+		"toUpper": func(s string) string {
+			return strings.ToUpper(s)
+		},
 	}
 }
 
