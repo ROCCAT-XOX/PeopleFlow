@@ -14,6 +14,7 @@ type Erfasst123Time struct {
 	TimeEnd   string              `json:"timeEnd"`
 	Activity  Erfasst123Activity  `json:"activity"`
 	WageType  *Erfasst123WageType `json:"wageType"`
+	Text      string              `json:"text"`
 
 	// Parsed dates for internal use
 	DateParsed      time.Time `json:"-"`

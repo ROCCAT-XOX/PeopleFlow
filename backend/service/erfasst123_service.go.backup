@@ -510,7 +510,7 @@ func (s *Erfasst123Service) parseTimeString(timeStr string, date time.Time, loca
 	return time.Time{}, fmt.Errorf("unbekanntes Zeitformat: %s", timeStr)
 }
 
-// GetTimeEntries - Korrigierte Version mit dem richtigen API-Format
+// GetTimeEntries ruft Zeiteinträge von 123erfasst ab
 func (s *Erfasst123Service) GetTimeEntries(startDate, endDate string) ([]model.Erfasst123Time, error) {
 	email, password, err := s.GetCredentials()
 	if err != nil {
@@ -521,24 +521,14 @@ func (s *Erfasst123Service) GetTimeEntries(startDate, endDate string) ([]model.E
 	auth := fmt.Sprintf("%s:%s", email, password)
 	encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
 
-	// Datum mit Zeitzone formatieren
-	startDateTime := fmt.Sprintf("%sT00:00:00Z", startDate)
-	endDateTime := fmt.Sprintf("%sT23:59:59Z", endDate)
-
-	fmt.Printf("Fetching time entries from %s to %s\n", startDateTime, endDateTime)
-
-	// GraphQL-Anfrage mit dem korrekten Format
+	// GraphQL-Anfrage für Zeiteinträge
 	query := fmt.Sprintf(`{
-		"query": "query GetStaffTimesWithActivityAndWage($filter: TimeCollectionFilter) { times(filter: $filter) { nodes { fid person { ident firstname lastname mail } project { id name } date timeStart timeEnd activity { ident name } wageType { ident name } text } totalCount } }",
+		"query": "query GetTimeEntries($dateFrom: Date!, $dateTo: Date!) { times(dateFrom: $dateFrom, dateTo: $dateTo) { nodes { date timeStart timeEnd duration person { ident firstname lastname mail } project { id name } activity { ident name } wageType { ident name } } totalCount } }",
 		"variables": {
-			"filter": {
-				"date": {
-					"_gte": "%s",
-					"_lte": "%s"
-				}
-			}
+			"dateFrom": "%s",
+			"dateTo": "%s"
 		}
-	}`, startDateTime, endDateTime)
+	}`, startDate, endDate)
 
 	// HTTP-Anfrage
 	client := &http.Client{
@@ -559,41 +549,25 @@ func (s *Erfasst123Service) GetTimeEntries(startDate, endDate string) ([]model.E
 	}
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("123erfasst API Fehler: %s - Response: %s", res.Status, string(body))
-	}
-
-	// Debug: Ausgabe der Response
-	fmt.Printf("API Response Status: %s\n", res.Status)
-	if len(body) > 200 {
-		fmt.Printf("Response (erste 200 Zeichen): %s...\n", string(body[:200]))
-	} else {
-		fmt.Printf("Response: %s\n", string(body))
+		body, _ := io.ReadAll(res.Body)
+		return nil, fmt.Errorf("123erfasst API Fehler: %s - %s", res.Status, string(body))
 	}
 
 	// Antwort parsen
 	var response model.Erfasst123TimeResponse
-	err = json.Unmarshal(body, &response)
-	if err != nil {
-		return nil, fmt.Errorf("fehler beim Parsen der Response: %v", err)
+	decoder := json.NewDecoder(res.Body)
+	if err := decoder.Decode(&response); err != nil {
+		return nil, err
 	}
 
-	fmt.Printf("Gefunden: %d Zeiteinträge (totalCount: %d)\n",
-		len(response.Data.Times.Nodes), response.Data.Times.TotalCount)
-
-	// Zeit- und Datumsparsierung für alle Einträge
-	//location := getGermanLocation()
 	validEntries := 0
 
+	// Zeit- und Datumsparsierung für alle Einträge
 	for i := range response.Data.Times.Nodes {
 		timeEntry := &response.Data.Times.Nodes[i]
 
-		// Verwende die parseTimeEntry Funktion
+		// Verwende die neue parseTimeEntry Funktion
 		if err := s.parseTimeEntry(timeEntry); err != nil {
 			fmt.Printf("Warnung beim Parsen des Zeiteintrags %d: %v\n", i, err)
 			continue
@@ -852,7 +826,7 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 
 	// Updates speichern
 	updateCount := 0
-	for _, employee := range updatedEmployees {
+	for empID, employee := range updatedEmployees {
 		// Debug: Anzahl Einträge vor Bereinigung
 		entriesBeforeCleaning := len(employee.TimeEntries)
 
@@ -898,6 +872,7 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 	return updateCount, nil
 }
 
+// cleanOldTimeEntries - Debug-Version mit erweiterten Logs
 func (s *Erfasst123Service) cleanOldTimeEntries(entries []model.TimeEntry, startDate, endDate time.Time) []model.TimeEntry {
 	var cleanedEntries []model.TimeEntry
 	removedCount := 0
@@ -906,12 +881,11 @@ func (s *Erfasst123Service) cleanOldTimeEntries(entries []model.TimeEntry, start
 	fmt.Printf("\n  Bereinige alte Einträge (Zeitraum: %s bis %s):\n",
 		startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
 
-	debugCount := 0
-	for _, entry := range entries {
+	for i, entry := range entries {
 		// Debug für erste 3 Einträge
-		if debugCount < 3 {
+		if i < 3 {
 			fmt.Printf("    Eintrag %d: Datum=%s, Source=%s, Projekt=%s\n",
-				debugCount+1, entry.Date.Format("2006-01-02"), entry.Source, entry.ProjectName)
+				i+1, entry.Date.Format("2006-01-02"), entry.Source, entry.ProjectName)
 		}
 
 		// Behalte Einträge die:
@@ -937,13 +911,12 @@ func (s *Erfasst123Service) cleanOldTimeEntries(entries []model.TimeEntry, start
 			removedCount++
 		}
 
-		if debugCount < 3 {
+		if i < 3 {
 			if shouldKeep {
 				fmt.Printf("      → Behalten: %s\n", reason)
 			} else {
 				fmt.Printf("      → Entfernen: %s\n", reason)
 			}
-			debugCount++
 		}
 
 		if shouldKeep {
@@ -957,6 +930,44 @@ func (s *Erfasst123Service) cleanOldTimeEntries(entries []model.TimeEntry, start
 	return cleanedEntries
 }
 
+// removeDuplicateTimeEntries - Debug-Version
+func (s *Erfasst123Service) removeDuplicateTimeEntries(entries []model.TimeEntry) []model.TimeEntry {
+	seen := make(map[string]bool)
+	var uniqueEntries []model.TimeEntry
+	duplicatesFound := 0
+
+	for i, entry := range entries {
+		// Eindeutigen Schlüssel für jeden Eintrag erstellen
+		key := fmt.Sprintf("%s_%s_%s_%s_%s",
+			entry.Date.Format("2006-01-02"),
+			entry.StartTime.UTC().Format("15:04:05"),
+			entry.EndTime.UTC().Format("15:04:05"),
+			entry.ProjectID,
+			entry.Source)
+
+		if !seen[key] {
+			seen[key] = true
+			uniqueEntries = append(uniqueEntries, entry)
+		} else {
+			duplicatesFound++
+			if duplicatesFound <= 3 {
+				fmt.Printf("  Duplikat gefunden: %s, %s-%s, Projekt: %s\n",
+					entry.Date.Format("2006-01-02"),
+					entry.StartTime.Format("15:04"),
+					entry.EndTime.Format("15:04"),
+					entry.ProjectName)
+			}
+		}
+	}
+
+	if duplicatesFound > 0 {
+		fmt.Printf("  Duplikate entfernt: %d\n", duplicatesFound)
+	}
+
+	return uniqueEntries
+}
+
+// removeDuplicateTimeEntries entfernt doppelte Zeiteinträge
 func (s *Erfasst123Service) removeDuplicateTimeEntries(entries []model.TimeEntry) []model.TimeEntry {
 	seen := make(map[string]bool)
 	var uniqueEntries []model.TimeEntry
