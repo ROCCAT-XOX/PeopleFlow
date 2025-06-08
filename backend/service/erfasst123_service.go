@@ -41,6 +41,20 @@ func getGermanLocation() *time.Location {
 	return location
 }
 
+// Helper-Funktion für sicheren Datumsvergleich
+func isSameDayLocal(t1, t2 time.Time) bool {
+	loc := getGermanLocation()
+
+	// Konvertiere beide Zeiten in die lokale Zeitzone
+	local1 := t1.In(loc)
+	local2 := t2.In(loc)
+
+	// Vergleiche Jahr, Monat und Tag
+	return local1.Year() == local2.Year() &&
+		local1.Month() == local2.Month() &&
+		local1.Day() == local2.Day()
+}
+
 // SaveCredentials speichert die 123erfasst Anmeldedaten und testet die Verbindung
 func (s *Erfasst123Service) SaveCredentials(email, password, syncStartDate string) error {
 	// Testen, ob die Anmeldedaten funktionieren
@@ -421,8 +435,10 @@ func (s *Erfasst123Service) parseTimeEntry(timeEntry *model.Erfasst123Time) erro
 		if err != nil {
 			return fmt.Errorf("fehler beim Parsen des Datums %s: %v", timeEntry.Date, err)
 		}
-		// Setze auf Mitternacht in der lokalen Zeitzone
-		timeEntry.DateParsed = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, location)
+
+		// WICHTIG: Setze das Datum auf 12:00 Uhr mittags statt Mitternacht
+		// Das vermeidet Zeitzonenprobleme beim Vergleich
+		timeEntry.DateParsed = time.Date(date.Year(), date.Month(), date.Day(), 12, 0, 0, 0, location)
 	}
 
 	// Startzeit parsen
@@ -449,7 +465,6 @@ func (s *Erfasst123Service) parseTimeEntry(timeEntry *model.Erfasst123Time) erro
 
 		// Wenn Endzeit vor Startzeit liegt, haben wir einen Tagesüberlauf
 		if timeEntry.Duration < 0 {
-			// Füge 24 Stunden hinzu (Arbeit über Mitternacht)
 			timeEntry.TimeEndParsed = timeEntry.TimeEndParsed.AddDate(0, 0, 1)
 			timeEntry.Duration = timeEntry.TimeEndParsed.Sub(timeEntry.TimeStartParsed).Hours()
 		}
@@ -460,52 +475,81 @@ func (s *Erfasst123Service) parseTimeEntry(timeEntry *model.Erfasst123Time) erro
 
 // parseTimeString parst einen Zeitstring und kombiniert ihn mit dem Datum
 func (s *Erfasst123Service) parseTimeString(timeStr string, date time.Time, location *time.Location) (time.Time, error) {
-	// Verschiedene Zeitformate ausprobieren
-	formats := []string{
-		"15:04:05",
-		"15:04",
-		"2006-01-02T15:04:05",
-		"2006-01-02T15:04:05Z07:00",
-	}
+	// WICHTIG: Wenn der Zeitstring ein Datum enthält (Format mit 'T'),
+	// verwende NUR die Zeitkomponente und kombiniere sie mit dem übergebenen Datum
 
-	// Zuerst versuchen, die Zeit direkt zu parsen
-	for _, format := range formats {
-		if parsedTime, err := time.ParseInLocation(format, timeStr, location); err == nil {
-			// Wenn nur Zeit geparst wurde, mit Datum kombinieren
-			if parsedTime.Year() == 0 || parsedTime.Year() == 1 {
+	if strings.Contains(timeStr, "T") {
+		// Trenne Datum und Zeit
+		parts := strings.Split(timeStr, "T")
+		if len(parts) == 2 {
+			// Prüfe ob das Datum im Zeitstring mit dem übergebenen Datum übereinstimmt
+			datePart := parts[0]
+			timePart := parts[1]
+
+			// Parse das Datum aus dem Zeitstring
+			timeStringDate, err := time.Parse("2006-01-02", datePart)
+			if err == nil {
+				// Vergleiche nur Jahr, Monat und Tag
+				if timeStringDate.Year() != date.Year() ||
+					timeStringDate.Month() != date.Month() ||
+					timeStringDate.Day() != date.Day() {
+					// WARNUNG: Das Datum im Zeitstring stimmt nicht mit dem übergebenen Datum überein!
+					fmt.Printf("WARNUNG: Datum im Zeitstring (%s) stimmt nicht mit erwartetem Datum (%s) überein!\n",
+						datePart, date.Format("2006-01-02"))
+				}
+			}
+
+			// Extrahiere nur die Zeitkomponente
+			timeOnly := timePart
+
+			// Entferne Zeitzone-Informationen
+			if idx := strings.IndexAny(timeOnly, "Z+-"); idx >= 0 {
+				timeOnly = timeOnly[:idx]
+			}
+
+			// Parse die Zeit
+			timeParts := strings.Split(timeOnly, ":")
+			if len(timeParts) >= 2 {
+				hour, err := strconv.Atoi(timeParts[0])
+				if err != nil {
+					return time.Time{}, fmt.Errorf("ungültige Stunde: %s", timeParts[0])
+				}
+
+				minute, err := strconv.Atoi(timeParts[1])
+				if err != nil {
+					return time.Time{}, fmt.Errorf("ungültige Minute: %s", timeParts[1])
+				}
+
+				second := 0
+				if len(timeParts) >= 3 {
+					second, _ = strconv.Atoi(timeParts[2])
+				}
+
+				// WICHTIG: Verwende IMMER das übergebene Datum, nicht das aus dem String!
 				return time.Date(
 					date.Year(), date.Month(), date.Day(),
-					parsedTime.Hour(), parsedTime.Minute(), parsedTime.Second(), 0,
+					hour, minute, second, 0,
 					location,
 				), nil
 			}
-			return parsedTime, nil
 		}
 	}
 
-	// Manuelles Parsen für HH:MM(:SS) Format
-	parts := strings.Split(timeStr, ":")
-	if len(parts) >= 2 {
-		hour, err := strconv.Atoi(parts[0])
-		if err != nil {
-			return time.Time{}, fmt.Errorf("ungültige Stunde: %s", parts[0])
-		}
+	// Für einfache Zeitformate (HH:MM oder HH:MM:SS)
+	formats := []string{
+		"15:04:05",
+		"15:04",
+	}
 
-		minute, err := strconv.Atoi(parts[1])
-		if err != nil {
-			return time.Time{}, fmt.Errorf("ungültige Minute: %s", parts[1])
+	for _, format := range formats {
+		if parsedTime, err := time.ParseInLocation(format, timeStr, location); err == nil {
+			// Kombiniere mit dem übergebenen Datum
+			return time.Date(
+				date.Year(), date.Month(), date.Day(),
+				parsedTime.Hour(), parsedTime.Minute(), parsedTime.Second(), 0,
+				location,
+			), nil
 		}
-
-		second := 0
-		if len(parts) >= 3 {
-			second, _ = strconv.Atoi(parts[2])
-		}
-
-		return time.Date(
-			date.Year(), date.Month(), date.Day(),
-			hour, minute, second, 0,
-			location,
-		), nil
 	}
 
 	return time.Time{}, fmt.Errorf("unbekanntes Zeitformat: %s", timeStr)
@@ -604,8 +648,17 @@ func (s *Erfasst123Service) GetTimeEntries(startDate, endDate string) ([]model.E
 		return nil, fmt.Errorf("fehler beim Parsen der Response: %v", err)
 	}
 
+	// In GetTimeEntries nach dem Parsen der Response:
 	fmt.Printf("Gefunden: %d Zeiteinträge (totalCount: %d)\n",
 		len(response.Data.Times.Nodes), response.Data.Times.TotalCount)
+
+	// Debug: Zeige die ersten paar Einträge
+	for i, entry := range response.Data.Times.Nodes {
+		if i < 5 {
+			fmt.Printf("Entry %d: Date=%s, TimeStart=%s, TimeEnd=%s, Activity=%s\n",
+				i, entry.Date, entry.TimeStart, entry.TimeEnd, entry.Activity.Name)
+		}
+	}
 
 	// Zeit- und Datumsparsierung für alle Einträge
 	//location := getGermanLocation()
@@ -699,16 +752,23 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 
 	fmt.Printf("Abgerufene Zeiteinträge: %d\n", len(timeEntries))
 
-	// Parse dates für Filterung
-	startDateParsed, err := time.Parse("2006-01-02", startDate)
+	// Parse dates für Filterung - WICHTIG: Mit deutscher Zeitzone parsen
+	location := getGermanLocation()
+	startDateParsed, err := time.ParseInLocation("2006-01-02", startDate, location)
 	if err != nil {
 		return 0, fmt.Errorf("ungültiges Startdatum: %v", err)
 	}
+	// Setze auf 00:00 Uhr für Vergleich
+	startDateParsed = time.Date(startDateParsed.Year(), startDateParsed.Month(), startDateParsed.Day(),
+		0, 0, 0, 0, location)
 
-	endDateParsed, err := time.Parse("2006-01-02", endDate)
+	endDateParsed, err := time.ParseInLocation("2006-01-02", endDate, location)
 	if err != nil {
 		return 0, fmt.Errorf("ungültiges Enddatum: %v", err)
 	}
+	// Setze auf 23:59:59 Uhr für Vergleich
+	endDateParsed = time.Date(endDateParsed.Year(), endDateParsed.Month(), endDateParsed.Day(),
+		23, 59, 59, 999999999, location)
 
 	// Repository für Mitarbeiter initialisieren
 	employeeRepo := repository.NewEmployeeRepository()
@@ -721,18 +781,7 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 
 	fmt.Printf("\nGeladene Mitarbeiter aus der Datenbank: %d\n", len(allEmployees))
 
-	// Debug: Mitarbeiter mit 123erfasst IDs ausgeben
-	erfasst123Count := 0
-	for _, emp := range allEmployees {
-		if emp.Erfasst123ID != "" {
-			erfasst123Count++
-			fmt.Printf("  Mitarbeiter mit 123erfasst ID: %s %s (ID: %s, Email: %s)\n",
-				emp.FirstName, emp.LastName, emp.Erfasst123ID, emp.Email)
-		}
-	}
-	fmt.Printf("Mitarbeiter mit 123erfasst ID: %d\n", erfasst123Count)
-
-	// Mitarbeiter-Maps erstellen
+	// Mitarbeiter-Maps erstellen für schnellen Zugriff
 	employeeMap := make(map[string]*model.Employee)
 	employeeByErfasst123ID := make(map[string]*model.Employee)
 
@@ -745,53 +794,52 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 		}
 	}
 
-	// Tracking für Updates
-	updatedEmployees := make(map[string]*model.Employee)
+	// Map für zu aktualisierende Mitarbeiter
+	employeeTimeEntries := make(map[string][]model.TimeEntry)
 	notFoundEmployees := make(map[string]bool)
 
 	fmt.Printf("\n=== VERARBEITUNG DER ZEITEINTRÄGE ===\n")
 
-	// Zeiteinträge verarbeiten
+	// Zeiteinträge nach Mitarbeiter gruppieren
 	for idx, timeEntry := range timeEntries {
 		// Debug für ersten Eintrag
 		if idx == 0 {
-			fmt.Printf("\nVerarbeite ersten Zeiteintrag im Detail:\n")
+			fmt.Printf("\nErster Zeiteintrag im Detail:\n")
 			fmt.Printf("  Person: %s %s\n", timeEntry.Person.Firstname, timeEntry.Person.Lastname)
-			fmt.Printf("  123erfasst ID: %s\n", timeEntry.Person.Ident)
-			fmt.Printf("  Email: %s\n", timeEntry.Person.Mail)
-			fmt.Printf("  Datum: %s\n", timeEntry.Date)
-			fmt.Printf("  Zeit: %s - %s\n", timeEntry.TimeStart, timeEntry.TimeEnd)
-			fmt.Printf("  DateParsed: %v\n", timeEntry.DateParsed)
-			fmt.Printf("  TimeStartParsed: %v\n", timeEntry.TimeStartParsed)
-			fmt.Printf("  TimeEndParsed: %v\n", timeEntry.TimeEndParsed)
+			fmt.Printf("  Datum aus API: %s\n", timeEntry.Date)
+			fmt.Printf("  Zeit aus API: %s - %s\n", timeEntry.TimeStart, timeEntry.TimeEnd)
+			fmt.Printf("  DateParsed: %v (Local: %v)\n",
+				timeEntry.DateParsed,
+				timeEntry.DateParsed.In(location).Format("2006-01-02"))
 		}
 
-		// Validierung
+		// Validierung der geparsten Daten
 		if timeEntry.DateParsed.IsZero() || timeEntry.TimeStartParsed.IsZero() || timeEntry.TimeEndParsed.IsZero() {
-			fmt.Printf("WARNUNG: Überspringe ungültigen Zeiteintrag für %s %s (Datum: %v, Start: %v, Ende: %v)\n",
-				timeEntry.Person.Firstname, timeEntry.Person.Lastname,
-				timeEntry.DateParsed.IsZero(), timeEntry.TimeStartParsed.IsZero(), timeEntry.TimeEndParsed.IsZero())
+			fmt.Printf("WARNUNG: Überspringe ungültigen Zeiteintrag für %s %s am %s\n",
+				timeEntry.Person.Firstname, timeEntry.Person.Lastname, timeEntry.Date)
 			continue
 		}
 
-		// Mitarbeiter suchen - erst über 123erfasst ID, dann über Email
+		// Zusätzliche Validierung: Datum muss im Sync-Zeitraum liegen (mit lokalem Vergleich)
+		entryDateLocal := timeEntry.DateParsed.In(location)
+		if entryDateLocal.Before(startDateParsed) || entryDateLocal.After(endDateParsed) {
+			fmt.Printf("WARNUNG: Zeiteintrag am %s liegt außerhalb des Sync-Zeitraums\n",
+				entryDateLocal.Format("2006-01-02"))
+			continue
+		}
+
+		// Mitarbeiter suchen
 		var employee *model.Employee
 
 		// Methode 1: Über 123erfasst ID
 		if timeEntry.Person.Ident != "" {
 			employee = employeeByErfasst123ID[timeEntry.Person.Ident]
-			if employee != nil && idx < 10 {
-				fmt.Printf("✓ Gefunden via 123erfasst ID: %s %s\n", employee.FirstName, employee.LastName)
-			}
 		}
 
 		// Methode 2: Über Email
 		if employee == nil && timeEntry.Person.Mail != "" {
 			emailKey := strings.ToLower(strings.TrimSpace(timeEntry.Person.Mail))
 			employee = employeeMap[emailKey]
-			if employee != nil && idx < 10 {
-				fmt.Printf("✓ Gefunden via Email: %s %s\n", employee.FirstName, employee.LastName)
-			}
 		}
 
 		// Nicht gefunden
@@ -824,82 +872,99 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 			newTimeEntry.WageType = timeEntry.WageType.Name
 		}
 
-		// Zeiteintrag hinzufügen
-		if updatedEmployees[employee.ID.Hex()] == nil {
-			// Erstmalig: Employee kopieren
-			empCopy := *employee
-			updatedEmployees[employee.ID.Hex()] = &empCopy
-		}
-		updatedEmployees[employee.ID.Hex()].TimeEntries = append(
-			updatedEmployees[employee.ID.Hex()].TimeEntries,
-			newTimeEntry,
-		)
+		// Zeiteintrag zur Map hinzufügen
+		employeeID := employee.ID.Hex()
+		employeeTimeEntries[employeeID] = append(employeeTimeEntries[employeeID], newTimeEntry)
 	}
 
 	fmt.Printf("\n=== BEREINIGUNG UND SPEICHERUNG ===\n")
-	fmt.Printf("Mitarbeiter mit neuen Zeiteinträgen: %d\n", len(updatedEmployees))
+	fmt.Printf("Mitarbeiter mit neuen Zeiteinträgen: %d\n", len(employeeTimeEntries))
 
-	// Updates speichern
+	// Updates durchführen
 	updateCount := 0
-	for _, employee := range updatedEmployees {
-		// WICHTIG: Mitarbeiter aus DB neu laden für sauberen Stand
-		dbEmployee, err := employeeRepo.FindByID(employee.ID.Hex())
+	for employeeID, newEntries := range employeeTimeEntries {
+		// Mitarbeiter aus DB neu laden für sauberen Stand
+		dbEmployee, err := employeeRepo.FindByID(employeeID)
 		if err != nil {
-			fmt.Printf("✗ Fehler beim Abrufen von %s %s: %v\n",
-				employee.FirstName, employee.LastName, err)
+			fmt.Printf("✗ Fehler beim Abrufen von Mitarbeiter %s: %v\n", employeeID, err)
 			continue
 		}
 
-		// Schritt 1: Alle NICHT-123erfasst Einträge behalten
+		// Schritt 1: Bestehende Einträge filtern mit lokaler Zeitzone
 		var keptEntries []model.TimeEntry
-		for _, entry := range dbEmployee.TimeEntries {
-			if entry.Source != "123erfasst" {
-				keptEntries = append(keptEntries, entry)
-			}
-		}
+		removedCount := 0
 
-		// Schritt 2: Alle 123erfasst-Einträge außerhalb des Sync-Zeitraums behalten
 		for _, entry := range dbEmployee.TimeEntries {
-			if entry.Source == "123erfasst" &&
-				(entry.Date.Before(startDateParsed) || entry.Date.After(endDateParsed)) {
-				keptEntries = append(keptEntries, entry)
-			}
-		}
+			shouldKeep := true
 
-		// Schritt 3: Neue Einträge aus der aktuellen Synchronisation sammeln
-		var newEntries []model.TimeEntry
-		for _, entry := range employee.TimeEntries {
-			// Nur Einträge im Sync-Zeitraum
-			if !entry.Date.Before(startDateParsed) && !entry.Date.After(endDateParsed) {
-				newEntries = append(newEntries, entry)
+			if entry.Source == "123erfasst" {
+				// Verwende lokalen Datumsvergleich
+				entryDateLocal := entry.Date.In(location)
+
+				// Debug für problematische Daten
+				if entryDateLocal.Format("2006-01-02") == "2025-06-05" ||
+					entryDateLocal.Format("2006-01-02") == "2025-06-06" {
+					fmt.Printf("  Debug: Prüfe Eintrag am %s (UTC: %s, Source: %s)\n",
+						entryDateLocal.Format("2006-01-02 15:04"),
+						entry.Date.UTC().Format("2006-01-02 15:04"),
+						entry.Source)
+				}
+
+				// Prüfe ob der Eintrag im Sync-Zeitraum liegt (lokaler Vergleich)
+				if !entryDateLocal.Before(startDateParsed) && !entryDateLocal.After(endDateParsed) {
+					shouldKeep = false
+					removedCount++
+					fmt.Printf("  → Entferne 123erfasst-Eintrag vom %s\n",
+						entryDateLocal.Format("2006-01-02"))
+				}
+			}
+
+			if shouldKeep {
+				keptEntries = append(keptEntries, entry)
 			}
 		}
 
 		// Debug-Ausgabe
 		fmt.Printf("\nMitarbeiter %s %s:\n", dbEmployee.FirstName, dbEmployee.LastName)
-		fmt.Printf("  Einträge in DB gesamt: %d\n", len(dbEmployee.TimeEntries))
-		fmt.Printf("  Davon 123erfasst im Sync-Zeitraum: %d\n",
-			len(dbEmployee.TimeEntries)-len(keptEntries))
-		fmt.Printf("  Neue 123erfasst-Einträge: %d\n", len(newEntries))
+		fmt.Printf("  Einträge vorher: %d\n", len(dbEmployee.TimeEntries))
+		fmt.Printf("  Davon entfernt (123erfasst im Sync-Zeitraum): %d\n", removedCount)
+		fmt.Printf("  Neue Einträge von 123erfasst: %d\n", len(newEntries))
 
-		// Schritt 4: Kombiniere alte (gefilterte) und neue Einträge
+		// Schritt 2: Neue Einträge hinzufügen
 		dbEmployee.TimeEntries = append(keptEntries, newEntries...)
 
-		// Schritt 5: Duplikate entfernen (mit korrigierter Funktion)
-		dbEmployee.TimeEntries = s.removeDuplicateTimeEntries(dbEmployee.TimeEntries)
+		// Schritt 3: Nach Datum sortieren
+		sort.Slice(dbEmployee.TimeEntries, func(i, j int) bool {
+			// Verwende lokale Zeit für Sortierung
+			date1 := dbEmployee.TimeEntries[i].Date.In(location)
+			date2 := dbEmployee.TimeEntries[j].Date.In(location)
 
-		fmt.Printf("  Gesamt nach Deduplizierung: %d\n", len(dbEmployee.TimeEntries))
+			if isSameDayLocal(date1, date2) {
+				return dbEmployee.TimeEntries[i].StartTime.Before(dbEmployee.TimeEntries[j].StartTime)
+			}
+			return date1.Before(date2)
+		})
 
-		// Berechne Gesamtstunden für Debug
-		var totalHours float64
+		// Schritt 4: Validierung - Prüfe auf potenzielle Probleme
+		dateEntryCount := make(map[string]int)
+		dateHoursCount := make(map[string]float64)
+
 		for _, entry := range dbEmployee.TimeEntries {
-			if entry.Date.Format("2006-01-02") == "2025-06-05" {
-				totalHours += entry.Duration
+			// Verwende lokales Datum für Gruppierung
+			dateKey := entry.Date.In(location).Format("2006-01-02")
+			dateEntryCount[dateKey]++
+			dateHoursCount[dateKey] += entry.Duration
+		}
+
+		// Debug-Ausgabe für spezifische Tage
+		for _, checkDate := range []string{"2025-06-05", "2025-06-06"} {
+			if count, exists := dateEntryCount[checkDate]; exists {
+				fmt.Printf("  %s: %d Einträge, %.2f Stunden total\n",
+					checkDate, count, dateHoursCount[checkDate])
 			}
 		}
-		if totalHours > 0 {
-			fmt.Printf("  Stunden am 05.06.2025: %.2f\n", totalHours)
-		}
+
+		fmt.Printf("  Einträge nachher: %d\n", len(dbEmployee.TimeEntries))
 
 		dbEmployee.UpdatedAt = time.Now()
 
@@ -986,35 +1051,61 @@ func (s *Erfasst123Service) cleanOldTimeEntries(entries []model.TimeEntry, start
 }
 
 func (s *Erfasst123Service) removeDuplicateTimeEntries(entries []model.TimeEntry) []model.TimeEntry {
-	seen := make(map[string]bool)
-	var uniqueEntries []model.TimeEntry
+	// Erst nach Datum und Startzeit sortieren
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].Date.Equal(entries[j].Date) {
+			return entries[i].StartTime.Before(entries[j].StartTime)
+		}
+		return entries[i].Date.Before(entries[j].Date)
+	})
+
+	var cleanedEntries []model.TimeEntry
 
 	for _, entry := range entries {
-		// Erweiterten Schlüssel mit mehr Details erstellen
-		key := fmt.Sprintf("%s_%s_%s_%s_%s_%s_%s",
-			entry.Date.Format("2006-01-02"),
-			entry.StartTime.UTC().Format("15:04:05"),
-			entry.EndTime.UTC().Format("15:04:05"),
-			entry.ProjectID,
-			entry.Activity,
-			entry.Description, // NEU: Description auch in den Schlüssel aufnehmen
-			entry.Source)
+		overlap := false
 
-		if !seen[key] {
-			seen[key] = true
-			uniqueEntries = append(uniqueEntries, entry)
+		// Prüfe auf Überlappungen mit bereits akzeptierten Einträgen
+		for _, accepted := range cleanedEntries {
+			// Nur am gleichen Tag prüfen
+			if !isSameDay(entry.Date, accepted.Date) {
+				continue
+			}
+
+			// Prüfe auf zeitliche Überlappung
+			if timeOverlaps(entry.StartTime, entry.EndTime, accepted.StartTime, accepted.EndTime) {
+				fmt.Printf("WARNUNG: Überlappung gefunden: %s %s-%s überschneidet sich mit %s-%s\n",
+					entry.Date.Format("2006-01-02"),
+					entry.StartTime.Format("15:04"),
+					entry.EndTime.Format("15:04"),
+					accepted.StartTime.Format("15:04"),
+					accepted.EndTime.Format("15:04"))
+				overlap = true
+				break
+			}
+		}
+
+		if !overlap {
+			cleanedEntries = append(cleanedEntries, entry)
 		}
 	}
 
-	// Nach Datum und Startzeit sortieren
-	sort.Slice(uniqueEntries, func(i, j int) bool {
-		if uniqueEntries[i].Date.Equal(uniqueEntries[j].Date) {
-			return uniqueEntries[i].StartTime.Before(uniqueEntries[j].StartTime)
-		}
-		return uniqueEntries[i].Date.Before(uniqueEntries[j].Date)
-	})
+	return cleanedEntries
+}
 
-	return uniqueEntries
+// Hilfsfunktion zur Prüfung von Zeitüberlappungen
+func timeOverlaps(start1, end1, start2, end2 time.Time) bool {
+	// Konvertiere zu UTC für korrekten Vergleich
+	s1, e1 := start1.UTC(), end1.UTC()
+	s2, e2 := start2.UTC(), end2.UTC()
+
+	// Überlappung wenn:
+	// Start1 liegt zwischen Start2 und End2 ODER
+	// End1 liegt zwischen Start2 und End2 ODER
+	// Start1-End1 umschließt Start2-End2 komplett
+	return (s1.After(s2) && s1.Before(e2)) ||
+		(e1.After(s2) && e1.Before(e2)) ||
+		(s1.Before(s2) && e1.After(e2)) ||
+		s1.Equal(s2) || e1.Equal(e2)
 }
 
 // GetProjects ruft Projekte von 123erfasst ab
