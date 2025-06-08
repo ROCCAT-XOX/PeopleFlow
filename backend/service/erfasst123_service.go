@@ -1031,14 +1031,6 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 			dateHoursCount[dateKey] += entry.Duration
 		}
 
-		// Debug-Ausgabe für spezifische Tage
-		for _, checkDate := range []string{"2025-06-05", "2025-06-06"} {
-			if count, exists := dateEntryCount[checkDate]; exists {
-				fmt.Printf("  %s: %d Einträge, %.2f Stunden total\n",
-					checkDate, count, dateHoursCount[checkDate])
-			}
-		}
-
 		fmt.Printf("  Einträge nachher: %d\n", len(dbEmployee.TimeEntries))
 
 		dbEmployee.UpdatedAt = time.Now()

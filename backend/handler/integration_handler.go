@@ -338,15 +338,28 @@ func (h *IntegrationHandler) SyncErfasst123TimeEntries(c *gin.Context) {
 		return
 	}
 
-	// Get date range from request, default to current month
-	now := time.Now()
-	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
-	startDate := c.DefaultQuery("startDate", startOfMonth.Format("2006-01-02"))
+	// HIER DIE ÄNDERUNG: Prüfe ob startDate übergeben wurde
+	startDate := c.DefaultQuery("startDate", "")
 
-	// End date defaults to one month from start date
-	endDateDefault := startOfMonth.AddDate(0, 1, -1).Format("2006-01-02")
-	endDate := c.DefaultQuery("endDate", endDateDefault)
+	// NEUE ZEILEN: Wenn kein startDate übergeben wurde, hole es aus den Einstellungen
+	if startDate == "" {
+		savedStartDate, err := h.erfasst123Service.GetSyncStartDate()
+		if err != nil {
+			// Fallback auf Beginn des aktuellen Jahres
+			startDate = time.Date(time.Now().Year(), 1, 1, 0, 0, 0, 0, time.UTC).Format("2006-01-02")
+		} else {
+			startDate = savedStartDate
+		}
+		fmt.Printf("Verwende gespeichertes Startdatum: %s\n", startDate)
+	}
 
+	// ÄNDERUNG: EndDate auch prüfen
+	endDate := c.DefaultQuery("endDate", "")
+	if endDate == "" {
+		endDate = time.Now().Format("2006-01-02")
+	}
+
+	// Rest der Funktion bleibt UNVERÄNDERT
 	// Perform synchronization
 	updatedCount, err := h.erfasst123Service.SyncErfasst123TimeEntries(startDate, endDate)
 	if err != nil {
