@@ -739,6 +739,72 @@ func (s *Erfasst123Service) cleanupTimeEntriesForDateRange(employee *model.Emplo
 	return cleanedEntries
 }
 
+// Neue Funktion die Duplikate UND Überlappungen entfernt
+func (s *Erfasst123Service) removeDuplicateAndOverlappingEntries(entries []model.TimeEntry) []model.TimeEntry {
+	// Erst nach Datum und Startzeit sortieren
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].Date.Equal(entries[j].Date) {
+			return entries[i].StartTime.Before(entries[j].StartTime)
+		}
+		return entries[i].Date.Before(entries[j].Date)
+	})
+
+	var cleanedEntries []model.TimeEntry
+	duplicatesRemoved := 0
+	overlapsRemoved := 0
+
+	for _, entry := range entries {
+		isDuplicate := false
+		hasOverlap := false
+
+		// Prüfe auf exakte Duplikate und Überlappungen
+		for _, accepted := range cleanedEntries {
+			// Nur am gleichen Tag prüfen
+			if !isSameDay(entry.Date, accepted.Date) {
+				continue
+			}
+
+			// Prüfe auf exaktes Duplikat
+			if entry.StartTime.Equal(accepted.StartTime) &&
+				entry.EndTime.Equal(accepted.EndTime) &&
+				entry.Activity == accepted.Activity {
+				isDuplicate = true
+				duplicatesRemoved++
+				fmt.Printf("    → Duplikat entfernt: %s von %s bis %s\n",
+					entry.Activity,
+					entry.StartTime.Format("15:04"),
+					entry.EndTime.Format("15:04"))
+				break
+			}
+
+			// Prüfe auf zeitliche Überlappung
+			if timeOverlaps(entry.StartTime, entry.EndTime, accepted.StartTime, accepted.EndTime) {
+				hasOverlap = true
+				overlapsRemoved++
+				fmt.Printf("    → Überlappung entfernt: %s (%s-%s) überlappt mit %s (%s-%s)\n",
+					entry.Activity,
+					entry.StartTime.Format("15:04"),
+					entry.EndTime.Format("15:04"),
+					accepted.Activity,
+					accepted.StartTime.Format("15:04"),
+					accepted.EndTime.Format("15:04"))
+				break
+			}
+		}
+
+		if !isDuplicate && !hasOverlap {
+			cleanedEntries = append(cleanedEntries, entry)
+		}
+	}
+
+	if duplicatesRemoved > 0 || overlapsRemoved > 0 {
+		fmt.Printf("    Bereinigung: %d Duplikate und %d Überlappungen entfernt\n",
+			duplicatesRemoved, overlapsRemoved)
+	}
+
+	return cleanedEntries
+}
+
 // SyncErfasst123TimeEntries synchronisiert Zeiteinträge von 123erfasst
 func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string) (int, error) {
 	fmt.Printf("\n=== START SYNC 123ERFASST ZEITEINTRÄGE ===\n")
@@ -758,7 +824,6 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 	if err != nil {
 		return 0, fmt.Errorf("ungültiges Startdatum: %v", err)
 	}
-	// Setze auf 00:00 Uhr für Vergleich
 	startDateParsed = time.Date(startDateParsed.Year(), startDateParsed.Month(), startDateParsed.Day(),
 		0, 0, 0, 0, location)
 
@@ -766,7 +831,6 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 	if err != nil {
 		return 0, fmt.Errorf("ungültiges Enddatum: %v", err)
 	}
-	// Setze auf 23:59:59 Uhr für Vergleich
 	endDateParsed = time.Date(endDateParsed.Year(), endDateParsed.Month(), endDateParsed.Day(),
 		23, 59, 59, 999999999, location)
 
@@ -800,6 +864,9 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 
 	fmt.Printf("\n=== VERARBEITUNG DER ZEITEINTRÄGE ===\n")
 
+	// WICHTIG: Prüfe auf Duplikate schon beim Sammeln der Einträge
+	duplicateCheck := make(map[string]bool)
+
 	// Zeiteinträge nach Mitarbeiter gruppieren
 	for idx, timeEntry := range timeEntries {
 		// Debug für ersten Eintrag
@@ -820,13 +887,31 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 			continue
 		}
 
-		// Zusätzliche Validierung: Datum muss im Sync-Zeitraum liegen (mit lokalem Vergleich)
+		// Zusätzliche Validierung: Datum muss im Sync-Zeitraum liegen
 		entryDateLocal := timeEntry.DateParsed.In(location)
 		if entryDateLocal.Before(startDateParsed) || entryDateLocal.After(endDateParsed) {
 			fmt.Printf("WARNUNG: Zeiteintrag am %s liegt außerhalb des Sync-Zeitraums\n",
 				entryDateLocal.Format("2006-01-02"))
 			continue
 		}
+
+		// Erstelle einen eindeutigen Schlüssel für Duplikaterkennung
+		duplicateKey := fmt.Sprintf("%s_%s_%s_%s_%s",
+			timeEntry.Person.Ident,
+			timeEntry.DateParsed.Format("2006-01-02"),
+			timeEntry.TimeStartParsed.Format("15:04"),
+			timeEntry.TimeEndParsed.Format("15:04"),
+			timeEntry.Activity.Name)
+
+		if duplicateCheck[duplicateKey] {
+			fmt.Printf("WARNUNG: Duplikat erkannt und übersprungen: %s am %s von %s bis %s\n",
+				timeEntry.Activity.Name,
+				timeEntry.DateParsed.Format("2006-01-02"),
+				timeEntry.TimeStartParsed.Format("15:04"),
+				timeEntry.TimeEndParsed.Format("15:04"))
+			continue
+		}
+		duplicateCheck[duplicateKey] = true
 
 		// Mitarbeiter suchen
 		var employee *model.Employee
@@ -890,7 +975,7 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 			continue
 		}
 
-		// Schritt 1: Bestehende Einträge filtern mit lokaler Zeitzone
+		// Schritt 1: Bestehende Einträge filtern
 		var keptEntries []model.TimeEntry
 		removedCount := 0
 
@@ -898,19 +983,8 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 			shouldKeep := true
 
 			if entry.Source == "123erfasst" {
-				// Verwende lokalen Datumsvergleich
 				entryDateLocal := entry.Date.In(location)
 
-				// Debug für problematische Daten
-				if entryDateLocal.Format("2006-01-02") == "2025-06-05" ||
-					entryDateLocal.Format("2006-01-02") == "2025-06-06" {
-					fmt.Printf("  Debug: Prüfe Eintrag am %s (UTC: %s, Source: %s)\n",
-						entryDateLocal.Format("2006-01-02 15:04"),
-						entry.Date.UTC().Format("2006-01-02 15:04"),
-						entry.Source)
-				}
-
-				// Prüfe ob der Eintrag im Sync-Zeitraum liegt (lokaler Vergleich)
 				if !entryDateLocal.Before(startDateParsed) && !entryDateLocal.After(endDateParsed) {
 					shouldKeep = false
 					removedCount++
@@ -933,9 +1007,11 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 		// Schritt 2: Neue Einträge hinzufügen
 		dbEmployee.TimeEntries = append(keptEntries, newEntries...)
 
+		// WICHTIG: Duplikate und Überlappungen entfernen
+		dbEmployee.TimeEntries = s.removeDuplicateAndOverlappingEntries(dbEmployee.TimeEntries)
+
 		// Schritt 3: Nach Datum sortieren
 		sort.Slice(dbEmployee.TimeEntries, func(i, j int) bool {
-			// Verwende lokale Zeit für Sortierung
 			date1 := dbEmployee.TimeEntries[i].Date.In(location)
 			date2 := dbEmployee.TimeEntries[j].Date.In(location)
 
@@ -950,7 +1026,6 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 		dateHoursCount := make(map[string]float64)
 
 		for _, entry := range dbEmployee.TimeEntries {
-			// Verwende lokales Datum für Gruppierung
 			dateKey := entry.Date.In(location).Format("2006-01-02")
 			dateEntryCount[dateKey]++
 			dateHoursCount[dateKey] += entry.Duration
