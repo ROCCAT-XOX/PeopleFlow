@@ -317,6 +317,21 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 	// Hilfsfunktion für das aktuelle Datum
 	now := time.Now()
 
+	// Helper-Funktionen für Zeitzone-Konvertierung
+	location, _ := time.LoadLocation("Europe/Berlin")
+
+	formatTimeInLocalZone := func(t time.Time) string {
+		return t.In(location).Format("15:04")
+	}
+
+	formatDateInLocalZone := func(t time.Time) string {
+		return t.In(location).Format("02.01.2006")
+	}
+
+	formatDateTimeInLocalZone := func(t time.Time) string {
+		return t.In(location).Format("02.01.2006 15:04")
+	}
+
 	// Calculate used and remaining vacation days for the current year
 	var usedVacationDays float64 = 0
 	currentYear := time.Now().Year()
@@ -350,7 +365,13 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 	if len(employee.TimeEntries) > 0 {
 		// Make a copy to avoid modifying the original
 		timeEntries = make([]model.TimeEntry, len(employee.TimeEntries))
-		copy(timeEntries, employee.TimeEntries)
+
+		// WICHTIG: Konvertiere die Zeiten beim Kopieren
+		for i, entry := range employee.TimeEntries {
+			timeEntries[i] = entry
+			// Die Zeiten sind bereits in der richtigen Zeitzone in der DB
+			// Wir müssen sie nur für die Anzeige vorbereiten
+		}
 
 		// Sort time entries by date (newest first)
 		sort.Slice(timeEntries, func(i, j int) bool {
@@ -395,29 +416,32 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 
 	// Daten an das Template übergeben
 	c.HTML(http.StatusOK, "employee_detail_advanced.html", gin.H{
-		"title":               employee.FirstName + " " + employee.LastName,
-		"active":              "employees",
-		"user":                userModel.FirstName + " " + userModel.LastName,
-		"email":               userModel.Email,
-		"year":                time.Now().Year(),
-		"employee":            employee,
-		"manager":             manager,
-		"userRole":            userRole,
-		"formatFileSize":      formatFileSize,
-		"iterate":             iterate,
-		"now":                 now,
-		"hideSalary":          hideSalary,
-		"usedVacationDays":    usedVacationDays,
-		"remainingVacation":   employee.RemainingVacation,
-		"timeEntries":         timeEntries,
-		"totalHours":          totalHoursFormatted,
-		"projectCount":        len(projectMap),
-		"startDate":           startDate,
-		"endDate":             endDate,
-		"projectLabels":       projectLabels,
-		"projectHours":        projectHours,
-		"overtimeDetails":     overtimeDetails,
-		"baseOvertimeBalance": baseOvertimeBalance,
+		"title":                     employee.FirstName + " " + employee.LastName,
+		"active":                    "employees",
+		"user":                      userModel.FirstName + " " + userModel.LastName,
+		"email":                     userModel.Email,
+		"year":                      time.Now().Year(),
+		"employee":                  employee,
+		"manager":                   manager,
+		"userRole":                  userRole,
+		"formatFileSize":            formatFileSize,
+		"iterate":                   iterate,
+		"now":                       now,
+		"hideSalary":                hideSalary,
+		"usedVacationDays":          usedVacationDays,
+		"remainingVacation":         employee.RemainingVacation,
+		"timeEntries":               timeEntries,
+		"totalHours":                totalHoursFormatted,
+		"projectCount":              len(projectMap),
+		"startDate":                 startDate,
+		"endDate":                   endDate,
+		"projectLabels":             projectLabels,
+		"projectHours":              projectHours,
+		"overtimeDetails":           overtimeDetails,
+		"baseOvertimeBalance":       baseOvertimeBalance,
+		"formatTimeInLocalZone":     formatTimeInLocalZone,
+		"formatDateInLocalZone":     formatDateInLocalZone,
+		"formatDateTimeInLocalZone": formatDateTimeInLocalZone,
 	})
 }
 

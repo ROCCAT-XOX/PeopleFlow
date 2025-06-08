@@ -486,7 +486,7 @@
                             <tbody class="bg-white divide-y divide-gray-200">
                             {{range .timeEntries}}
                             <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{.Date.Format "02.01.2006"}}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ formatDateInLocalZone .Date }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.ProjectName}}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.Activity}}</td>
                                 <td class="px-6 py-4 text-sm text-gray-500">
@@ -498,7 +498,7 @@
                                     <span class="text-gray-400">-</span>
                                     {{end}}
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.StartTime.Format "15:04"}}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatTimeInLocalZone .StartTime }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.EndTime.Format "15:04"}}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{printf "%.2f" .Duration}} Std.</td>
                             </tr>
