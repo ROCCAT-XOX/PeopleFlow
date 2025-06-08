@@ -99,6 +99,5 @@ func loadTemplates() *template.Template {
 	templ := template.New("").Funcs(utils.TemplateHelpers())
 	templ = template.Must(templ.ParseGlob("frontend/templates/*.html"))
 	templ = template.Must(templ.ParseGlob("frontend/templates/components/*.html"))
-
 	return templ
 }
