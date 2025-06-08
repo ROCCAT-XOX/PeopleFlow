@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -648,6 +649,23 @@ func isSameDay(t1, t2 time.Time) bool {
 	return y1 == y2 && m1 == m2 && d1 == d2
 }
 
+func (s *Erfasst123Service) cleanupTimeEntriesForDateRange(employee *model.Employee, startDate, endDate time.Time) []model.TimeEntry {
+	var cleanedEntries []model.TimeEntry
+
+	for _, entry := range employee.TimeEntries {
+		// Behalte nur Einträge die:
+		// 1. NICHT von 123erfasst sind ODER
+		// 2. Außerhalb des Sync-Zeitraums liegen
+		if entry.Source != "123erfasst" ||
+			entry.Date.Before(startDate) ||
+			entry.Date.After(endDate) {
+			cleanedEntries = append(cleanedEntries, entry)
+		}
+	}
+
+	return cleanedEntries
+}
+
 // SyncErfasst123TimeEntries synchronisiert Zeiteinträge von 123erfasst
 func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string) (int, error) {
 	fmt.Printf("\n=== START SYNC 123ERFASST ZEITEINTRÄGE ===\n")
@@ -952,13 +970,14 @@ func (s *Erfasst123Service) removeDuplicateTimeEntries(entries []model.TimeEntry
 	var uniqueEntries []model.TimeEntry
 
 	for _, entry := range entries {
-		// Eindeutigen Schlüssel für jeden Eintrag erstellen - INKLUSIVE Activity!
-		key := fmt.Sprintf("%s_%s_%s_%s_%s_%s",
+		// Erweiterten Schlüssel mit mehr Details erstellen
+		key := fmt.Sprintf("%s_%s_%s_%s_%s_%s_%s",
 			entry.Date.Format("2006-01-02"),
 			entry.StartTime.UTC().Format("15:04:05"),
 			entry.EndTime.UTC().Format("15:04:05"),
 			entry.ProjectID,
-			entry.Activity, // NEU: Activity ist jetzt Teil des Schlüssels!
+			entry.Activity,
+			entry.Description, // NEU: Description auch in den Schlüssel aufnehmen
 			entry.Source)
 
 		if !seen[key] {
@@ -966,6 +985,14 @@ func (s *Erfasst123Service) removeDuplicateTimeEntries(entries []model.TimeEntry
 			uniqueEntries = append(uniqueEntries, entry)
 		}
 	}
+
+	// Nach Datum und Startzeit sortieren
+	sort.Slice(uniqueEntries, func(i, j int) bool {
+		if uniqueEntries[i].Date.Equal(uniqueEntries[j].Date) {
+			return uniqueEntries[i].StartTime.Before(uniqueEntries[j].StartTime)
+		}
+		return uniqueEntries[i].Date.Before(uniqueEntries[j].Date)
+	})
 
 	return uniqueEntries
 }

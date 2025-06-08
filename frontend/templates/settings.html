@@ -1164,6 +1164,21 @@
 
         resultDiv.classList.remove('hidden');
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Lade 123erfasst Sync-Status beim Seitenaufruf
+        fetch('/api/integrations/123erfasst/sync-status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    // Setze das Startdatum im Formular
+                    const startDateInput = document.getElementById('erfasst123-sync-start-date');
+                    if (startDateInput && data.data.syncStartDate) {
+                        startDateInput.value = data.data.syncStartDate;
+                    }
+                }
+            });
+    });
 </script>
 </body>
 </html>
