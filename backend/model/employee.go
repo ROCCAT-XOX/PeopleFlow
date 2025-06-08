@@ -259,7 +259,8 @@ type TimeEntry struct {
 	ProjectName string             `bson:"projectName" json:"projectName"`
 	Activity    string             `bson:"activity" json:"activity"`
 	WageType    string             `bson:"wageType,omitempty" json:"wageType,omitempty"`
-	Source      string             `bson:"source" json:"source"` // e.g., "123erfasst"
+	Description string             `bson:"description,omitempty" json:"description,omitempty"` // NEU: Text/Beschreibung
+	Source      string             `bson:"source" json:"source"`                               // e.g., "123erfasst"
 }
 
 // GetWorkingHoursPerDay berechnet die durchschnittlichen Arbeitsstunden pro Tag

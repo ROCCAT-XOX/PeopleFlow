@@ -1194,3 +1194,33 @@ function displayAdjustmentsError(message) {
     </div>
   `;
 }
+
+// Erweiterte Filterfunktion mit Beschreibungssuche
+function filterByDescription(searchText) {
+    const rows = document.querySelectorAll('.employee-row');
+
+    rows.forEach(row => {
+        const employeeId = row.getAttribute('data-employee-id');
+        const timeEntriesDetail = document.querySelector(`#timeEntries-${employeeId}`);
+
+        if (timeEntriesDetail) {
+            const entries = timeEntriesDetail.querySelectorAll('.time-entry-item');
+            let hasMatch = false;
+
+            entries.forEach(entry => {
+                const description = entry.querySelector('.text-gray-600 p')?.textContent || '';
+                if (description.toLowerCase().includes(searchText.toLowerCase())) {
+                    hasMatch = true;
+                    entry.style.display = '';
+                } else {
+                    entry.style.display = 'none';
+                }
+            });
+
+            // Zeige Mitarbeiter nur wenn Treffer vorhanden
+            if (hasMatch && searchText) {
+                row.style.display = '';
+            }
+        }
+    });
+}

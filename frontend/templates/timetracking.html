@@ -297,26 +297,44 @@
                 <h4 class="text-sm font-medium text-gray-900 mb-3">Zeiteinträge für {{.EmployeeName}}</h4>
                 <div class="space-y-2 time-entries-container">
                   {{range .TimeEntries}}
-                  <div class="time-entry-item flex justify-between items-center py-2 px-3 bg-white rounded border-l-4 border-green-500"
+                  <div class="time-entry-item flex flex-col py-2 px-3 bg-white rounded border-l-4 border-green-500"
                        data-entry-date="{{.Date.Format "2006-01-02"}}"
                   data-entry-project="{{.ProjectName}}"
                   data-entry-hours="{{.Duration}}">
-                  <div class="flex-grow">
-                    <div class="flex items-center space-x-4">
-                      <div class="text-sm font-medium text-gray-900">{{.Date.Format "02.01.2006"}}</div>
-                      <div class="text-sm text-gray-600">{{.StartTime.Format "15:04"}} - {{.EndTime.Format "15:04"}}</div>
-                      <div class="text-sm text-green-600 font-medium">{{printf "%.1f" .Duration}} Std</div>
+                  <div class="flex justify-between items-center">
+                    <div class="flex-grow">
+                      <div class="flex items-center space-x-4">
+                        <div class="text-sm text-gray-600">
+                          <span class="font-medium">{{.Date.Format "02.01.2006"}}</span>
+                        </div>
+                        <div class="text-sm text-gray-600">
+                          {{.StartTime.Format "15:04"}} - {{.EndTime.Format "15:04"}}
+                        </div>
+                        <div class="text-sm font-medium text-gray-900">
+                          {{.ProjectName}}
+                        </div>
+                        {{if .Activity}}
+                        <div class="text-xs text-gray-500">
+                          {{.Activity}}
+                        </div>
+                        {{end}}
+                      </div>
                     </div>
-                    <div class="text-sm text-gray-500 mt-1">{{.ProjectName}} - {{.Activity}}</div>
+                    <div class="text-sm font-medium text-gray-900 whitespace-nowrap">
+                      {{printf "%.1f" .Duration}} Std
+                    </div>
                   </div>
-                  <div class="text-xs text-gray-400">{{.Source}}</div>
+                  {{if .Description}}
+                  <div class="mt-2 pl-4 border-l-2 border-gray-200">
+                    <p class="text-sm text-gray-600">{{.Description}}</p>
+                  </div>
+                  {{end}}
                 </div>
                 {{end}}
               </div>
-            </div>
-    </div>
-    </td>
-    </tr>
+              </div>
+          </td>
+        </tr>
     {{end}}
     {{else}}
     <tr id="noDataMessage">

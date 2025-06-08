@@ -121,6 +121,34 @@
             font-size: 0.75rem;
         }
     }
+
+    .description-tooltip {
+        position: relative;
+        cursor: help;
+    }
+
+    .description-tooltip:hover::after {
+        content: attr(data-description);
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        background: #1f2937;
+        color: white;
+        padding: 0.5rem;
+        border-radius: 0.375rem;
+        white-space: pre-wrap;
+        max-width: 300px;
+        z-index: 10;
+        font-size: 0.875rem;
+    }
+
+    .time-entry-description {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+        padding-left: 1rem;
+        border-left: 2px solid #e5e7eb;
+    }
 </style>
 
 <!-- Navigation -->
@@ -446,30 +474,33 @@
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dateiname</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Datum</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Projekt</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tätigkeit</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beschreibung</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hochgeladen am</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typ</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Größe</th>
-                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Von</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bis</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dauer</th>
                             </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                            {{range .employee.ApplicationDocuments}}
+                            {{range .timeEntries}}
                             <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{.Name}}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.Description}}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.UploadDate.Format "02.01.2006 15:04"}}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.FileType}}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatFileSize .FileSize}}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <a href="/employees/{{$.employee.ID.Hex}}/documents/{{.ID.Hex}}/download?category=application" class="text-green-600 hover:text-green-900 mr-3">Herunterladen</a>
-                                    <a href="#" onclick="confirmDeleteDocument('{{$.employee.ID.Hex}}', '{{.ID.Hex}}', 'application')" class="text-red-600 hover:text-red-900">Löschen</a>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{.Date.Format "02.01.2006"}}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.ProjectName}}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.Activity}}</td>
+                                <td class="px-6 py-4 text-sm text-gray-500">
+                                    {{if .Description}}
+                                    <div class="max-w-xs truncate" title="{{.Description}}">
+                                        {{.Description}}
+                                    </div>
+                                    {{else}}
+                                    <span class="text-gray-400">-</span>
+                                    {{end}}
                                 </td>
-                            </tr>
-                            {{else}}
-                            <tr>
-                                <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Keine Dokumente vorhanden</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.StartTime.Format "15:04"}}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.EndTime.Format "15:04"}}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{printf "%.2f" .Duration}} Std.</td>
                             </tr>
                             {{end}}
                             </tbody>
@@ -1065,7 +1096,12 @@
                                 {{range .timeEntries}}
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{.Date.Format "02.01.2006"}}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.ProjectName}}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-500">
+                                        <div>{{.ProjectName}}</div>
+                                        {{if .Description}}
+                                        <div class="text-xs text-gray-400 mt-1 max-w-xs">{{.Description}}</div>
+                                        {{end}}
+                                    </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.Activity}}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.StartTime.Format "15:04"}}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.EndTime.Format "15:04"}}</td>

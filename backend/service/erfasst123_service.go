@@ -778,6 +778,7 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 			ProjectID:   timeEntry.Project.ID,
 			ProjectName: timeEntry.Project.Name,
 			Activity:    timeEntry.Activity.Name,
+			Description: timeEntry.Text,
 			Source:      "123erfasst",
 		}
 

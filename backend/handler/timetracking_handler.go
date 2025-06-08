@@ -47,6 +47,7 @@ type TimeEntryViewModel struct {
 	ProjectID    string    `json:"projectId"`
 	ProjectName  string    `json:"projectName"`
 	Activity     string    `json:"activity"`
+	Description  string    `json:"description"`
 	Source       string    `json:"source"`
 }
 
@@ -127,6 +128,7 @@ func (h *TimeTrackingHandler) GetTimeTrackingView(c *gin.Context) {
 				ProjectID:    entry.ProjectID,
 				ProjectName:  entry.ProjectName,
 				Activity:     entry.Activity,
+				Description:  entry.Description, // NEU: Description hinzufügen
 				Source:       entry.Source,
 			}
 
@@ -300,6 +302,7 @@ func (h *TimeTrackingHandler) GetEmployeeTimeEntries(c *gin.Context) {
 			ProjectID:    entry.ProjectID,
 			ProjectName:  entry.ProjectName,
 			Activity:     entry.Activity,
+			Description:  entry.Description,
 			Source:       entry.Source,
 		}
 
