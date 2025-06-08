@@ -648,50 +648,37 @@ func isSameDay(t1, t2 time.Time) bool {
 	return y1 == y2 && m1 == m2 && d1 == d2
 }
 
-// SyncErfasst123TimeEntries - Debug-Version mit erweiterten Logs
+// SyncErfasst123TimeEntries synchronisiert Zeiteinträge von 123erfasst
 func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string) (int, error) {
-	location := getGermanLocation()
-
-	// Parse Start- und Enddatum
-	startDateParsed, err := time.ParseInLocation("2006-01-02", startDate, location)
-	if err != nil {
-		return 0, fmt.Errorf("ungültiges Startdatum: %v", err)
-	}
-
-	endDateParsed, err := time.ParseInLocation("2006-01-02", endDate, location)
-	if err != nil {
-		return 0, fmt.Errorf("ungültiges Enddatum: %v", err)
-	}
-
-	fmt.Printf("=== SYNC START ===\n")
-	fmt.Printf("Synchronisiere Zeiteinträge vom %s bis %s\n", startDate, endDate)
+	fmt.Printf("\n=== START SYNC 123ERFASST ZEITEINTRÄGE ===\n")
+	fmt.Printf("Zeitraum: %s bis %s\n", startDate, endDate)
 
 	// Zeiteinträge von 123erfasst abrufen
 	timeEntries, err := s.GetTimeEntries(startDate, endDate)
 	if err != nil {
-		return 0, fmt.Errorf("fehler beim Abrufen der Zeiteinträge: %v", err)
+		return 0, err
 	}
 
-	fmt.Printf("Erhalten: %d Zeiteinträge von 123erfasst\n", len(timeEntries))
+	fmt.Printf("Abgerufene Zeiteinträge: %d\n", len(timeEntries))
 
-	// Debug: Erste 5 Zeiteinträge ausgeben
-	for i, entry := range timeEntries {
-		if i >= 5 {
-			break
-		}
-		fmt.Printf("  Zeiteintrag %d: %s %s (ID: %s, Email: %s) - Projekt: %s, Datum: %s\n",
-			i+1, entry.Person.Firstname, entry.Person.Lastname,
-			entry.Person.Ident, entry.Person.Mail,
-			entry.Project.Name, entry.Date)
+	// Parse dates für Filterung
+	startDateParsed, err := time.Parse("2006-01-02", startDate)
+	if err != nil {
+		return 0, fmt.Errorf("ungültiges Startdatum: %v", err)
 	}
 
-	// Repository für Mitarbeiter
+	endDateParsed, err := time.Parse("2006-01-02", endDate)
+	if err != nil {
+		return 0, fmt.Errorf("ungültiges Enddatum: %v", err)
+	}
+
+	// Repository für Mitarbeiter initialisieren
 	employeeRepo := repository.NewEmployeeRepository()
 
-	// Alle Mitarbeiter vorab laden
+	// Alle Mitarbeiter abrufen
 	allEmployees, err := employeeRepo.FindAll()
 	if err != nil {
-		return 0, fmt.Errorf("fehler beim Abrufen der Mitarbeiter: %v", err)
+		return 0, fmt.Errorf("Fehler beim Abrufen der Mitarbeiter: %v", err)
 	}
 
 	fmt.Printf("\nGeladene Mitarbeiter aus der Datenbank: %d\n", len(allEmployees))
@@ -749,79 +736,35 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 			continue
 		}
 
-		// Mitarbeiter finden
+		// Mitarbeiter suchen - erst über 123erfasst ID, dann über Email
 		var employee *model.Employee
-		personKey := fmt.Sprintf("%s %s (%s)", timeEntry.Person.Firstname, timeEntry.Person.Lastname, timeEntry.Person.Ident)
 
-		// Zuerst nach 123erfasst ID suchen
-		if emp, found := employeeByErfasst123ID[timeEntry.Person.Ident]; found {
-			employee = emp
-			if idx < 5 {
-				fmt.Printf("✓ Gefunden via 123erfasst ID: %s %s\n", emp.FirstName, emp.LastName)
-			}
-		} else {
-			// Nach E-Mail suchen
-			emailKey := strings.ToLower(strings.TrimSpace(timeEntry.Person.Mail))
-			if emp, found := employeeMap[emailKey]; found {
-				employee = emp
-				// 123erfasst ID aktualisieren
-				if emp.Erfasst123ID == "" {
-					emp.Erfasst123ID = timeEntry.Person.Ident
-					employeeByErfasst123ID[timeEntry.Person.Ident] = emp
-					fmt.Printf("✓ Gefunden via Email und 123erfasst ID hinzugefügt: %s %s (ID: %s)\n",
-						emp.FirstName, emp.LastName, timeEntry.Person.Ident)
-				} else {
-					if idx < 5 {
-						fmt.Printf("✓ Gefunden via Email: %s %s\n", emp.FirstName, emp.LastName)
-					}
-				}
-			} else {
-				// Nach Name suchen
-				nameFound := false
-				for _, emp := range allEmployees {
-					if strings.EqualFold(strings.TrimSpace(emp.FirstName), strings.TrimSpace(timeEntry.Person.Firstname)) &&
-						strings.EqualFold(strings.TrimSpace(emp.LastName), strings.TrimSpace(timeEntry.Person.Lastname)) {
-						employee = emp
-						nameFound = true
-						// 123erfasst ID aktualisieren
-						if emp.Erfasst123ID == "" {
-							emp.Erfasst123ID = timeEntry.Person.Ident
-							employeeByErfasst123ID[timeEntry.Person.Ident] = emp
-							fmt.Printf("✓ Gefunden via Name und 123erfasst ID hinzugefügt: %s %s (ID: %s)\n",
-								emp.FirstName, emp.LastName, timeEntry.Person.Ident)
-						} else {
-							if idx < 5 {
-								fmt.Printf("✓ Gefunden via Name: %s %s\n", emp.FirstName, emp.LastName)
-							}
-						}
-						break
-					}
-				}
-
-				if !nameFound && !notFoundEmployees[personKey] {
-					notFoundEmployees[personKey] = true
-					fmt.Printf("✗ NICHT GEFUNDEN: %s %s (ID: %s, Email: %s)\n",
-						timeEntry.Person.Firstname, timeEntry.Person.Lastname,
-						timeEntry.Person.Ident, timeEntry.Person.Mail)
-
-					// Debug: Ähnliche Namen suchen
-					fmt.Printf("  Ähnliche Namen in der Datenbank:\n")
-					for _, emp := range allEmployees {
-						firstNameMatch := strings.Contains(strings.ToLower(emp.FirstName), strings.ToLower(timeEntry.Person.Firstname)) ||
-							strings.Contains(strings.ToLower(timeEntry.Person.Firstname), strings.ToLower(emp.FirstName))
-						lastNameMatch := strings.Contains(strings.ToLower(emp.LastName), strings.ToLower(timeEntry.Person.Lastname)) ||
-							strings.Contains(strings.ToLower(timeEntry.Person.Lastname), strings.ToLower(emp.LastName))
-
-						if firstNameMatch || lastNameMatch {
-							fmt.Printf("    - %s %s (Email: %s, 123erfasst ID: %s)\n",
-								emp.FirstName, emp.LastName, emp.Email, emp.Erfasst123ID)
-						}
-					}
-				}
+		// Methode 1: Über 123erfasst ID
+		if timeEntry.Person.Ident != "" {
+			employee = employeeByErfasst123ID[timeEntry.Person.Ident]
+			if employee != nil && idx < 10 {
+				fmt.Printf("✓ Gefunden via 123erfasst ID: %s %s\n", employee.FirstName, employee.LastName)
 			}
 		}
 
+		// Methode 2: Über Email
+		if employee == nil && timeEntry.Person.Mail != "" {
+			emailKey := strings.ToLower(strings.TrimSpace(timeEntry.Person.Mail))
+			employee = employeeMap[emailKey]
+			if employee != nil && idx < 10 {
+				fmt.Printf("✓ Gefunden via Email: %s %s\n", employee.FirstName, employee.LastName)
+			}
+		}
+
+		// Nicht gefunden
 		if employee == nil {
+			personKey := fmt.Sprintf("%s_%s", timeEntry.Person.Firstname, timeEntry.Person.Lastname)
+			if !notFoundEmployees[personKey] {
+				notFoundEmployees[personKey] = true
+				fmt.Printf("✗ NICHT GEFUNDEN: %s %s (ID: %s, Email: %s)\n",
+					timeEntry.Person.Firstname, timeEntry.Person.Lastname,
+					timeEntry.Person.Ident, timeEntry.Person.Mail)
+			}
 			continue
 		}
 
@@ -843,8 +786,15 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 		}
 
 		// Zeiteintrag hinzufügen
-		employee.TimeEntries = append(employee.TimeEntries, newTimeEntry)
-		updatedEmployees[employee.ID.Hex()] = employee
+		if updatedEmployees[employee.ID.Hex()] == nil {
+			// Erstmalig: Employee kopieren
+			empCopy := *employee
+			updatedEmployees[employee.ID.Hex()] = &empCopy
+		}
+		updatedEmployees[employee.ID.Hex()].TimeEntries = append(
+			updatedEmployees[employee.ID.Hex()].TimeEntries,
+			newTimeEntry,
+		)
 	}
 
 	fmt.Printf("\n=== BEREINIGUNG UND SPEICHERUNG ===\n")
@@ -853,37 +803,76 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 	// Updates speichern
 	updateCount := 0
 	for _, employee := range updatedEmployees {
-		// Debug: Anzahl Einträge vor Bereinigung
-		entriesBeforeCleaning := len(employee.TimeEntries)
-
-		// Alte Einträge bereinigen
-		cleanedEntries := s.cleanOldTimeEntries(employee.TimeEntries, startDateParsed, endDateParsed)
-		entriesAfterCleaning := len(cleanedEntries)
-
-		// Duplikate entfernen
-		employee.TimeEntries = s.removeDuplicateTimeEntries(cleanedEntries)
-		entriesAfterDedup := len(employee.TimeEntries)
-
-		if updateCount < 5 {
-			fmt.Printf("\nMitarbeiter %s %s:\n", employee.FirstName, employee.LastName)
-			fmt.Printf("  Einträge vor Bereinigung: %d\n", entriesBeforeCleaning)
-			fmt.Printf("  Nach Entfernen alter 123erfasst-Einträge: %d\n", entriesAfterCleaning)
-			fmt.Printf("  Nach Deduplizierung: %d\n", entriesAfterDedup)
-		}
-
-		employee.UpdatedAt = time.Now()
-
-		// Mitarbeiter aktualisieren
-		if err := employeeRepo.Update(employee); err != nil {
-			fmt.Printf("✗ Fehler beim Aktualisieren von %s %s: %v\n",
+		// WICHTIG: Mitarbeiter aus DB neu laden für sauberen Stand
+		dbEmployee, err := employeeRepo.FindByID(employee.ID.Hex())
+		if err != nil {
+			fmt.Printf("✗ Fehler beim Abrufen von %s %s: %v\n",
 				employee.FirstName, employee.LastName, err)
 			continue
 		}
 
-		updateCount++
-		if updateCount <= 5 {
-			fmt.Printf("✓ Erfolgreich aktualisiert: %s %s\n", employee.FirstName, employee.LastName)
+		// Schritt 1: Alle NICHT-123erfasst Einträge behalten
+		var keptEntries []model.TimeEntry
+		for _, entry := range dbEmployee.TimeEntries {
+			if entry.Source != "123erfasst" {
+				keptEntries = append(keptEntries, entry)
+			}
 		}
+
+		// Schritt 2: Alle 123erfasst-Einträge außerhalb des Sync-Zeitraums behalten
+		for _, entry := range dbEmployee.TimeEntries {
+			if entry.Source == "123erfasst" &&
+				(entry.Date.Before(startDateParsed) || entry.Date.After(endDateParsed)) {
+				keptEntries = append(keptEntries, entry)
+			}
+		}
+
+		// Schritt 3: Neue Einträge aus der aktuellen Synchronisation sammeln
+		var newEntries []model.TimeEntry
+		for _, entry := range employee.TimeEntries {
+			// Nur Einträge im Sync-Zeitraum
+			if !entry.Date.Before(startDateParsed) && !entry.Date.After(endDateParsed) {
+				newEntries = append(newEntries, entry)
+			}
+		}
+
+		// Debug-Ausgabe
+		fmt.Printf("\nMitarbeiter %s %s:\n", dbEmployee.FirstName, dbEmployee.LastName)
+		fmt.Printf("  Einträge in DB gesamt: %d\n", len(dbEmployee.TimeEntries))
+		fmt.Printf("  Davon 123erfasst im Sync-Zeitraum: %d\n",
+			len(dbEmployee.TimeEntries)-len(keptEntries))
+		fmt.Printf("  Neue 123erfasst-Einträge: %d\n", len(newEntries))
+
+		// Schritt 4: Kombiniere alte (gefilterte) und neue Einträge
+		dbEmployee.TimeEntries = append(keptEntries, newEntries...)
+
+		// Schritt 5: Duplikate entfernen (mit korrigierter Funktion)
+		dbEmployee.TimeEntries = s.removeDuplicateTimeEntries(dbEmployee.TimeEntries)
+
+		fmt.Printf("  Gesamt nach Deduplizierung: %d\n", len(dbEmployee.TimeEntries))
+
+		// Berechne Gesamtstunden für Debug
+		var totalHours float64
+		for _, entry := range dbEmployee.TimeEntries {
+			if entry.Date.Format("2006-01-02") == "2025-06-05" {
+				totalHours += entry.Duration
+			}
+		}
+		if totalHours > 0 {
+			fmt.Printf("  Stunden am 05.06.2025: %.2f\n", totalHours)
+		}
+
+		dbEmployee.UpdatedAt = time.Now()
+
+		// Mitarbeiter aktualisieren
+		if err := employeeRepo.Update(dbEmployee); err != nil {
+			fmt.Printf("✗ Fehler beim Aktualisieren von %s %s: %v\n",
+				dbEmployee.FirstName, dbEmployee.LastName, err)
+			continue
+		}
+
+		updateCount++
+		fmt.Printf("✓ Erfolgreich aktualisiert: %s %s\n", dbEmployee.FirstName, dbEmployee.LastName)
 	}
 
 	fmt.Printf("\n=== ZUSAMMENFASSUNG ===\n")
@@ -962,12 +951,13 @@ func (s *Erfasst123Service) removeDuplicateTimeEntries(entries []model.TimeEntry
 	var uniqueEntries []model.TimeEntry
 
 	for _, entry := range entries {
-		// Eindeutigen Schlüssel für jeden Eintrag erstellen
-		key := fmt.Sprintf("%s_%s_%s_%s_%s",
+		// Eindeutigen Schlüssel für jeden Eintrag erstellen - INKLUSIVE Activity!
+		key := fmt.Sprintf("%s_%s_%s_%s_%s_%s",
 			entry.Date.Format("2006-01-02"),
 			entry.StartTime.UTC().Format("15:04:05"),
 			entry.EndTime.UTC().Format("15:04:05"),
 			entry.ProjectID,
+			entry.Activity, // NEU: Activity ist jetzt Teil des Schlüssels!
 			entry.Source)
 
 		if !seen[key] {
@@ -1075,37 +1065,6 @@ func (s *Erfasst123Service) SyncErfasst123Projects(startDate, endDate string) (i
 	// - Aktualisierung von Projektinformationen
 
 	return len(projects), nil
-}
-
-// CleanupDuplicateTimeEntries bereinigt doppelte Zeiteinträge für alle Mitarbeiter
-func (s *Erfasst123Service) CleanupDuplicateTimeEntries() error {
-	employeeRepo := repository.NewEmployeeRepository()
-
-	employees, err := employeeRepo.FindAll()
-	if err != nil {
-		return err
-	}
-
-	cleanedCount := 0
-	for _, emp := range employees {
-		originalCount := len(emp.TimeEntries)
-		emp.TimeEntries = s.removeDuplicateTimeEntries(emp.TimeEntries)
-
-		if len(emp.TimeEntries) != originalCount {
-			emp.UpdatedAt = time.Now()
-			if err := employeeRepo.Update(emp); err != nil {
-				fmt.Printf("Fehler beim Bereinigen von %s %s: %v\n",
-					emp.FirstName, emp.LastName, err)
-				continue
-			}
-			cleanedCount++
-			fmt.Printf("Bereinigt: %s %s (von %d auf %d Einträge)\n",
-				emp.FirstName, emp.LastName, originalCount, len(emp.TimeEntries))
-		}
-	}
-
-	fmt.Printf("Bereinigung abgeschlossen: %d Mitarbeiter bereinigt\n", cleanedCount)
-	return nil
 }
 
 // TestEmployeeMapping testet die Zuordnung zwischen 123erfasst und PeopleFlow Mitarbeitern
@@ -1232,4 +1191,61 @@ func (s *Erfasst123Service) TestEmployeeMapping() error {
 	}
 
 	return nil
+}
+
+// CleanupDuplicateTimeEntries bereinigt doppelte Zeiteinträge für alle Mitarbeiter
+func (s *Erfasst123Service) CleanupDuplicateTimeEntries() (int, error) {
+	fmt.Printf("\n=== START BEREINIGUNG DUPLIKATE ===\n")
+
+	employeeRepo := repository.NewEmployeeRepository()
+	employees, err := employeeRepo.FindAll()
+	if err != nil {
+		return 0, fmt.Errorf("Fehler beim Abrufen der Mitarbeiter: %v", err)
+	}
+
+	cleanedCount := 0
+	totalDuplicatesRemoved := 0
+
+	for _, employee := range employees {
+		originalCount := len(employee.TimeEntries)
+
+		// Nur Mitarbeiter mit Zeiteinträgen bereinigen
+		if originalCount == 0 {
+			continue
+		}
+
+		// Duplikate entfernen
+		employee.TimeEntries = s.removeDuplicateTimeEntries(employee.TimeEntries)
+		newCount := len(employee.TimeEntries)
+
+		// Nur aktualisieren, wenn sich etwas geändert hat
+		if originalCount != newCount {
+			duplicatesRemoved := originalCount - newCount
+			totalDuplicatesRemoved += duplicatesRemoved
+
+			// Debug-Ausgabe für erste 5 Mitarbeiter
+			if cleanedCount < 5 {
+				fmt.Printf("Bereinige %s %s: %d -> %d Einträge (%d Duplikate entfernt)\n",
+					employee.FirstName, employee.LastName,
+					originalCount, newCount, duplicatesRemoved)
+			}
+
+			// Mitarbeiter aktualisieren
+			employee.UpdatedAt = time.Now()
+			if err := employeeRepo.Update(employee); err != nil {
+				fmt.Printf("Fehler beim Aktualisieren von %s %s: %v\n",
+					employee.FirstName, employee.LastName, err)
+				continue
+			}
+
+			cleanedCount++
+		}
+	}
+
+	fmt.Printf("\n=== BEREINIGUNG ABGESCHLOSSEN ===\n")
+	fmt.Printf("Mitarbeiter bereinigt: %d\n", cleanedCount)
+	fmt.Printf("Duplikate entfernt: %d\n", totalDuplicatesRemoved)
+	fmt.Printf("=== ENDE ===\n\n")
+
+	return cleanedCount, nil
 }

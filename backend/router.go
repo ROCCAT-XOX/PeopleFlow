@@ -751,6 +751,7 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.POST("/api/integrations/123erfasst/set-sync-start-date", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.SetErfasst123SyncStartDate)
 		authorized.POST("/api/integrations/123erfasst/full-sync", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.TriggerErfasst123FullSync)
 		authorized.POST("/api/integrations/123erfasst/sync/employees", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncErfasst123Employees)
+		authorized.POST("/api/integrations/123erfasst/cleanup-duplicates", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.CleanupDuplicates)
 
 		// Optionale API-Endpoints für AJAX-Anfragen
 		api := router.Group("/api")

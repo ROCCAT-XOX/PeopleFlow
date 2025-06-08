@@ -547,3 +547,48 @@ func (h *IntegrationHandler) SyncErfasst123Employees(c *gin.Context) {
 		"updatedCount": updatedCount,
 	})
 }
+
+// CleanupDuplicates bereinigt doppelte Zeiteinträge in der Datenbank
+func (h *IntegrationHandler) CleanupDuplicates(c *gin.Context) {
+	// Prüfen ob 123erfasst verbunden ist
+	if !h.erfasst123Service.IsConnected() {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "123erfasst ist nicht verbunden",
+		})
+		return
+	}
+
+	// Bereinigung durchführen
+	cleanedCount, err := h.erfasst123Service.CleanupDuplicateTimeEntries()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Fehler beim Bereinigen: " + err.Error(),
+		})
+		return
+	}
+
+	// Aktivität loggen
+	user, _ := c.Get("user")
+	userModel := user.(*model.User)
+
+	activityRepo := repository.NewActivityRepository()
+	_, _ = activityRepo.LogActivity(
+		model.ActivityTypeEmployeeUpdated, // Verwende vorhandenen Type
+		userModel.ID,
+		userModel.FirstName+" "+userModel.LastName,
+		userModel.ID,
+		"system",
+		"123erfasst Integration",
+		fmt.Sprintf("Duplikate bereinigt: %d Mitarbeiter aktualisiert", cleanedCount),
+	)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": fmt.Sprintf("Duplikate erfolgreich bereinigt. %d Mitarbeiter wurden aktualisiert.", cleanedCount),
+		"data": gin.H{
+			"cleanedCount": cleanedCount,
+		},
+	})
+}
