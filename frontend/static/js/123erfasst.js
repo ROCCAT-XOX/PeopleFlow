@@ -430,8 +430,8 @@ function loadErfasst123SyncSettings() {
 
                 // Update start date
                 const startDateInput = document.getElementById('erfasst123-start-date');
-                if (startDateInput && settings.startDate) {
-                    startDateInput.value = settings.startDate;
+                if (startDateInput && settings.syncStartDate) {
+                    startDateInput.value = settings.syncStartDate;
                 }
 
                 // Update last sync display

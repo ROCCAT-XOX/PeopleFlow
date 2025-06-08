@@ -528,25 +528,45 @@ func (s *Erfasst123Service) GetTimeEntries(startDate, endDate string) ([]model.E
 
 	fmt.Printf("Fetching time entries from %s to %s\n", startDateTime, endDateTime)
 
-	// GraphQL-Anfrage mit dem korrekten Format
-	query := fmt.Sprintf(`{
-		"query": "query GetStaffTimesWithActivityAndWage($filter: TimeCollectionFilter) { times(filter: $filter) { nodes { fid person { ident firstname lastname mail } project { id name } date timeStart timeEnd activity { ident name } wageType { ident name } text } totalCount } }",
-		"variables": {
-			"filter": {
-				"date": {
-					"_gte": "%s",
-					"_lte": "%s"
-				}
-			}
-		}
-	}`, startDateTime, endDateTime)
+	// GraphQL-Anfrage sauber als JSON strukturieren
+	gqlQuery := map[string]interface{}{
+		"query": `query GetStaffTimesWithActivityAndWage($filter: TimeCollectionFilter) {
+                times(filter: $filter) {
+                    nodes {
+                        fid
+                        person { ident firstname lastname mail }
+                        project { id name }
+                        date
+                        timeStart
+                        timeEnd
+                        activity { ident name }
+                        wageType { ident name }
+                        text
+                    }
+                    totalCount
+                }
+            }`,
+		"variables": map[string]interface{}{
+			"filter": map[string]interface{}{
+				"date": map[string]string{
+					"_gte": startDateTime,
+					"_lte": endDateTime,
+				},
+			},
+		},
+	}
+
+	queryBytes, err := json.Marshal(gqlQuery)
+	if err != nil {
+		return nil, err
+	}
 
 	// HTTP-Anfrage
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
 
-	req, err := http.NewRequest("POST", "https://server.123erfasst.de/api/graphql", bytes.NewBufferString(query))
+	req, err := http.NewRequest("POST", "https://server.123erfasst.de/api/graphql", bytes.NewBuffer(queryBytes))
 	if err != nil {
 		return nil, err
 	}
