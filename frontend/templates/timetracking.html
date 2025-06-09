@@ -249,31 +249,23 @@
               </div>
               <div class="ml-4">
                 <div class="text-sm font-medium text-gray-900">{{.EmployeeName}}</div>
-                <div class="text-sm text-gray-500">{{.EmployeeID}}</div>
+
               </div>
             </div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
             <div class="text-sm text-gray-900 filtered-hours">{{printf "%.1f" .TotalHours}} Std</div>
-            <div class="text-sm text-gray-500 filtered-entries">{{len .TimeEntries}} Einträge</div>
+
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
             <div class="text-sm text-gray-900 filtered-projects">{{.ProjectCount}} Projekte</div>
-            {{if .Projects}}
-            <div class="text-sm text-gray-500">
-              {{range $index, $project := .Projects}}
-              {{if eq $index 0}}{{$project.ProjectName}}{{end}}
-              {{if and $.Projects (gt (len $.Projects) 1)}}{{if eq $index 0}} (+{{subtract (len $.Projects) 1}} weitere){{end}}{{end}}
-              {{end}}
-            </div>
-            {{end}}
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
             {{if .TimeEntries}}
             {{range $index, $entry := .TimeEntries}}
             {{if eq $index 0}}
             <div class="text-sm text-gray-900 latest-activity-date">{{$entry.Date.Format "02.01.2006"}}</div>
-            <div class="text-sm text-gray-500 latest-activity-project">{{$entry.ProjectName}}</div>
+
             {{end}}
             {{end}}
             {{else}}
@@ -300,7 +292,10 @@
                   <div class="time-entry-item flex flex-col py-2 px-3 bg-white rounded border-l-4 border-green-500"
                        data-entry-date="{{.Date.Format "2006-01-02"}}"
                   data-entry-project="{{.ProjectName}}"
-                  data-entry-hours="{{.Duration}}">
+                  data-entry-hours="{{.Duration}}"
+                  data-source="{{.Source}}"
+                  data-start-time="{{.StartTime.Format "2006-01-02T15:04:05.999Z07:00"}}"
+                  data-end-time="{{.EndTime.Format "2006-01-02T15:04:05.999Z07:00"}}">
                   <div class="flex justify-between items-center">
                     <div class="flex-grow">
                       <div class="flex items-center space-x-4">
@@ -308,27 +303,46 @@
                           <span class="font-medium">{{.Date.Format "02.01.2006"}}</span>
                         </div>
                         <div class="text-sm text-gray-600">
-                          {{.StartTime.Format "15:04"}} - {{.EndTime.Format "15:04"}}
+                          <span class="time-start">{{.StartTime.Format "15:04"}}</span> -
+                          <span class="time-end">{{.EndTime.Format "15:04"}}</span>
                         </div>
                         <div class="text-sm font-medium text-gray-900">
                           {{.ProjectName}}
                         </div>
-                        {{if .Activity}}
-                        <div class="text-xs text-gray-500">
-                          {{.Activity}}
+                        <!-- Neue Quelle-Anzeige -->
+                        <div class="text-sm text-gray-500">
+                          {{if eq .Source "123erfasst"}}
+                          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            123erfasst
+          </span>
+                          {{else if eq .Source "manual"}}
+                          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Manuell
+          </span>
+                          {{else}}
+                          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            {{.Source}}
+          </span>
+                          {{end}}
                         </div>
-                        {{end}}
                       </div>
+                      {{if .Description}}
+                      <div class="text-sm text-gray-600 mt-1">
+                        <p>{{.Description}}</p>
+                      </div>
+                      {{end}}
                     </div>
-                    <div class="text-sm font-medium text-gray-900 whitespace-nowrap">
-                      {{printf "%.1f" .Duration}} Std
+                    <div class="text-right">
+                      <div class="text-sm font-medium text-gray-900">{{printf "%.1f" .Duration}} Std</div>
+                      <div class="text-xs text-gray-500">{{.Activity}}</div>
                     </div>
                   </div>
-                  {{if .Description}}
-                  <div class="mt-2 pl-4 border-l-2 border-gray-200">
-                    <p class="text-sm text-gray-600">{{.Description}}</p>
-                  </div>
-                  {{end}}
                 </div>
                 {{end}}
               </div>
@@ -602,10 +616,158 @@
     console.log('Filters reset');
   }
 
-  // Template-Hilfsfunktionen
-  function getInitials(name) {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  // ========== 123ERFASST TIMEZONE CONVERSION FUNCTIONS ==========
+
+  // Konvertiere Zeiten für 123erfasst Einträge
+  function convert123ErfasstTimesInTimetracking() {
+    console.log('Converting 123erfasst times in timetracking...');
+
+    // Suche nach allen Zeiteinträgen mit data-source="123erfasst"
+    const timeEntries = document.querySelectorAll('.time-entry-item[data-source="123erfasst"]');
+    console.log(`Found ${timeEntries.length} 123erfasst entries`);
+
+    timeEntries.forEach(entry => {
+      // Hole die UTC-Zeiten aus den data-Attributen
+      const startTime = entry.getAttribute('data-start-time');
+      const endTime = entry.getAttribute('data-end-time');
+
+      if (startTime && endTime) {
+        console.log('Converting:', { startTime, endTime });
+
+        // Konvertiere zu deutscher Zeit
+        const displayStart = formatTimeForGermanTimezone(startTime);
+        const displayEnd = formatTimeForGermanTimezone(endTime);
+
+        console.log('Converted to:', { displayStart, displayEnd });
+
+        // Finde die Zeit-Elemente
+        const startEl = entry.querySelector('.time-start');
+        const endEl = entry.querySelector('.time-end');
+
+        if (startEl && endEl) {
+          // Aktualisiere die Anzeige
+          startEl.textContent = displayStart;
+          endEl.textContent = displayEnd;
+
+          // Optional: Füge Tooltip hinzu
+          startEl.title = 'Zeit konvertiert von UTC';
+          endEl.title = 'Zeit konvertiert von UTC';
+        }
+      }
+    });
   }
+
+  // Hilfsfunktion für Zeitformatierung
+  function formatTimeForGermanTimezone(timeString) {
+    try {
+      const date = new Date(timeString);
+
+      // Prüfe ob das Datum gültig ist
+      if (isNaN(date.getTime())) {
+        console.error('Invalid date:', timeString);
+        return '--:--';
+      }
+
+      return new Intl.DateTimeFormat('de-DE', {
+        timeZone: 'Europe/Berlin',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).format(date);
+    } catch (error) {
+      console.error('Error formatting time:', error, timeString);
+      return '--:--';
+    }
+  }
+
+  // Observer für dynamisch geladene Inhalte
+  function observe123ErfasstTimeEntries() {
+    const observer = new MutationObserver((mutations) => {
+      let shouldConvert = false;
+
+      mutations.forEach((mutation) => {
+        if (mutation.addedNodes.length > 0) {
+          mutation.addedNodes.forEach(node => {
+            if (node.nodeType === 1) { // Element node
+              // Prüfe ob neue Zeiteinträge hinzugefügt wurden
+              if (node.querySelector && (
+                      node.querySelector('[data-source="123erfasst"]') ||
+                      (node.getAttribute && node.getAttribute('data-source') === '123erfasst')
+              )) {
+                shouldConvert = true;
+              }
+            }
+          });
+        }
+      });
+
+      if (shouldConvert) {
+        setTimeout(() => {
+          convert123ErfasstTimesInTimetracking();
+        }, 100);
+      }
+    });
+
+    // Beobachte alle time-entries-container
+    const containers = document.querySelectorAll('.time-entries-container');
+    containers.forEach(container => {
+      observer.observe(container, {
+        childList: true,
+        subtree: true
+      });
+    });
+  }
+
+  // Erweitere die toggleTimeEntries Funktion
+  const original_toggleTimeEntries = typeof toggleTimeEntries !== 'undefined' ? toggleTimeEntries : function() {};
+  toggleTimeEntries = function(employeeId) {
+    const detailRow = document.getElementById(`timeEntries-${employeeId}`);
+    const expandIcon = event.target.closest('button').querySelector('.expand-icon');
+
+    if (detailRow.style.display === 'none') {
+      detailRow.style.display = '';
+      expandIcon.classList.add('expanded');
+
+      // Nach dem Aufklappen, konvertiere 123erfasst Zeiten
+      setTimeout(() => {
+        convert123ErfasstTimesInTimetracking();
+      }, 50);
+    } else {
+      detailRow.style.display = 'none';
+      expandIcon.classList.remove('expanded');
+    }
+  };
+
+  // Initialisierung beim Laden der Seite
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('Initializing 123erfasst time conversion for timetracking...');
+
+    // Konvertiere initial sichtbare Einträge
+    convert123ErfasstTimesInTimetracking();
+
+    // Starte Observer für dynamische Inhalte
+    observe123ErfasstTimeEntries();
+  });
+
+  // Debug-Funktion zum Testen
+  function test123ErfasstTimeConversion() {
+    const testData = [
+      { time: '2025-06-06T06:00:00.000+00:00', expected: '08:00' },
+      { time: '2025-06-06T08:00:00.000+00:00', expected: '10:00' },
+      { time: '2025-06-06T12:30:00.000+00:00', expected: '14:30' }
+    ];
+
+    console.log('Testing 123erfasst time conversion:');
+    testData.forEach(test => {
+      const result = formatTimeForGermanTimezone(test.time);
+      console.log(`UTC: ${test.time} → Berlin: ${result} (expected: ${test.expected})`);
+    });
+  }
+
+  // Manuelle Trigger-Funktion für Debugging
+  window.convertTimetrackingEntries = function() {
+    convert123ErfasstTimesInTimetracking();
+  };
 </script>
 </body>
 </html>

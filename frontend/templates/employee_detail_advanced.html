@@ -1056,6 +1056,7 @@
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Datum</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Projekt</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tätigkeit</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Beschreibung</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Von</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bis</th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dauer</th>
@@ -1071,14 +1072,31 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{.Date.Format "02.01.2006"}}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.ProjectName}}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{.Activity}}</td>
+                                <td class="px-6 py-4 text-sm text-gray-500">
+                                    <div class="max-w-xs truncate" title="{{.Description}}">
+                                        {{if .Description}}
+                                        {{.Description}}
+                                        {{else}}
+                                        <span class="text-gray-400">-</span>
+                                        {{end}}
+                                    </div>
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 time-start">{{.StartTime.Format "15:04"}}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 time-end">{{.EndTime.Format "15:04"}}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{printf "%.2f" .Duration}} Std.</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{printf "%.1f" .Duration}} Std</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {{if eq .Source "123erfasst"}}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">123erfasst</span>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    123erfasst
+                                </span>
+                                    {{else if eq .Source "manual"}}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    Manuell
+                                </span>
                                     {{else}}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                     {{.Source}}
+                                </span>
                                     {{end}}
                                 </td>
                                 </tr>
@@ -1086,36 +1104,13 @@
                                 </tbody>
                             </table>
                         </div>
-
-                        <!-- Time summary section -->
-                        <div class="px-4 py-5 sm:px-6 border-t border-gray-200">
-                            <h4 class="text-base font-medium text-gray-900 mb-3">Zusammenfassung</h4>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div class="bg-gray-50 rounded-lg p-4">
-                                    <div class="text-sm font-medium text-gray-500">Gesamtstunden</div>
-                                    <div class="mt-1 text-3xl font-semibold text-gray-900">{{.totalHours}} Std.</div>
-                                </div>
-                                <div class="bg-gray-50 rounded-lg p-4">
-                                    <div class="text-sm font-medium text-gray-500">Projekte</div>
-                                    <div class="mt-1 text-3xl font-semibold text-gray-900">{{.projectCount}}</div>
-                                </div>
-                                <div class="bg-gray-50 rounded-lg p-4">
-                                    <div class="text-sm font-medium text-gray-500">Zeitraum</div>
-                                    <div class="mt-1 text-sm font-medium text-gray-900">
-                                        {{.startDate.Format "02.01.2006"}} - {{.endDate.Format "02.01.2006"}}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
                         {{else}}
-                        <div class="text-center py-8">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                        <div class="text-center py-12">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
-                            <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Zeiterfassungsdaten</h3>
-                            <p class="mt-1 text-sm text-gray-500">Für diesen Mitarbeiter sind keine Zeiterfassungsdaten vorhanden.</p>
-                            <p class="mt-1 text-xs text-gray-500">Zeiten können über die 123erfasst-Integration synchronisiert werden.</p>
+                            <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Zeiteinträge</h3>
+                            <p class="mt-1 text-sm text-gray-500">Es wurden noch keine Arbeitszeiten erfasst.</p>
                         </div>
                         {{end}}
                     </div>
