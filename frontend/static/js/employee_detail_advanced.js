@@ -1224,3 +1224,173 @@ function filterByDescription(searchText) {
         }
     });
 }
+
+// Fügen Sie diese Funktionen zu employee_detail_advanced.js hinzu
+
+// Fügen Sie diese Funktionen am Ende Ihrer employee_detail_advanced.js hinzu
+
+// Fügen Sie diese Funktionen am Ende Ihrer employee_detail_advanced.js hinzu
+
+// ========== 123ERFASST TIMEZONE CONVERSION FUNCTIONS ==========
+
+// Konvertiere Zeiten in der Timeentries-Tab Ansicht
+function convert123ErfasstTimesInTab() {
+    console.log('Converting 123erfasst times in tab...');
+
+    // Suche nach allen Zeiteinträgen im timeentries-tab
+    const timeEntriesTab = document.getElementById('timeentries-tab');
+    if (!timeEntriesTab) {
+        console.log('timeentries-tab not found');
+        return;
+    }
+
+    // Für Tabellen-Ansicht - Suche nach Zeilen mit data-source="123erfasst"
+    const rows = timeEntriesTab.querySelectorAll('tr[data-source="123erfasst"]');
+    console.log(`Found ${rows.length} 123erfasst entries`);
+
+    rows.forEach(row => {
+        // Hole die UTC-Zeiten aus den data-Attributen
+        const startTime = row.getAttribute('data-start-time');
+        const endTime = row.getAttribute('data-end-time');
+
+        if (startTime && endTime) {
+            console.log('Converting:', { startTime, endTime });
+
+            // Konvertiere zu deutscher Zeit
+            const displayStart = formatTimeForGermanTimezone(startTime);
+            const displayEnd = formatTimeForGermanTimezone(endTime);
+
+            console.log('Converted to:', { displayStart, displayEnd });
+
+            // Finde die Zeit-Zellen
+            const startCell = row.querySelector('.time-start');
+            const endCell = row.querySelector('.time-end');
+
+            if (startCell && endCell) {
+                // Aktualisiere die Anzeige
+                startCell.textContent = displayStart;
+                endCell.textContent = displayEnd;
+
+                // Optional: Füge Tooltip hinzu
+                startCell.title = 'Zeit konvertiert von UTC';
+                endCell.title = 'Zeit konvertiert von UTC';
+            }
+        }
+    });
+}
+
+// Hilfsfunktion für Zeitformatierung
+function formatTimeForGermanTimezone(timeString) {
+    try {
+        const date = new Date(timeString);
+
+        // Prüfe ob das Datum gültig ist
+        if (isNaN(date.getTime())) {
+            console.error('Invalid date:', timeString);
+            return '--:--';
+        }
+
+        return new Intl.DateTimeFormat('de-DE', {
+            timeZone: 'Europe/Berlin',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }).format(date);
+    } catch (error) {
+        console.error('Error formatting time:', error, timeString);
+        return '--:--';
+    }
+}
+
+// Erweitere die bestehende showTab Funktion
+const original_showTab = typeof showTab !== 'undefined' ? showTab : function() {};
+showTab = function(tabId) {
+    // Rufe die Original-Funktion auf
+    if (typeof original_showTab === 'function') {
+        original_showTab(tabId);
+    }
+
+    // Spezielle Behandlung für timeentries Tab
+    if (tabId === 'timeentries') {
+        // Warte kurz bis der Tab-Inhalt vollständig geladen ist
+        setTimeout(() => {
+            convert123ErfasstTimesInTab();
+        }, 100);
+    }
+};
+
+// Observer für dynamisch geladene Inhalte
+function observe123ErfasstTimeEntries() {
+    const timeEntriesTab = document.getElementById('timeentries-tab');
+    if (!timeEntriesTab) return;
+
+    const observer = new MutationObserver((mutations) => {
+        let shouldConvert = false;
+
+        mutations.forEach((mutation) => {
+            if (mutation.addedNodes.length > 0) {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === 1) { // Element node
+                        // Prüfe ob neue Zeiteinträge hinzugefügt wurden
+                        if (node.querySelector && (
+                            node.querySelector('[data-source="123erfasst"]') ||
+                            (node.getAttribute && node.getAttribute('data-source') === '123erfasst')
+                        )) {
+                            shouldConvert = true;
+                        }
+                    }
+                });
+            }
+        });
+
+        if (shouldConvert) {
+            setTimeout(() => {
+                convert123ErfasstTimesInTab();
+            }, 100);
+        }
+    });
+
+    observer.observe(timeEntriesTab, {
+        childList: true,
+        subtree: true
+    });
+}
+
+// Initialisierung beim Laden der Seite
+document.addEventListener('DOMContentLoaded', function() {
+    // Füge 123erfasst Zeitkonvertierung hinzu
+    if (document.getElementById('timeentries-tab')) {
+        console.log('Initializing 123erfasst time conversion...');
+
+        // Konvertiere initial falls der Tab bereits sichtbar ist
+        const activeTab = document.querySelector('.tab-btn.active');
+        if (activeTab && activeTab.getAttribute('data-tab') === 'timeentries') {
+            setTimeout(() => {
+                convert123ErfasstTimesInTab();
+            }, 200);
+        }
+
+        // Starte Observer für dynamische Inhalte
+        observe123ErfasstTimeEntries();
+    }
+});
+
+// Debug-Funktion zum Testen
+function test123ErfasstConversion() {
+    const testData = [
+        { time: '2025-06-06T06:00:00.000+00:00', expected: '08:00' },
+        { time: '2025-06-06T08:00:00.000+00:00', expected: '10:00' },
+        { time: '2025-06-06T12:30:00.000+00:00', expected: '14:30' }
+    ];
+
+    console.log('Testing 123erfasst time conversion:');
+    testData.forEach(test => {
+        const result = formatTimeForGermanTimezone(test.time);
+        console.log(`UTC: ${test.time} → Berlin: ${result} (expected: ${test.expected})`);
+    });
+}
+
+// Manuelle Trigger-Funktion für Debugging
+window.convertTimeEntries = function() {
+    convert123ErfasstTimesInTab();
+};
