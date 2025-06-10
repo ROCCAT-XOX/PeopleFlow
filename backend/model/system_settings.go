@@ -1,84 +1,124 @@
-// backend/model/system_settings.go
 package model
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// SystemSettings repräsentiert die systemweiten Einstellungen
-type SystemSettings struct {
-	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	CompanyName string             `bson:"companyName" json:"companyName"`
-	Language    string             `bson:"language" json:"language"`
-	State       string             `bson:"state" json:"state"` // Bundesland für Feiertage
-	Timezone    string             `bson:"timezone" json:"timezone"`
-	CreatedAt   time.Time          `bson:"createdAt" json:"createdAt"`
-	UpdatedAt   time.Time          `bson:"updatedAt" json:"updatedAt"`
-}
-
-// GermanState repräsentiert die deutschen Bundesländer
+// GermanState definiert die deutschen Bundesländer
 type GermanState string
 
 const (
-	StateDefault               GermanState = ""
-	StateBadenWuerttemberg     GermanState = "BW" // Baden-Württemberg
-	StateBayern                GermanState = "BY" // Bayern
-	StateBerlin                GermanState = "BE" // Berlin
-	StateBrandenburg           GermanState = "BB" // Brandenburg
-	StateBremen                GermanState = "HB" // Bremen
-	StateHamburg               GermanState = "HH" // Hamburg
-	StateHessen                GermanState = "HE" // Hessen
-	StateMecklenburgVorpommern GermanState = "MV" // Mecklenburg-Vorpommern
-	StateNiedersachsen         GermanState = "NI" // Niedersachsen
-	StateNordrheinWestfalen    GermanState = "NW" // Nordrhein-Westfalen
-	StateRheinlandPfalz        GermanState = "RP" // Rheinland-Pfalz
-	StateSaarland              GermanState = "SL" // Saarland
-	StateSachsen               GermanState = "SN" // Sachsen
-	StateSachsenAnhalt         GermanState = "ST" // Sachsen-Anhalt
-	StateSchleswig             GermanState = "SH" // Schleswig-Holstein
-	StateThueringen            GermanState = "TH" // Thüringen
+	StateBadenWuerttemberg     GermanState = "baden_wuerttemberg"
+	StateBayern                GermanState = "bayern"
+	StateBerlin                GermanState = "berlin"
+	StateBrandenburg           GermanState = "brandenburg"
+	StateBremen                GermanState = "bremen"
+	StateHamburg               GermanState = "hamburg"
+	StateHessen                GermanState = "hessen"
+	StateMecklenburgVorpommern GermanState = "mecklenburg_vorpommern"
+	StateNiedersachsen         GermanState = "niedersachsen"
+	StateNordrheinWestfalen    GermanState = "nordrhein_westfalen"
+	StateRheinlandPfalz        GermanState = "rheinland_pfalz"
+	StateSaarland              GermanState = "saarland"
+	StateSachsen               GermanState = "sachsen"
+	StateSachsenAnhalt         GermanState = "sachsen_anhalt"
+	StateSchleswigHolstein     GermanState = "schleswig_holstein"
+	StateThueringen            GermanState = "thueringen"
 )
 
-// GetGermanStates gibt alle deutschen Bundesländer zurück
-func GetGermanStates() map[GermanState]string {
-	return map[GermanState]string{
-		StateBadenWuerttemberg:     "Baden-Württemberg",
-		StateBayern:                "Bayern",
-		StateBerlin:                "Berlin",
-		StateBrandenburg:           "Brandenburg",
-		StateBremen:                "Bremen",
-		StateHamburg:               "Hamburg",
-		StateHessen:                "Hessen",
-		StateMecklenburgVorpommern: "Mecklenburg-Vorpommern",
-		StateNiedersachsen:         "Niedersachsen",
-		StateNordrheinWestfalen:    "Nordrhein-Westfalen",
-		StateRheinlandPfalz:        "Rheinland-Pfalz",
-		StateSaarland:              "Saarland",
-		StateSachsen:               "Sachsen",
-		StateSachsenAnhalt:         "Sachsen-Anhalt",
-		StateSchleswig:             "Schleswig-Holstein",
-		StateThueringen:            "Thüringen",
-	}
+// SystemSettings enthält die globalen Systemeinstellungen
+type SystemSettings struct {
+	ID                  primitive.ObjectID         `bson:"_id,omitempty" json:"id"`
+	CompanyName         string                     `bson:"companyName" json:"companyName"`
+	CompanyAddress      string                     `bson:"companyAddress" json:"companyAddress"`
+	State               string                     `bson:"state" json:"state"` // German state for holiday calculation
+	DefaultWorkingHours float64                    `bson:"defaultWorkingHours" json:"defaultWorkingHours"`
+	DefaultVacationDays int                        `bson:"defaultVacationDays" json:"defaultVacationDays"`
+	EmailNotifications  *EmailNotificationSettings `bson:"emailNotifications,omitempty" json:"emailNotifications,omitempty"`
+	CreatedAt           time.Time                  `bson:"createdAt" json:"createdAt"`
+	UpdatedAt           time.Time                  `bson:"updatedAt" json:"updatedAt"`
 }
 
-// GetDisplayName gibt den deutschen Namen des Bundeslandes zurück
-func (s GermanState) GetDisplayName() string {
-	states := GetGermanStates()
-	if name, exists := states[s]; exists {
-		return name
-	}
-	return string(s)
-}
-
-// DefaultSystemSettings gibt die Standard-Systemeinstellungen zurück
+// DefaultSystemSettings erstellt Standardeinstellungen
 func DefaultSystemSettings() *SystemSettings {
 	return &SystemSettings{
-		CompanyName: "PeopleFlow GmbH",
-		Language:    "de",
-		State:       string(StateNordrheinWestfalen), // NRW als Standard
-		Timezone:    "Europe/Berlin",
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		State:               string(StateNordrheinWestfalen),
+		DefaultWorkingHours: 40,
+		DefaultVacationDays: 30,
+		CreatedAt:           time.Now(),
+		UpdatedAt:           time.Now(),
 	}
+}
+
+// IsValid prüft, ob die GermanState gültig ist
+func (gs GermanState) IsValid() bool {
+	switch gs {
+	case StateBadenWuerttemberg, StateBayern, StateBerlin, StateBrandenburg,
+		StateBremen, StateHamburg, StateHessen, StateMecklenburgVorpommern,
+		StateNiedersachsen, StateNordrheinWestfalen, StateRheinlandPfalz,
+		StateSaarland, StateSachsen, StateSachsenAnhalt, StateSchleswigHolstein,
+		StateThueringen:
+		return true
+	default:
+		return false
+	}
+}
+
+// GetLabel gibt das benutzerfreundliche Label für das Bundesland zurück
+func (gs GermanState) GetLabel() string {
+	switch gs {
+	case StateBadenWuerttemberg:
+		return "Baden-Württemberg"
+	case StateBayern:
+		return "Bayern"
+	case StateBerlin:
+		return "Berlin"
+	case StateBrandenburg:
+		return "Brandenburg"
+	case StateBremen:
+		return "Bremen"
+	case StateHamburg:
+		return "Hamburg"
+	case StateHessen:
+		return "Hessen"
+	case StateMecklenburgVorpommern:
+		return "Mecklenburg-Vorpommern"
+	case StateNiedersachsen:
+		return "Niedersachsen"
+	case StateNordrheinWestfalen:
+		return "Nordrhein-Westfalen"
+	case StateRheinlandPfalz:
+		return "Rheinland-Pfalz"
+	case StateSaarland:
+		return "Saarland"
+	case StateSachsen:
+		return "Sachsen"
+	case StateSachsenAnhalt:
+		return "Sachsen-Anhalt"
+	case StateSchleswigHolstein:
+		return "Schleswig-Holstein"
+	case StateThueringen:
+		return "Thüringen"
+	default:
+		return string(gs)
+	}
+}
+
+// HasEmailNotifications prüft, ob E-Mail-Benachrichtigungen konfiguriert sind
+func (ss *SystemSettings) HasEmailNotifications() bool {
+	return ss.EmailNotifications != nil && ss.EmailNotifications.Enabled
+}
+
+// IsEmailConfigured prüft, ob die E-Mail-Konfiguration vollständig ist
+func (ss *SystemSettings) IsEmailConfigured() bool {
+	if !ss.HasEmailNotifications() {
+		return false
+	}
+
+	en := ss.EmailNotifications
+	return en.SMTPHost != "" && en.SMTPPort > 0 &&
+		en.SMTPUser != "" && en.SMTPPass != "" &&
+		en.FromEmail != "" && en.FromName != ""
 }
