@@ -1,31 +1,30 @@
+// backend/model/overtime_adjustment_type.go
 package model
 
 import (
-	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// OvertimeAdjustmentType repräsentiert den Typ einer Überstunden-Anpassung
+// OvertimeAdjustmentType definiert die Art der Überstunden-Anpassung
 type OvertimeAdjustmentType string
 
 const (
-	OvertimeAdjustmentTypeCorrection OvertimeAdjustmentType = "correction" // Korrektur
-	OvertimeAdjustmentTypeManual     OvertimeAdjustmentType = "manual"     // Manuelle Anpassung
-	OvertimeAdjustmentTypeBonus      OvertimeAdjustmentType = "bonus"      // Bonus/Ausgleich
-	OvertimeAdjustmentTypePenalty    OvertimeAdjustmentType = "penalty"    // Abzug
+	OvertimeAdjustmentTypeManual     OvertimeAdjustmentType = "manual"
+	OvertimeAdjustmentTypeCorrection OvertimeAdjustmentType = "correction"
+	OvertimeAdjustmentTypeCarryOver  OvertimeAdjustmentType = "carryover"
+	OvertimeAdjustmentTypePayout     OvertimeAdjustmentType = "payout"
 )
 
-// OvertimeAdjustment repräsentiert eine manuelle Überstunden-Anpassung
+// OvertimeAdjustment repräsentiert eine manuelle Anpassung der Überstunden
 type OvertimeAdjustment struct {
 	ID           primitive.ObjectID     `bson:"_id,omitempty" json:"id"`
 	EmployeeID   primitive.ObjectID     `bson:"employeeId" json:"employeeId"`
 	Type         OvertimeAdjustmentType `bson:"type" json:"type"`
-	Hours        float64                `bson:"hours" json:"hours"`             // Kann positiv oder negativ sein
-	Reason       string                 `bson:"reason" json:"reason"`           // Kurze Begründung
-	Description  string                 `bson:"description" json:"description"` // Detaillierte Beschreibung
-	Status       string                 `bson:"status" json:"status"`           // pending, approved, rejected
+	Hours        float64                `bson:"hours" json:"hours"`
+	Reason       string                 `bson:"reason" json:"reason"`
+	Status       string                 `bson:"status" json:"status"` // pending, approved, rejected
 	AdjustedBy   primitive.ObjectID     `bson:"adjustedBy" json:"adjustedBy"`
 	AdjusterName string                 `bson:"adjusterName" json:"adjusterName"`
 	ApprovedBy   primitive.ObjectID     `bson:"approvedBy,omitempty" json:"approvedBy,omitempty"`
@@ -35,40 +34,44 @@ type OvertimeAdjustment struct {
 	UpdatedAt    time.Time              `bson:"updatedAt" json:"updatedAt"`
 }
 
-// FormatHours formatiert die Stunden zur Anzeige
-func (oa *OvertimeAdjustment) FormatHours() string {
-	if oa.Hours >= 0 {
-		return fmt.Sprintf("+%.1f Std", oa.Hours)
+// IsValid prüft, ob der OvertimeAdjustmentType gültig ist
+func (oat OvertimeAdjustmentType) IsValid() bool {
+	switch oat {
+	case OvertimeAdjustmentTypeManual, OvertimeAdjustmentTypeCorrection,
+		OvertimeAdjustmentTypeCarryOver, OvertimeAdjustmentTypePayout:
+		return true
+	default:
+		return false
 	}
-	return fmt.Sprintf("%.1f Std", oa.Hours)
 }
 
-// GetTypeDisplayName gibt den deutschen Anzeigenamen für den Anpassungstyp zurück
-func (oa *OvertimeAdjustment) GetTypeDisplayName() string {
-	switch oa.Type {
-	case OvertimeAdjustmentTypeCorrection:
-		return "Korrektur"
+// GetLabel gibt ein benutzerfreundliches Label zurück
+func (oat OvertimeAdjustmentType) GetLabel() string {
+	switch oat {
 	case OvertimeAdjustmentTypeManual:
 		return "Manuelle Anpassung"
-	case OvertimeAdjustmentTypeBonus:
-		return "Bonus/Ausgleich"
-	case OvertimeAdjustmentTypePenalty:
-		return "Abzug"
+	case OvertimeAdjustmentTypeCorrection:
+		return "Korrektur"
+	case OvertimeAdjustmentTypeCarryOver:
+		return "Übertrag"
+	case OvertimeAdjustmentTypePayout:
+		return "Auszahlung"
 	default:
-		return string(oa.Type)
+		return string(oat)
 	}
 }
 
-// GetStatusDisplayName gibt den deutschen Anzeigenamen für den Status zurück
-func (oa *OvertimeAdjustment) GetStatusDisplayName() string {
-	switch oa.Status {
-	case "pending":
-		return "Ausstehend"
-	case "approved":
-		return "Genehmigt"
-	case "rejected":
-		return "Abgelehnt"
-	default:
-		return oa.Status
-	}
+// IsApproved prüft, ob die Anpassung genehmigt wurde
+func (oa *OvertimeAdjustment) IsApproved() bool {
+	return oa.Status == "approved"
+}
+
+// IsPending prüft, ob die Anpassung noch aussteht
+func (oa *OvertimeAdjustment) IsPending() bool {
+	return oa.Status == "pending"
+}
+
+// IsRejected prüft, ob die Anpassung abgelehnt wurde
+func (oa *OvertimeAdjustment) IsRejected() bool {
+	return oa.Status == "rejected"
 }
