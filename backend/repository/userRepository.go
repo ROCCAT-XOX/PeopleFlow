@@ -264,7 +264,6 @@ func (r *UserRepository) Delete(id string) error {
 	return r.UpdateByID(id, update)
 }
 
-// FindByRole findet alle Benutzer mit einer bestimmten Rolle
 func (r *UserRepository) FindByRole(role model.UserRole) ([]*model.User, error) {
 	var users []*model.User
 
@@ -273,7 +272,7 @@ func (r *UserRepository) FindByRole(role model.UserRole) ([]*model.User, error) 
 		"status": model.StatusActive,
 	}
 
-	err := r.FindAll(filter, &users)
+	err := r.BaseRepository.FindAll(filter, &users, options.Find().SetSort(bson.M{"createdAt": -1}))
 	if err != nil {
 		return nil, err
 	}

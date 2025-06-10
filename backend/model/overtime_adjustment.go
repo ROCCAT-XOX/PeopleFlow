@@ -1,4 +1,4 @@
-// backend/model/overtime_adjustment_type.go
+// backend/model/overtime_adjustment.go
 package model
 
 import (

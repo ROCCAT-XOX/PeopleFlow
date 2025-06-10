@@ -1,11 +1,9 @@
-// backend/repository/employee_repository_improved.go
+// backend/repository/employeeRepository.go
 package repository
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"strings"
 	"time"
 
@@ -15,21 +13,16 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // EmployeeRepository errors
 var (
-	ErrEmployeeNotFound     = errors.New("employee not found")
-	ErrEmployeeNumberTaken  = errors.New("employee number already taken")
-	ErrInvalidEmployeeData  = errors.New("invalid employee data")
-	ErrInvalidContractType  = errors.New("invalid contract type")
-	ErrInvalidWeeklyHours   = errors.New("weekly hours must be between 0 and 60")
-	ErrInvalidVacationDays  = errors.New("vacation days must be non-negative")
-	ErrInvalidOvertimeData  = errors.New("invalid overtime data")
-	ErrEmployeeEmailTaken   = errors.New("employee email already taken")
-	ErrInsufficientVacation = errors.New("insufficient vacation days")
-	ErrExcessiveVacation    = errors.New("vacation days exceed limit")
-	ErrOvertimeOutOfBounds  = errors.New("overtime balance out of allowed bounds")
+	ErrEmployeeNotFound    = errors.New("employee not found")
+	ErrEmployeeIDTaken     = errors.New("employee ID already taken")
+	ErrInvalidEmployeeData = errors.New("invalid employee data")
+	ErrInvalidVacationDays = errors.New("vacation days must be non-negative")
+	ErrInvalidOvertimeData = errors.New("invalid overtime data")
 )
 
 // EmployeeRepository enthält alle Datenbankoperationen für das Employee-Modell
@@ -37,43 +30,20 @@ type EmployeeRepository struct {
 	*BaseRepository
 	collection *mongo.Collection
 	userRepo   *UserRepository
-	logger     *slog.Logger
 }
 
 // NewEmployeeRepository erstellt ein neues EmployeeRepository
 func NewEmployeeRepository() *EmployeeRepository {
 	collection := db.GetCollection("employees")
-	baseRepo := NewBaseRepository(collection)
-
-	repo := &EmployeeRepository{
-		BaseRepository: baseRepo,
+	return &EmployeeRepository{
+		BaseRepository: NewBaseRepository(collection),
 		collection:     collection,
 		userRepo:       NewUserRepository(),
-		logger:         slog.Default().With("repository", "employee"),
 	}
-
-	return repo
 }
 
-// WithContext creates a new repository instance with context logger
-func (r *EmployeeRepository) WithContext(ctx context.Context) *EmployeeRepository {
-	logger := r.logger
-	if reqID, ok := ctx.Value("requestID").(string); ok {
-		logger = logger.With("requestID", reqID)
-	}
-	if userID, ok := ctx.Value("userID").(string); ok {
-		logger = logger.With("userID", userID)
-	}
-
-	newRepo := *r
-	newRepo.logger = logger
-	return &newRepo
-}
-
-// ValidateEmployee validates employee data comprehensively
+// ValidateEmployee validates employee data
 func (r *EmployeeRepository) ValidateEmployee(employee *model.Employee, isUpdate bool) error {
-	r.logger.Debug("Validating employee", "isUpdate", isUpdate)
-
 	// Basic field validation for new employees
 	if !isUpdate {
 		if strings.TrimSpace(employee.FirstName) == "" {
@@ -82,39 +52,28 @@ func (r *EmployeeRepository) ValidateEmployee(employee *model.Employee, isUpdate
 		if strings.TrimSpace(employee.LastName) == "" {
 			return fmt.Errorf("%w: last name cannot be empty", ErrInvalidEmployeeData)
 		}
-		if strings.TrimSpace(employee.EmployeeNumber) == "" {
-			return fmt.Errorf("%w: employee number cannot be empty", ErrInvalidEmployeeData)
-		}
-		// Validate employee number format (example: EMP001)
-		if !isValidEmployeeNumber(employee.EmployeeNumber) {
-			return fmt.Errorf("%w: employee number must match pattern EMP[0-9]+", ErrInvalidEmployeeData)
+		if strings.TrimSpace(employee.EmployeeID) == "" {
+			return fmt.Errorf("%w: employee ID cannot be empty", ErrInvalidEmployeeData)
 		}
 	}
 
 	// Email validation if provided
-	if employee.Email != "" && !isValidEmail(employee.Email) {
+	if employee.Email != "" && !strings.Contains(employee.Email, "@") {
 		return fmt.Errorf("%w: invalid email format", ErrInvalidEmployeeData)
 	}
 
-	// Contract type validation
-	if employee.ContractType != "" {
-		if !employee.ContractType.IsValid() {
-			return fmt.Errorf("%w: %s", ErrInvalidContractType, employee.ContractType)
-		}
-	}
-
-	// Weekly hours validation
-	if employee.WeeklyHours < 0 || employee.WeeklyHours > 60 {
-		return ErrInvalidWeeklyHours
+	// Working hours validation
+	if employee.WorkingHoursPerWeek < 0 || employee.WorkingHoursPerWeek > 60 {
+		return fmt.Errorf("%w: working hours must be between 0 and 60", ErrInvalidEmployeeData)
 	}
 
 	// Vacation days validation
-	if employee.VacationDaysPerYear < 0 || employee.VacationDaysPerYear > 365 {
+	if employee.VacationDays < 0 || employee.VacationDays > 365 {
 		return fmt.Errorf("%w: must be between 0 and 365", ErrInvalidVacationDays)
 	}
 
-	if employee.VacationDaysRemaining < 0 {
-		return fmt.Errorf("%w: remaining days cannot be negative", ErrInvalidVacationDays)
+	if employee.RemainingVacation < 0 {
+		return fmt.Errorf("%w: remaining vacation cannot be negative", ErrInvalidVacationDays)
 	}
 
 	// Overtime balance validation
@@ -122,66 +81,40 @@ func (r *EmployeeRepository) ValidateEmployee(employee *model.Employee, isUpdate
 		return fmt.Errorf("%w: overtime balance must be between -200 and 200 hours", ErrInvalidOvertimeData)
 	}
 
-	// Start date validation
-	if !isUpdate && !employee.StartDate.IsZero() && employee.StartDate.After(time.Now().AddDate(1, 0, 0)) {
-		return fmt.Errorf("%w: start date cannot be more than 1 year in the future", ErrInvalidEmployeeData)
-	}
-
-	r.logger.Debug("Employee validation passed")
 	return nil
 }
 
-// Create erstellt einen neuen Mitarbeiter mit umfassender Validierung und Transaktion
+// Create erstellt einen neuen Mitarbeiter mit Validierung und Transaktion
 func (r *EmployeeRepository) Create(employee *model.Employee) error {
-	startTime := time.Now()
-	r.logger.Info("Creating new employee", "employeeNumber", employee.EmployeeNumber)
-
 	// Validate employee data
 	if err := r.ValidateEmployee(employee, false); err != nil {
-		r.logger.Error("Employee validation failed", "error", err)
 		return err
 	}
 
-	// Check if employee number already exists
-	exists, err := r.EmployeeNumberExists(employee.EmployeeNumber)
+	// Check if employee ID already exists
+	exists, err := r.EmployeeIDExists(employee.EmployeeID)
 	if err != nil {
-		r.logger.Error("Failed to check employee number existence", "error", err)
-		return fmt.Errorf("failed to check employee number: %w", err)
+		return fmt.Errorf("failed to check employee ID: %w", err)
 	}
 	if exists {
-		r.logger.Info("Employee number already taken", "employeeNumber", employee.EmployeeNumber)
-		return ErrEmployeeNumberTaken
-	}
-
-	// Check if email already exists (if provided)
-	if employee.Email != "" {
-		emailExists, err := r.EmailExists(employee.Email)
-		if err != nil {
-			r.logger.Error("Failed to check email existence", "error", err)
-			return fmt.Errorf("failed to check email: %w", err)
-		}
-		if emailExists {
-			r.logger.Info("Employee email already taken", "email", employee.Email)
-			return ErrEmployeeEmailTaken
-		}
+		return ErrEmployeeIDTaken
 	}
 
 	// Use transaction to create employee and user atomically
-	err = r.Transaction(func(sessCtx mongo.SessionContext) error {
+	return r.Transaction(func(sessCtx mongo.SessionContext) error {
 		// Set timestamps
 		now := time.Now()
 		employee.CreatedAt = now
 		employee.UpdatedAt = now
-		employee.Active = true
 
-		// Set default values
-		if employee.VacationDaysRemaining == 0 && employee.VacationDaysPerYear > 0 {
-			employee.VacationDaysRemaining = employee.VacationDaysPerYear
+		// Set default status if not provided
+		if employee.Status == "" {
+			employee.Status = model.EmployeeStatusActive
 		}
 
-		// Set default working hours if not specified
-		if employee.WeeklyHours == 0 {
-			employee.WeeklyHours = 40 // Default full-time
+		// Set default values
+		if employee.RemainingVacation == 0 && employee.VacationDays > 0 {
+			employee.RemainingVacation = employee.VacationDays
 		}
 
 		// Initialize empty slices to avoid nil
@@ -194,18 +127,41 @@ func (r *EmployeeRepository) Create(employee *model.Employee) error {
 		if employee.TimeEntries == nil {
 			employee.TimeEntries = []model.TimeEntry{}
 		}
+		if employee.WeeklyTimeEntries == nil {
+			employee.WeeklyTimeEntries = []model.WeeklyTimeEntry{}
+		}
+		if employee.OvertimeAdjustments == nil {
+			employee.OvertimeAdjustments = []model.OvertimeAdjustment{}
+		}
+		if employee.ApplicationDocuments == nil {
+			employee.ApplicationDocuments = []model.Document{}
+		}
+		if employee.Trainings == nil {
+			employee.Trainings = []model.Training{}
+		}
+		if employee.Evaluations == nil {
+			employee.Evaluations = []model.Evaluation{}
+		}
+		if employee.DevelopmentPlan == nil {
+			employee.DevelopmentPlan = []model.DevelopmentItem{}
+		}
+		if employee.Conversations == nil {
+			employee.Conversations = []model.Conversation{}
+		}
+		if employee.ProjectAssignments == nil {
+			employee.ProjectAssignments = []model.ProjectAssignment{}
+		}
 
 		// Insert employee
 		result, err := r.collection.InsertOne(sessCtx, employee)
 		if err != nil {
 			if mongo.IsDuplicateKeyError(err) {
-				return ErrEmployeeNumberTaken
+				return ErrEmployeeIDTaken
 			}
 			return fmt.Errorf("failed to insert employee: %w", err)
 		}
 
 		employee.ID = result.InsertedID.(primitive.ObjectID)
-		r.logger.Debug("Employee document inserted", "id", employee.ID.Hex())
 
 		// Create corresponding user if email is provided
 		if employee.Email != "" {
@@ -216,7 +172,7 @@ func (r *EmployeeRepository) Create(employee *model.Employee) error {
 				Role:       model.RoleEmployee,
 				Status:     model.StatusActive,
 				EmployeeID: employee.ID,
-				Password:   generateTemporaryPassword(), // Generate secure temporary password
+				Password:   "changeme123", // Temporary password
 				CreatedAt:  now,
 				UpdatedAt:  now,
 			}
@@ -233,192 +189,491 @@ func (r *EmployeeRepository) Create(employee *model.Employee) error {
 				}
 				return fmt.Errorf("failed to create user: %w", err)
 			}
-
-			r.logger.Debug("User account created for employee", "email", employee.Email)
 		}
 
 		return nil
 	})
-
-	if err != nil {
-		r.logger.Error("Failed to create employee", "error", err, "duration", time.Since(startTime))
-		return err
-	}
-
-	r.logger.Info("Employee created successfully",
-		"id", employee.ID.Hex(),
-		"employeeNumber", employee.EmployeeNumber,
-		"duration", time.Since(startTime))
-
-	return nil
 }
 
-// Update aktualisiert einen Mitarbeiter mit umfassender Validierung
-func (r *EmployeeRepository) Update(employee *model.Employee) error {
-	startTime := time.Now()
-	r.logger.Info("Updating employee", "id", employee.ID.Hex())
+// FindByID findet einen Mitarbeiter anhand seiner MongoDB ID
+func (r *EmployeeRepository) FindByID(id string) (*model.Employee, error) {
+	var employee model.Employee
+	err := r.BaseRepository.FindByID(id, &employee)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrEmployeeNotFound
+		}
+		return nil, err
+	}
+	return &employee, nil
+}
 
+// FindByEmployeeID findet einen Mitarbeiter anhand seiner Employee ID
+func (r *EmployeeRepository) FindByEmployeeID(employeeID string) (*model.Employee, error) {
+	employeeID = strings.TrimSpace(employeeID)
+	if employeeID == "" {
+		return nil, fmt.Errorf("%w: employee ID cannot be empty", ErrInvalidEmployeeData)
+	}
+
+	var employee model.Employee
+	err := r.FindOne(bson.M{"employeeId": employeeID}, &employee)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrEmployeeNotFound
+		}
+		return nil, err
+	}
+
+	return &employee, nil
+}
+
+// FindAll findet alle aktiven Mitarbeiter mit Pagination und Sortierung
+func (r *EmployeeRepository) FindAll(skip, limit int64, sortBy string, sortOrder int) ([]*model.Employee, int64, error) {
+	var employees []*model.Employee
+
+	// Build sort options
+	sortOptions := bson.M{"lastName": 1} // Default sort
+	if sortBy != "" {
+		sortOptions = bson.M{sortBy: sortOrder}
+	}
+
+	// Set up options
+	findOptions := options.Find().
+		SetSkip(skip).
+		SetLimit(limit).
+		SetSort(sortOptions)
+
+	// Only find active employees by default
+	filter := bson.M{"status": model.EmployeeStatusActive}
+
+	err := r.BaseRepository.FindAll(filter, &employees, findOptions)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Get total count
+	total, err := r.Count(filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return employees, total, nil
+}
+
+// Update aktualisiert einen Mitarbeiter mit Validierung
+func (r *EmployeeRepository) Update(employee *model.Employee) error {
 	// Validate employee data
 	if err := r.ValidateEmployee(employee, true); err != nil {
-		r.logger.Error("Employee validation failed", "error", err)
 		return err
 	}
 
-	// Use transaction for consistency
-	err := r.Transaction(func(sessCtx mongo.SessionContext) error {
-		// Get current employee data first
-		var currentEmployee model.Employee
-		err := r.collection.FindOne(sessCtx, bson.M{"_id": employee.ID}).Decode(&currentEmployee)
+	// Check if employee ID is taken by another employee
+	if employee.EmployeeID != "" {
+		var existing model.Employee
+		err := r.FindOne(bson.M{
+			"employeeId": employee.EmployeeID,
+			"_id":        bson.M{"$ne": employee.ID},
+		}, &existing)
+
+		if err == nil {
+			return ErrEmployeeIDTaken
+		} else if !errors.Is(err, ErrNotFound) {
+			return fmt.Errorf("failed to check employee ID: %w", err)
+		}
+	}
+
+	employee.UpdatedAt = time.Now()
+
+	// Build update document dynamically
+	updateDoc := bson.M{
+		"$set": bson.M{
+			"updatedAt": employee.UpdatedAt,
+		},
+	}
+	setFields := updateDoc["$set"].(bson.M)
+
+	// Only update non-zero fields
+	if employee.FirstName != "" {
+		setFields["firstName"] = employee.FirstName
+	}
+	if employee.LastName != "" {
+		setFields["lastName"] = employee.LastName
+	}
+	if employee.Email != "" {
+		setFields["email"] = employee.Email
+	}
+	if employee.Department != "" {
+		setFields["department"] = employee.Department
+	}
+	if employee.Position != "" {
+		setFields["position"] = employee.Position
+	}
+	if employee.WorkingHoursPerWeek > 0 {
+		setFields["workingHoursPerWeek"] = employee.WorkingHoursPerWeek
+	}
+	if employee.VacationDays >= 0 {
+		setFields["vacationDays"] = employee.VacationDays
+	}
+	if employee.RemainingVacation >= 0 {
+		setFields["remainingVacation"] = employee.RemainingVacation
+	}
+
+	return r.UpdateByID(employee.ID.Hex(), updateDoc)
+}
+
+// UpdateOvertimeBalance aktualisiert den Überstundensaldo eines Mitarbeiters
+func (r *EmployeeRepository) UpdateOvertimeBalance(employeeID string, hours float64, reason string) error {
+	// Validate input
+	objID, err := r.ValidateObjectID(employeeID)
+	if err != nil {
+		return err
+	}
+
+	// Use transaction for atomic update
+	return r.Transaction(func(sessCtx mongo.SessionContext) error {
+		// Get current employee data
+		var employee model.Employee
+		err := r.collection.FindOne(sessCtx, bson.M{"_id": objID}).Decode(&employee)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				return ErrEmployeeNotFound
 			}
-			return fmt.Errorf("failed to find current employee: %w", err)
+			return err
 		}
 
-		// Check if employee number is being changed and is taken by another employee
-		if employee.EmployeeNumber != "" && employee.EmployeeNumber != currentEmployee.EmployeeNumber {
-			var existing model.Employee
-			err := r.collection.FindOne(sessCtx, bson.M{
-				"employeeNumber": employee.EmployeeNumber,
-				"_id":            bson.M{"$ne": employee.ID},
-			}).Decode(&existing)
-
-			if err == nil {
-				return ErrEmployeeNumberTaken
-			} else if err != mongo.ErrNoDocuments {
-				return fmt.Errorf("failed to check employee number: %w", err)
-			}
+		// Calculate new balance
+		newBalance := employee.OvertimeBalance + hours
+		if newBalance < -200 || newBalance > 200 {
+			return fmt.Errorf("%w: resulting balance would be %.2f hours", ErrInvalidOvertimeData, newBalance)
 		}
 
-		// Check if email is being changed
-		if employee.Email != "" && employee.Email != currentEmployee.Email {
-			var existing model.Employee
-			err := r.collection.FindOne(sessCtx, bson.M{
-				"email": employee.Email,
-				"_id":   bson.M{"$ne": employee.ID},
-			}).Decode(&existing)
-
-			if err == nil {
-				return ErrEmployeeEmailTaken
-			} else if err != mongo.ErrNoDocuments {
-				return fmt.Errorf("failed to check email: %w", err)
-			}
-		}
-
-		employee.UpdatedAt = time.Now()
-
-		// Build update document dynamically
-		updateDoc := bson.M{
+		// Update balance
+		update := bson.M{
 			"$set": bson.M{
-				"updatedAt": employee.UpdatedAt,
+				"overtimeBalance":    newBalance,
+				"lastTimeCalculated": time.Now(),
+				"updatedAt":          time.Now(),
 			},
 		}
-		setFields := updateDoc["$set"].(bson.M)
 
-		// Only update non-zero fields
-		updateFields := map[string]interface{}{
-			"firstName":             employee.FirstName,
-			"lastName":              employee.LastName,
-			"email":                 employee.Email,
-			"employeeNumber":        employee.EmployeeID,
-			"department":            employee.Department,
-			"position":              employee.Position,
-			"contractType":          employee.ContractType,
-			"weeklyHours":           employee.WeeklyHours,
-			"vacationDaysPerYear":   employee.VacationDaysPerYear,
-			"vacationDaysRemaining": employee.VacationDaysRemaining,
-			"overtimeBalance":       employee.OvertimeBalance,
-		}
+		_, err = r.collection.UpdateOne(sessCtx, bson.M{"_id": objID}, update)
+		return err
+	})
+}
 
-		for field, value := range updateFields {
-			// Check if value is not zero value
-			if !isZeroValue(value) {
-				setFields[field] = value
-			}
-		}
+// UpdateVacationDays aktualisiert die verbleibenden Urlaubstage
+func (r *EmployeeRepository) UpdateVacationDays(employeeID string, days int, reason string) error {
+	// Validate input
+	objID, err := r.ValidateObjectID(employeeID)
+	if err != nil {
+		return err
+	}
 
-		result, err := r.collection.UpdateOne(sessCtx, bson.M{"_id": employee.ID}, updateDoc)
+	return r.Transaction(func(sessCtx mongo.SessionContext) error {
+		// Get current employee data
+		var employee model.Employee
+		err := r.collection.FindOne(sessCtx, bson.M{"_id": objID}).Decode(&employee)
 		if err != nil {
-			return fmt.Errorf("failed to update employee: %w", err)
+			if err == mongo.ErrNoDocuments {
+				return ErrEmployeeNotFound
+			}
+			return err
+		}
+
+		// Calculate new vacation days
+		newDays := employee.RemainingVacation + days
+		if newDays < 0 {
+			return fmt.Errorf("%w: insufficient vacation days (available: %d)", ErrInvalidVacationDays, employee.RemainingVacation)
+		}
+		if newDays > employee.VacationDays*2 {
+			return fmt.Errorf("%w: cannot exceed twice the annual allowance", ErrInvalidVacationDays)
+		}
+
+		// Update vacation days
+		update := bson.M{
+			"$set": bson.M{
+				"remainingVacation": newDays,
+				"updatedAt":         time.Now(),
+			},
+		}
+
+		_, err = r.collection.UpdateOne(sessCtx, bson.M{"_id": objID}, update)
+		return err
+	})
+}
+
+// Delete performs a soft delete on an employee
+func (r *EmployeeRepository) Delete(id string) error {
+	objID, err := r.ValidateObjectID(id)
+	if err != nil {
+		return err
+	}
+
+	// Use transaction to deactivate employee and associated user
+	return r.Transaction(func(sessCtx mongo.SessionContext) error {
+		// Update employee status to inactive
+		update := bson.M{
+			"$set": bson.M{
+				"status":    model.EmployeeStatusInactive,
+				"updatedAt": time.Now(),
+			},
+		}
+
+		result, err := r.collection.UpdateOne(sessCtx, bson.M{"_id": objID}, update)
+		if err != nil {
+			return err
 		}
 
 		if result.MatchedCount == 0 {
 			return ErrEmployeeNotFound
 		}
 
-		// Update user if email changed
-		if employee.Email != "" && employee.Email != currentEmployee.Email {
-			userCollection := db.GetCollection("users")
-			_, err = userCollection.UpdateOne(
-				sessCtx,
-				bson.M{"employeeId": employee.ID},
-				bson.M{
-					"$set": bson.M{
-						"email":     employee.Email,
-						"firstName": employee.FirstName,
-						"lastName":  employee.LastName,
-						"updatedAt": time.Now(),
-					},
+		// Also deactivate associated user
+		userCollection := db.GetCollection("users")
+		_, err = userCollection.UpdateOne(
+			sessCtx,
+			bson.M{"employeeId": objID},
+			bson.M{
+				"$set": bson.M{
+					"status":    model.StatusInactive,
+					"updatedAt": time.Now(),
 				},
-			)
-			if err != nil && err != mongo.ErrNoDocuments {
-				return fmt.Errorf("failed to update user: %w", err)
-			}
-		}
+			},
+		)
 
-		return nil
-	})
-
-	if err != nil {
-		r.logger.Error("Failed to update employee", "error", err, "duration", time.Since(startTime))
 		return err
+	})
+}
+
+// GetEmployeesByDepartment findet alle Mitarbeiter einer Abteilung
+func (r *EmployeeRepository) GetEmployeesByDepartment(department string) ([]*model.Employee, error) {
+	var employees []*model.Employee
+
+	filter := bson.M{
+		"department": department,
+		"status":     model.EmployeeStatusActive,
 	}
 
-	r.logger.Info("Employee updated successfully",
-		"id", employee.ID.Hex(),
-		"duration", time.Since(startTime))
+	err := r.BaseRepository.FindAll(filter, &employees, options.Find().SetSort(bson.M{"lastName": 1}))
+	if err != nil {
+		return nil, err
+	}
+
+	return employees, nil
+}
+
+// EmployeeIDExists prüft, ob eine Employee ID bereits existiert
+func (r *EmployeeRepository) EmployeeIDExists(employeeID string) (bool, error) {
+	employeeID = strings.TrimSpace(employeeID)
+	if employeeID == "" {
+		return false, fmt.Errorf("%w: employee ID cannot be empty", ErrInvalidEmployeeData)
+	}
+
+	return r.Exists(bson.M{"employeeId": employeeID})
+}
+
+// GetEmployeesWithLowVacationDays findet Mitarbeiter mit wenigen verbleibenden Urlaubstagen
+func (r *EmployeeRepository) GetEmployeesWithLowVacationDays(threshold int) ([]*model.Employee, error) {
+	var employees []*model.Employee
+
+	filter := bson.M{
+		"status":            model.EmployeeStatusActive,
+		"remainingVacation": bson.M{"$lte": threshold},
+	}
+
+	err := r.BaseRepository.FindAll(filter, &employees, options.Find().SetSort(bson.M{"remainingVacation": 1}))
+	if err != nil {
+		return nil, err
+	}
+
+	return employees, nil
+}
+
+// GetEmployeesWithHighOvertime findet Mitarbeiter mit hohen Überstunden
+func (r *EmployeeRepository) GetEmployeesWithHighOvertime(threshold float64) ([]*model.Employee, error) {
+	var employees []*model.Employee
+
+	filter := bson.M{
+		"status":          model.EmployeeStatusActive,
+		"overtimeBalance": bson.M{"$gte": threshold},
+	}
+
+	err := r.BaseRepository.FindAll(filter, &employees, options.Find().SetSort(bson.M{"overtimeBalance": -1}))
+	if err != nil {
+		return nil, err
+	}
+
+	return employees, nil
+}
+
+// CreateIndexes erstellt erforderliche Indizes
+func (r *EmployeeRepository) CreateIndexes() error {
+	// Unique index on employee ID
+	if err := r.CreateIndex(bson.M{"employeeId": 1}, true); err != nil {
+		return fmt.Errorf("failed to create employeeId index: %w", err)
+	}
+
+	// Index on status for queries
+	if err := r.CreateIndex(bson.M{"status": 1}, false); err != nil {
+		return fmt.Errorf("failed to create status index: %w", err)
+	}
+
+	// Compound index for department queries
+	if err := r.CreateIndex(bson.M{"department": 1, "status": 1}, false); err != nil {
+		return fmt.Errorf("failed to create department index: %w", err)
+	}
+
+	// Index on email for lookups
+	if err := r.CreateIndex(bson.M{"email": 1}, false); err != nil {
+		return fmt.Errorf("failed to create email index: %w", err)
+	}
+
+	// Index for sorting by name
+	if err := r.CreateIndex(bson.M{"lastName": 1, "firstName": 1}, false); err != nil {
+		return fmt.Errorf("failed to create name index: %w", err)
+	}
 
 	return nil
 }
 
-// Helper functions
-func isValidEmployeeNumber(number string) bool {
-	// Simple pattern matching for employee number (customize as needed)
-	return strings.HasPrefix(strings.ToUpper(number), "EMP") && len(number) >= 6
-}
+// FindManagers findet alle Mitarbeiter mit Führungsposition
+func (r *EmployeeRepository) FindManagers() ([]*model.Employee, error) {
+	var employees []*model.Employee
 
-func isValidEmail(email string) bool {
-	// Simple email validation
-	parts := strings.Split(email, "@")
-	if len(parts) != 2 {
-		return false
+	// Filter für Mitarbeiter mit Führungspositionen
+	filter := bson.M{
+		"status": model.EmployeeStatusActive,
+		"$or": []bson.M{
+			{"position": bson.M{"$regex": "Manager", "$options": "i"}},
+			{"position": bson.M{"$regex": "Lead", "$options": "i"}},
+			{"position": bson.M{"$regex": "Head", "$options": "i"}},
+			{"position": bson.M{"$regex": "Director", "$options": "i"}},
+			{"position": bson.M{"$regex": "Chief", "$options": "i"}},
+		},
 	}
-	return len(parts[0]) > 0 && strings.Contains(parts[1], ".")
-}
 
-func generateTemporaryPassword() string {
-	// Generate a secure temporary password
-	return fmt.Sprintf("Welcome@%d", time.Now().Unix()%10000)
-}
+	findOptions := options.Find().SetSort(bson.M{"lastName": 1})
 
-func isZeroValue(v interface{}) bool {
-	switch val := v.(type) {
-	case string:
-		return val == ""
-	case int, int64, float64:
-		return val == 0
-	case bool:
-		return !val
-	case time.Time:
-		return val.IsZero()
-	default:
-		return false
+	err := r.BaseRepository.FindAll(filter, &employees, findOptions)
+	if err != nil {
+		return nil, err
 	}
+
+	return employees, nil
 }
 
-// EmailExists checks if an email already exists for an active employee
-func (r *EmployeeRepository) EmailExists(email string) (bool, error) {
+// GetDepartmentCounts gibt die Anzahl der Mitarbeiter pro Abteilung zurück
+func (r *EmployeeRepository) GetDepartmentCounts() (map[string]int, error) {
+	ctx, cancel := r.GetContext()
+	defer cancel()
+
+	// Aggregation pipeline
+	pipeline := []bson.M{
+		{
+			"$match": bson.M{"status": model.EmployeeStatusActive},
+		},
+		{
+			"$group": bson.M{
+				"_id":   "$department",
+				"count": bson.M{"$sum": 1},
+			},
+		},
+	}
+
+	cursor, err := r.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get department counts: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	result := make(map[string]int)
+	for cursor.Next(ctx) {
+		var item struct {
+			ID    string `bson:"_id"`
+			Count int    `bson:"count"`
+		}
+		if err := cursor.Decode(&item); err != nil {
+			return nil, err
+		}
+		result[item.ID] = item.Count
+	}
+
+	return result, nil
+}
+
+// GetActiveEmployeesCount zählt alle aktiven Mitarbeiter
+func (r *EmployeeRepository) GetActiveEmployeesCount() (int64, error) {
+	return r.Count(bson.M{"status": model.EmployeeStatusActive})
+}
+
+// FindByEmail findet einen Mitarbeiter anhand seiner E-Mail
+func (r *EmployeeRepository) FindByEmail(email string) (*model.Employee, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
-	return r.Exists(bson.M{"email": email, "active": true})
+
+	if email == "" {
+		return nil, fmt.Errorf("%w: email cannot be empty", ErrInvalidEmployeeData)
+	}
+
+	var employee model.Employee
+	err := r.FindOne(bson.M{"email": email, "status": model.EmployeeStatusActive}, &employee)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrEmployeeNotFound
+		}
+		return nil, err
+	}
+
+	return &employee, nil
+}
+
+// UpdateTimebutlerUserID aktualisiert die Timebutler User ID eines Mitarbeiters
+func (r *EmployeeRepository) UpdateTimebutlerUserID(employeeID string, timebutlerUserID string) error {
+	objID, err := r.ValidateObjectID(employeeID)
+	if err != nil {
+		return err
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			"timebutlerUserId": timebutlerUserID,
+			"updatedAt":        time.Now(),
+		},
+	}
+
+	result, err := r.UpdateOne(bson.M{"_id": objID}, update)
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return ErrEmployeeNotFound
+	}
+
+	return nil
+}
+
+// UpdateErfasst123ID aktualisiert die 123erfasst ID eines Mitarbeiters
+func (r *EmployeeRepository) UpdateErfasst123ID(employeeID string, erfasst123ID string) error {
+	objID, err := r.ValidateObjectID(employeeID)
+	if err != nil {
+		return err
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			"erfasst123Id": erfasst123ID,
+			"updatedAt":    time.Now(),
+		},
+	}
+
+	result, err := r.UpdateOne(bson.M{"_id": objID}, update)
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return ErrEmployeeNotFound
+	}
+
+	return nil
 }
