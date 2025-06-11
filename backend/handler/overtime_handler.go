@@ -50,7 +50,7 @@ func (h *OvertimeHandler) GetOvertimeView(c *gin.Context) {
 	userRole, _ := c.Get("userRole")
 
 	// Alle Mitarbeiter abrufen
-	employees, err := h.employeeRepo.FindAll()
+	employees, _, err := h.employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"title":   "Fehler",
@@ -73,7 +73,7 @@ func (h *OvertimeHandler) GetOvertimeView(c *gin.Context) {
 		}
 
 		// Anpassungen für diesen Mitarbeiter laden
-		adjustments, err := h.overtimeAdjustmentRepo.FindByEmployeeID(emp.ID.Hex())
+		adjustments, _, err := h.overtimeAdjustmentRepo.FindByEmployeeID(emp.ID.Hex(), 0, 100)
 		if err == nil {
 			emp.OvertimeAdjustments = make([]model.OvertimeAdjustment, len(adjustments))
 			for i, adj := range adjustments {
@@ -160,7 +160,7 @@ func (h *OvertimeHandler) GetOvertimeView(c *gin.Context) {
 	var pendingAdjustments []*model.OvertimeAdjustment
 	var pendingCount int
 	if userRole == string(model.RoleAdmin) || userRole == string(model.RoleManager) {
-		pendingAdjustments, err = h.overtimeAdjustmentRepo.FindPending()
+		pendingAdjustments, _, err = h.overtimeAdjustmentRepo.FindPending(0, 100)
 		if err != nil {
 			fmt.Printf("Error loading pending adjustments: %v\n", err)
 			pendingAdjustments = []*model.OvertimeAdjustment{}
@@ -213,7 +213,7 @@ func (h *OvertimeHandler) ExportOvertimeData(c *gin.Context) {
 	departmentFilter := c.Query("departmentFilter")
 
 	// Alle Mitarbeiter abrufen
-	employees, err := h.employeeRepo.FindAll()
+	employees, _, err := h.employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Fehler beim Abrufen der Mitarbeiter",
@@ -285,7 +285,7 @@ func (h *OvertimeHandler) GetEmployeeOvertimeDetails(c *gin.Context) {
 	employeeID := c.Param("id")
 
 	// Mitarbeiter mit Anpassungen laden
-	employee, err := h.employeeRepo.FindByIDWithAdjustments(employeeID)
+	employee, err := h.employeeRepo.FindByID(employeeID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "Mitarbeiter nicht gefunden",
@@ -303,7 +303,7 @@ func (h *OvertimeHandler) GetEmployeeOvertimeDetails(c *gin.Context) {
 	}
 
 	// Anpassungen hinzufügen
-	adjustments, err := h.overtimeAdjustmentRepo.FindByEmployeeID(employeeID)
+	adjustments, _, err := h.overtimeAdjustmentRepo.FindByEmployeeID(employeeID, 0, 100)
 	if err != nil {
 		adjustments = []*model.OvertimeAdjustment{} // Leere Liste bei Fehler
 	}
@@ -470,7 +470,7 @@ func (h *OvertimeHandler) DeleteAdjustment(c *gin.Context) {
 		employee.ID,
 		"employee",
 		employee.FirstName+" "+employee.LastName,
-		fmt.Sprintf("Überstunden-Anpassung gelöscht: %s (%s)", adjustment.FormatHours(), adjustment.Reason),
+		fmt.Sprintf("Überstunden-Anpassung gelöscht: %s (%s)", fmt.Sprintf("%.2f Stunden", adjustment.Hours), adjustment.Reason),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -519,8 +519,7 @@ func (h *OvertimeHandler) AddOvertimeAdjustment(c *gin.Context) {
 		EmployeeID:   empObjID,
 		Type:         model.OvertimeAdjustmentType(adjustmentType),
 		Hours:        hours,
-		Reason:       reason,
-		Description:  description,
+		Reason:       reason + " - " + description,
 		AdjustedBy:   userModel.ID,
 		AdjusterName: userModel.FirstName + " " + userModel.LastName,
 		Status:       "pending",
@@ -542,7 +541,7 @@ func (h *OvertimeHandler) AddOvertimeAdjustment(c *gin.Context) {
 		employee.ID,
 		"employee",
 		employee.FirstName+" "+employee.LastName,
-		fmt.Sprintf("Manuelle Überstunden-Anpassung hinzugefügt: %s", adjustment.FormatHours()),
+		fmt.Sprintf("Manuelle Überstunden-Anpassung hinzugefügt: %s", fmt.Sprintf("%.2f Stunden", adjustment.Hours)),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -556,7 +555,7 @@ func (h *OvertimeHandler) AddOvertimeAdjustment(c *gin.Context) {
 func (h *OvertimeHandler) GetEmployeeAdjustments(c *gin.Context) {
 	employeeID := c.Param("id")
 
-	adjustments, err := h.overtimeAdjustmentRepo.FindByEmployeeID(employeeID)
+	adjustments, _, err := h.overtimeAdjustmentRepo.FindByEmployeeID(employeeID, 0, 100)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Abrufen der Anpassungen"})
 		return
@@ -609,7 +608,7 @@ func (h *OvertimeHandler) ApproveAdjustment(c *gin.Context) {
 				employee.ID,
 				"employee",
 				employee.FirstName+" "+employee.LastName,
-				fmt.Sprintf("Überstunden-Anpassung %s: %s", actionText, adjustment.FormatHours()),
+				fmt.Sprintf("Überstunden-Anpassung %s: %s", actionText, fmt.Sprintf("%.2f Stunden", adjustment.Hours)),
 			)
 		}
 	}
@@ -627,7 +626,7 @@ func (h *OvertimeHandler) ApproveAdjustment(c *gin.Context) {
 
 // GetPendingAdjustments liefert alle ausstehenden Anpassungen
 func (h *OvertimeHandler) GetPendingAdjustments(c *gin.Context) {
-	adjustments, err := h.overtimeAdjustmentRepo.FindPending()
+	adjustments, _, err := h.overtimeAdjustmentRepo.FindPending(0, 100)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Abrufen der ausstehenden Anpassungen"})
 		return
@@ -654,7 +653,7 @@ func (h *OvertimeHandler) GetPendingAdjustments(c *gin.Context) {
 			"type":         adj.Type,
 			"hours":        adj.Hours,
 			"reason":       adj.Reason,
-			"description":  adj.Description,
+			"description":  adj.Reason, // Using reason as description
 			"status":       adj.Status,
 			"adjustedBy":   adj.AdjustedBy.Hex(),
 			"adjusterName": adj.AdjusterName,

@@ -61,7 +61,7 @@ func (h *HolidayHandler) GetHolidays(c *gin.Context) {
 		"success":   true,
 		"year":      year,
 		"state":     string(state),
-		"stateName": state.GetDisplayName(),
+		"stateName": state.GetLabel(),
 		"holidays":  holidays,
 		"count":     len(holidays),
 	})
@@ -105,7 +105,7 @@ func (h *HolidayHandler) CheckHoliday(c *gin.Context) {
 		"success":     true,
 		"date":        date.Format("2006-01-02"),
 		"state":       string(state),
-		"stateName":   state.GetDisplayName(),
+		"stateName":   state.GetLabel(),
 		"isHoliday":   isHoliday,
 		"holidayName": holidayName,
 	})
@@ -172,7 +172,7 @@ func (h *HolidayHandler) GetWorkingDays(c *gin.Context) {
 		"startDate":   startDate.Format("2006-01-02"),
 		"endDate":     endDate.Format("2006-01-02"),
 		"state":       string(state),
-		"stateName":   state.GetDisplayName(),
+		"stateName":   state.GetLabel(),
 		"totalDays":   totalDays,
 		"workingDays": workingDays,
 		"weekends":    weekends,
@@ -210,7 +210,7 @@ func (h *HolidayHandler) GetCurrentYearHolidays(c *gin.Context) {
 		"success":   true,
 		"year":      year,
 		"state":     string(state),
-		"stateName": state.GetDisplayName(),
+		"stateName": state.GetLabel(),
 		"holidays":  holidayList,
 		"count":     len(holidays),
 	})

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -39,7 +40,7 @@ func setupEmployeeTest(t *testing.T) {
 	// Use test database
 	testDB := testClient.Database("peopleflow_employee_test")
 	empCollection = testDB.Collection("employees")
-	
+
 	// Create employee repository with test collection
 	empRepo = &EmployeeRepository{
 		BaseRepository: NewBaseRepository(empCollection),

@@ -448,7 +448,7 @@ func (r *OvertimeAdjustmentRepository) BulkUpdateStatus(adjustmentIDs []string, 
 		if err != nil {
 			return fmt.Errorf("invalid adjustment ID %s: %w", id, err)
 		}
-		objectIDs = append(objectIDs, objID)
+		objectIDs = append(objectIDs, *objID)
 	}
 
 	// Use transaction for bulk update

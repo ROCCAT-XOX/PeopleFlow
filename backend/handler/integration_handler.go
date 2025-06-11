@@ -277,14 +277,28 @@ func (h *IntegrationHandler) SyncErfasst123Projects(c *gin.Context) {
 		return
 	}
 
-	// Get date range from request, default to current month
-	now := time.Now()
-	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
-	startDate := c.DefaultQuery("startDate", startOfMonth.Format("2006-01-02"))
+	// Get date range from request
+	startDate := c.DefaultQuery("startDate", "")
 
-	// End date defaults to one month from start date
-	endDateDefault := startOfMonth.AddDate(0, 1, -1).Format("2006-01-02")
-	endDate := c.DefaultQuery("endDate", endDateDefault)
+	// If no startDate provided, use saved sync start date
+	if startDate == "" {
+		savedStartDate, err := h.erfasst123Service.GetSyncStartDate()
+		if err != nil {
+			// Fallback to current month
+			now := time.Now()
+			startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+			startDate = startOfMonth.Format("2006-01-02")
+		} else {
+			startDate = savedStartDate
+		}
+		fmt.Printf("Verwende gespeichertes Startdatum für Projekte: %s\n", startDate)
+	}
+
+	// End date
+	endDate := c.DefaultQuery("endDate", "")
+	if endDate == "" {
+		endDate = time.Now().Format("2006-01-02")
+	}
 
 	// Perform synchronization
 	updatedCount, err := h.erfasst123Service.SyncErfasst123Projects(startDate, endDate)
@@ -558,6 +572,32 @@ func (h *IntegrationHandler) SyncErfasst123Employees(c *gin.Context) {
 		"success":      true,
 		"message":      fmt.Sprintf("%d employees were updated", updatedCount),
 		"updatedCount": updatedCount,
+	})
+}
+
+// TestErfasst123ProjectAPI testet die Projekt-API von 123erfasst
+func (h *IntegrationHandler) TestErfasst123ProjectAPI(c *gin.Context) {
+	// Prüfen ob 123erfasst verbunden ist
+	if !h.erfasst123Service.IsConnected() {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "123erfasst ist nicht verbunden",
+		})
+		return
+	}
+
+	// Test durchführen
+	if err := h.erfasst123Service.TestProjectAPI(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "Fehler beim Testen der Projekt-API: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Projekt-API Test abgeschlossen. Siehe Server-Logs für Details.",
 	})
 }
 

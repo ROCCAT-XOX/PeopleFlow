@@ -2,6 +2,7 @@
 package model
 
 import (
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -74,4 +75,22 @@ func (oa *OvertimeAdjustment) IsPending() bool {
 // IsRejected prüft, ob die Anpassung abgelehnt wurde
 func (oa *OvertimeAdjustment) IsRejected() bool {
 	return oa.Status == "rejected"
+}
+
+// GetTypeDisplayName returns the display name for the adjustment type
+func (oa *OvertimeAdjustment) GetTypeDisplayName() string {
+	return oa.Type.GetLabel()
+}
+
+// FormatHours formats the hours as a string
+func (oa *OvertimeAdjustment) FormatHours() string {
+	if oa.Hours >= 0 {
+		return fmt.Sprintf("+%.2f Stunden", oa.Hours)
+	}
+	return fmt.Sprintf("%.2f Stunden", oa.Hours)
+}
+
+// Description returns the reason as description (for backward compatibility)
+func (oa *OvertimeAdjustment) Description() string {
+	return oa.Reason
 }

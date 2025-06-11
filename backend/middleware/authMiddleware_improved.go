@@ -112,11 +112,11 @@ func ImprovedAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Update last activity
-		go func() {
-			userRepo := repository.NewImprovedUserRepository()
-			_ = userRepo.UpdateLastLogin(user.ID.Hex())
-		}()
+		// Update last activity could be implemented here
+		// go func() {
+		//     userRepo := repository.NewUserRepository()
+		//     userRepo.UpdateLastLogin(user.ID.Hex())
+		// }()
 
 		// Add user information to context
 		c.Set("user", user)

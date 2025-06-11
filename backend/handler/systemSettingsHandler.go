@@ -3,8 +3,10 @@ package handler
 import (
 	"PeopleFlow/backend/model"
 	"PeopleFlow/backend/repository"
+	"PeopleFlow/backend/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 )
 
 // SystemSettingsHandler verwaltet alle Anfragen zu System-Einstellungen
@@ -61,9 +63,10 @@ func (h *SystemSettingsHandler) UpdateSystemSettings(c *gin.Context) {
 		currentSettings.State = state
 	}
 
-	if timezone := c.PostForm("timezone"); timezone != "" {
-		currentSettings.Timezone = timezone
-	}
+	// Timezone field is not currently supported in SystemSettings model
+	// if timezone := c.PostForm("timezone"); timezone != "" {
+	//     currentSettings.Timezone = timezone
+	// }
 
 	// Einstellungen speichern
 	err = h.settingsRepo.Update(currentSettings)
@@ -131,6 +134,17 @@ func (h *SystemSettingsHandler) UpdateLanguage(c *gin.Context) {
 		return
 	}
 
+	// Validiere Sprache
+	validLanguages := map[string]bool{
+		"de": true,
+		"en": true,
+		"fr": true,
+	}
+	if !validLanguages[language] {
+		c.Redirect(http.StatusFound, "/settings?error=invalid_language")
+		return
+	}
+
 	// Aktuelle Einstellungen abrufen
 	settings, err := h.settingsRepo.GetSettings()
 	if err != nil {
@@ -182,7 +196,7 @@ func (h *SystemSettingsHandler) UpdateState(c *gin.Context) {
 	userModel := user.(*model.User)
 
 	activityRepo := repository.NewActivityRepository()
-	stateName := model.GermanState(state).GetDisplayName()
+	stateName := model.GermanState(state).GetLabel()
 	_, _ = activityRepo.LogActivity(
 		model.ActivityTypeUserUpdated,
 		userModel.ID,
@@ -194,4 +208,137 @@ func (h *SystemSettingsHandler) UpdateState(c *gin.Context) {
 	)
 
 	c.Redirect(http.StatusFound, "/settings?success=state_updated")
+}
+
+// UpdateEmailSettings aktualisiert die E-Mail-Konfiguration
+func (h *SystemSettingsHandler) UpdateEmailSettings(c *gin.Context) {
+	// Nur Admins können E-Mail-Einstellungen ändern
+	userRole, _ := c.Get("userRole")
+	if userRole != string(model.RoleAdmin) {
+		c.Redirect(http.StatusFound, "/settings?error=insufficient_permissions")
+		return
+	}
+
+	// Aktuelle Einstellungen abrufen
+	settings, err := h.settingsRepo.GetSettings()
+	if err != nil {
+		c.Redirect(http.StatusFound, "/settings?error=fetch_settings")
+		return
+	}
+
+	// E-Mail-Einstellungen aus Formular lesen
+	smtpHost := c.PostForm("smtp-host")
+	smtpPortStr := c.PostForm("smtp-port")
+	smtpUser := c.PostForm("smtp-user")
+	smtpPass := c.PostForm("smtp-pass")
+	fromEmail := c.PostForm("from-email")
+	fromName := c.PostForm("from-name")
+	useTLS := c.PostForm("use-tls") == "on"
+	enabled := c.PostForm("email-enabled") == "on"
+
+	// Port validieren
+	smtpPort := 587 // Default
+	if smtpPortStr != "" {
+		if port, err := strconv.Atoi(smtpPortStr); err == nil {
+			smtpPort = port
+		}
+	}
+
+	// E-Mail-Einstellungen erstellen oder aktualisieren
+	if settings.EmailNotifications == nil {
+		settings.EmailNotifications = &model.EmailNotificationSettings{}
+	}
+
+	settings.EmailNotifications.SMTPHost = smtpHost
+	settings.EmailNotifications.SMTPPort = smtpPort
+	settings.EmailNotifications.SMTPUser = smtpUser
+	settings.EmailNotifications.SMTPPass = smtpPass
+	settings.EmailNotifications.FromEmail = fromEmail
+	settings.EmailNotifications.FromName = fromName
+	settings.EmailNotifications.UseTLS = useTLS
+	settings.EmailNotifications.Enabled = enabled
+
+	// Einstellungen speichern
+	err = h.settingsRepo.Update(settings)
+	if err != nil {
+		c.Redirect(http.StatusFound, "/settings?error=save_email_settings")
+		return
+	}
+
+	// Aktivität loggen
+	user, _ := c.Get("user")
+	userModel := user.(*model.User)
+
+	activityRepo := repository.NewActivityRepository()
+	_, _ = activityRepo.LogActivity(
+		model.ActivityTypeUserUpdated,
+		userModel.ID,
+		userModel.FirstName+" "+userModel.LastName,
+		userModel.ID,
+		"system",
+		"E-Mail-Einstellungen",
+		"E-Mail-Konfiguration aktualisiert",
+	)
+
+	c.Redirect(http.StatusFound, "/settings?success=email_updated")
+}
+
+// TestEmailConfiguration testet die E-Mail-Konfiguration
+func (h *SystemSettingsHandler) TestEmailConfiguration(c *gin.Context) {
+	// Nur Admins können E-Mail-Tests durchführen
+	userRole, _ := c.Get("userRole")
+	if userRole != string(model.RoleAdmin) {
+		c.JSON(http.StatusForbidden, gin.H{
+			"success": false,
+			"error":   "Unzureichende Berechtigung",
+		})
+		return
+	}
+
+	// Test-E-Mail-Adresse aus Request lesen
+	testEmail := c.Query("email")
+	if testEmail == "" {
+		// Verwende die E-Mail des aktuellen Benutzers
+		user, exists := c.Get("user")
+		if !exists {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   "Keine Test-E-Mail-Adresse angegeben",
+			})
+			return
+		}
+		userModel := user.(*model.User)
+		testEmail = userModel.Email
+	}
+
+	// E-Mail-Service erstellen und Test-E-Mail senden
+	emailService := service.NewEmailService()
+	err := emailService.SendTestEmail(testEmail)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Fehler beim Senden der Test-E-Mail: " + err.Error(),
+		})
+		return
+	}
+
+	// Aktivität loggen
+	user, _ := c.Get("user")
+	userModel := user.(*model.User)
+
+	activityRepo := repository.NewActivityRepository()
+	_, _ = activityRepo.LogActivity(
+		model.ActivityTypeUserUpdated,
+		userModel.ID,
+		userModel.FirstName+" "+userModel.LastName,
+		userModel.ID,
+		"system",
+		"E-Mail-Test",
+		"Test-E-Mail gesendet an: "+testEmail,
+	)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Test-E-Mail erfolgreich gesendet",
+	})
 }

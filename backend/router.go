@@ -58,7 +58,7 @@ func formatActivities(activities []*model.Activity) []gin.H {
 			"IconBgClass": activity.GetIconClass(),
 			"IconSVG":     activity.GetIconSVG(),
 			"Message":     message,
-			"Time":        activity.FormatTimeAgo(),
+			"Time":        activity.GetTimeAgo(),
 			"IsLast":      isLast,
 		})
 	}
@@ -99,6 +99,12 @@ func InitializeRoutes(router *gin.Engine) {
 	authHandler := handler.NewAuthHandler()
 	router.POST("/auth", authHandler.Login)
 	router.GET("/logout", authHandler.Logout)
+
+	// Passwort-Reset-Handler (öffentlich zugänglich)
+	passwordResetHandler := handler.NewPasswordResetHandler()
+	router.POST("/api/auth/forgot-password", passwordResetHandler.RequestPasswordReset)
+	router.GET("/reset-password", passwordResetHandler.ShowPasswordResetForm)
+	router.POST("/api/auth/reset-password", passwordResetHandler.ResetPassword)
 
 	// Auth middleware für geschützte Routen
 	authorized := router.Group("/")
@@ -148,7 +154,7 @@ func InitializeRoutes(router *gin.Engine) {
 				}
 
 				// Lade Überstunden-Anpassungen
-				adjustments, _ := overtimeAdjustmentRepo.FindByEmployeeID(employee.ID.Hex())
+				adjustments, _, _ := overtimeAdjustmentRepo.FindByEmployeeID(employee.ID.Hex(), 0, 100)
 
 				// Berechne finale Überstunden
 				totalAdjustments := 0.0
@@ -207,7 +213,7 @@ func InitializeRoutes(router *gin.Engine) {
 			}
 
 			// Alle Mitarbeiter abrufen für Admin/Manager/HR
-			allEmployees, err := employeeRepo.FindAll()
+			allEmployees, _, err := employeeRepo.FindAll(0, 1000, "lastName", 1)
 			if err != nil {
 				allEmployees = []*model.Employee{}
 			}
@@ -246,7 +252,7 @@ func InitializeRoutes(router *gin.Engine) {
 				// Ausstehende Überstunden-Anpassungen für HR
 				pendingOvertimeAdjustments := []gin.H{}
 				if userRole == string(model.RoleAdmin) || userRole == string(model.RoleManager) || userRole == string(model.RoleHR) {
-					adjustments, err := overtimeAdjustmentRepo.FindPending()
+					adjustments, _, err := overtimeAdjustmentRepo.FindPending(0, 100)
 					if err == nil {
 						for _, adj := range adjustments {
 							// Mitarbeiter-Namen abrufen
@@ -260,7 +266,7 @@ func InitializeRoutes(router *gin.Engine) {
 									"Type":         adj.GetTypeDisplayName(),
 									"Hours":        adj.FormatHours(),
 									"Reason":       adj.Reason,
-									"Description":  adj.Description,
+									"Description":  adj.Description(),
 									"AdjusterName": adj.AdjusterName,
 									"CreatedAt":    adj.CreatedAt.Format("02.01.2006"),
 								})
@@ -376,7 +382,7 @@ func InitializeRoutes(router *gin.Engine) {
 			for _, emp := range allEmployees {
 				if len(emp.TimeEntries) > 0 {
 					// Anpassungen laden
-					adjustments, _ := overtimeAdjustmentRepo.FindByEmployeeID(emp.ID.Hex())
+					adjustments, _, _ := overtimeAdjustmentRepo.FindByEmployeeID(emp.ID.Hex(), 0, 100)
 					totalAdjustments := 0.0
 					for _, adj := range adjustments {
 						if adj.Status == "approved" {
@@ -445,7 +451,7 @@ func InitializeRoutes(router *gin.Engine) {
 			// Ausstehende Überstunden-Anpassungen für Admin/Manager
 			pendingOvertimeAdjustments := []gin.H{}
 			if userRole == string(model.RoleAdmin) || userRole == string(model.RoleManager) {
-				adjustments, err := overtimeAdjustmentRepo.FindPending()
+				adjustments, _, err := overtimeAdjustmentRepo.FindPending(0, 100)
 				if err == nil {
 					for _, adj := range adjustments {
 						// Mitarbeiter-Namen abrufen
@@ -459,7 +465,7 @@ func InitializeRoutes(router *gin.Engine) {
 								"Type":         adj.GetTypeDisplayName(),
 								"Hours":        adj.FormatHours(),
 								"Reason":       adj.Reason,
-								"Description":  adj.Description,
+								"Description":  adj.Description(),
 								"AdjusterName": adj.AdjusterName,
 								"CreatedAt":    adj.CreatedAt.Format("02.01.2006"),
 							})
@@ -644,6 +650,10 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.POST("/api/settings/state", middleware.RoleMiddleware(model.RoleAdmin), systemSettingsHandler.UpdateState)
 		authorized.GET("/api/settings", systemSettingsHandler.GetSystemSettings)
 		authorized.POST("/api/settings", middleware.RoleMiddleware(model.RoleAdmin), systemSettingsHandler.UpdateSystemSettings)
+		
+		// E-Mail-Einstellungen Routen (nur für Admins)
+		authorized.POST("/api/settings/email", middleware.RoleMiddleware(model.RoleAdmin), systemSettingsHandler.UpdateEmailSettings)
+		authorized.GET("/api/settings/email/test", middleware.RoleMiddleware(model.RoleAdmin), systemSettingsHandler.TestEmailConfiguration)
 
 		// Feiertags-API Routen
 		authorized.GET("/api/holidays", holidayHandler.GetHolidays)
@@ -752,6 +762,7 @@ func InitializeRoutes(router *gin.Engine) {
 		authorized.POST("/api/integrations/123erfasst/full-sync", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.TriggerErfasst123FullSync)
 		authorized.POST("/api/integrations/123erfasst/sync/employees", middleware.RoleMiddleware(model.RoleAdmin, model.RoleHR), integrationHandler.SyncErfasst123Employees)
 		authorized.POST("/api/integrations/123erfasst/cleanup-duplicates", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.CleanupDuplicates)
+		authorized.POST("/api/integrations/123erfasst/test-projects", middleware.RoleMiddleware(model.RoleAdmin), integrationHandler.TestErfasst123ProjectAPI)
 
 		// Optionale API-Endpoints für AJAX-Anfragen
 		api := router.Group("/api")

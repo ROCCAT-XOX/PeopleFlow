@@ -23,7 +23,6 @@ var (
 	ErrEmailTaken      = errors.New("email already taken")
 	ErrInvalidEmail    = errors.New("invalid email format")
 	ErrInvalidPassword = errors.New("password must be at least 8 characters")
-	ErrInvalidUserData = errors.New("invalid user data")
 )
 
 // Email validation regex
@@ -50,7 +49,7 @@ func (r *UserRepository) ValidateUser(user *model.User, isUpdate bool) error {
 	if !isUpdate || user.Email != "" {
 		email := strings.ToLower(strings.TrimSpace(user.Email))
 		if email == "" {
-			return fmt.Errorf("%w: email cannot be empty", ErrInvalidUserData)
+			return fmt.Errorf("%w: email cannot be empty", ErrValidation)
 		}
 		if !emailRegex.MatchString(email) {
 			return fmt.Errorf("%w: %s", ErrInvalidEmail, email)
@@ -67,15 +66,15 @@ func (r *UserRepository) ValidateUser(user *model.User, isUpdate bool) error {
 
 	// Role validation
 	if !isUpdate || user.Role != "" {
-		if user.Role != model.RoleAdmin && user.Role != model.RoleEmployee {
-			return fmt.Errorf("%w: invalid role %s", ErrInvalidUserData, user.Role)
+		if user.Role != model.RoleAdmin && user.Role != model.RoleEmployee && user.Role != model.RoleManager && user.Role != model.RoleHR {
+			return fmt.Errorf("%w: invalid role %s", ErrValidation, user.Role)
 		}
 	}
 
 	// Status validation
 	if !isUpdate || user.Status != "" {
 		if user.Status != model.StatusActive && user.Status != model.StatusInactive {
-			return fmt.Errorf("%w: invalid status %s", ErrInvalidUserData, user.Status)
+			return fmt.Errorf("%w: invalid status %s", ErrValidation, user.Status)
 		}
 	}
 
@@ -301,7 +300,7 @@ func (r *UserRepository) BulkUpdateStatus(userIDs []string, status model.UserSta
 		if err != nil {
 			return fmt.Errorf("invalid user ID %s: %w", id, err)
 		}
-		objectIDs = append(objectIDs, objID)
+		objectIDs = append(objectIDs, *objID)
 	}
 
 	// Use transaction for bulk update
@@ -341,4 +340,30 @@ func (r *UserRepository) CreateIndexes() error {
 	}
 
 	return nil
+}
+
+// CreateAdminUserIfNotExists erstellt einen Admin-Benutzer, falls keiner existiert
+func (r *UserRepository) CreateAdminUserIfNotExists() error {
+	// Prüfen, ob bereits ein Admin-Benutzer existiert
+	count, err := r.Count(bson.M{"role": model.RoleAdmin})
+	if err != nil {
+		return err
+	}
+
+	// Wenn bereits ein Admin existiert, nichts tun
+	if count > 0 {
+		return nil
+	}
+
+	// Admin-Benutzer erstellen
+	admin := &model.User{
+		FirstName: "Admin",
+		LastName:  "User",
+		Email:     "admin@peopleflow.com",
+		Password:  "admin",
+		Role:      model.RoleAdmin,
+		Status:    model.StatusActive,
+	}
+
+	return r.Create(admin)
 }

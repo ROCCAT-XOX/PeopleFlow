@@ -310,7 +310,7 @@ func (s *TimebutlerService) SyncTimebutlerUsers() (int, error) {
 	employeeRepo := repository.NewEmployeeRepository()
 
 	// Alle Mitarbeiter abrufen
-	employees, err := employeeRepo.FindAll()
+	employees, _, err := employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		return 0, err
 	}
@@ -611,7 +611,7 @@ func (s *TimebutlerService) SyncTimebutlerAbsences(year string) (int, error) {
 	employeeRepo := repository.NewEmployeeRepository()
 
 	// Alle Mitarbeiter abrufen
-	employees, err := employeeRepo.FindAll()
+	employees, _, err := employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		return 0, err
 	}
@@ -894,7 +894,7 @@ func (s *TimebutlerService) SyncHolidayEntitlements(year string) (int, error) {
 	employeeRepo := repository.NewEmployeeRepository()
 
 	// Get all employees
-	employees, err := employeeRepo.FindAll()
+	employees, _, err := employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		return 0, err
 	}

@@ -123,7 +123,7 @@ func ImprovedHRMiddleware() gin.HandlerFunc {
 
 		// Only check restrictions for HR role
 		if userRole == model.RoleHR {
-			userRepo := repository.NewImprovedUserRepository()
+			userRepo := repository.NewUserRepository()
 			targetUser, err := userRepo.FindByID(targetID)
 
 			if err != nil {

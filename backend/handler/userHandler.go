@@ -30,7 +30,7 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 	userModel := user.(*model.User)
 
 	// Alle Benutzer abrufen
-	users, err := h.userRepo.FindAll()
+	users, _, err := h.userRepo.FindAll(0, 1000)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"title":   "Fehler",
@@ -399,7 +399,7 @@ func (h *UserHandler) ShowSettings(c *gin.Context) {
 
 	// Wenn der Benutzer ein Administrator ist, fügen wir Benutzerdaten hinzu
 	if userRole == string(model.RoleAdmin) {
-		users, err := h.userRepo.FindAll()
+		users, _, err := h.userRepo.FindAll(0, 1000)
 		if err != nil {
 			users = []*model.User{} // Leere Liste im Fehlerfall
 		}

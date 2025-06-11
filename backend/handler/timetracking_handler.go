@@ -83,7 +83,7 @@ func (h *TimeTrackingHandler) GetTimeTrackingView(c *gin.Context) {
 	userRole, _ := c.Get("userRole")
 
 	// Alle Mitarbeiter abrufen
-	employees, err := h.employeeRepo.FindAll()
+	employees, _, err := h.employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"title":   "Fehler",
@@ -350,7 +350,7 @@ func (h *TimeTrackingHandler) ExportTimeTracking(c *gin.Context) {
 	// Alle Mitarbeiter abrufen, wenn keine spezifischen IDs angegeben wurden
 	var employees []*model.Employee
 	if len(employeeIDs) == 0 {
-		employees, err = h.employeeRepo.FindAll()
+		employees, _, err = h.employeeRepo.FindAll(0, 1000, "lastName", 1)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Fehler beim Abrufen der Mitarbeiter"})
 			return

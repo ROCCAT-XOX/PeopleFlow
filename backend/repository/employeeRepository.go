@@ -2,6 +2,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -100,8 +101,8 @@ func (r *EmployeeRepository) Create(employee *model.Employee) error {
 		return ErrEmployeeIDTaken
 	}
 
-	// Use transaction to create employee and user atomically
-	return r.Transaction(func(sessCtx mongo.SessionContext) error {
+	// Try to use transaction, but fall back to direct creation if transactions aren't supported
+	return r.tryTransactionOrDirect(func(ctx context.Context) error {
 		// Set timestamps
 		now := time.Now()
 		employee.CreatedAt = now
@@ -153,7 +154,7 @@ func (r *EmployeeRepository) Create(employee *model.Employee) error {
 		}
 
 		// Insert employee
-		result, err := r.collection.InsertOne(sessCtx, employee)
+		result, err := r.collection.InsertOne(ctx, employee)
 		if err != nil {
 			if mongo.IsDuplicateKeyError(err) {
 				return ErrEmployeeIDTaken
@@ -171,7 +172,7 @@ func (r *EmployeeRepository) Create(employee *model.Employee) error {
 				LastName:   employee.LastName,
 				Role:       model.RoleEmployee,
 				Status:     model.StatusActive,
-				EmployeeID: employee.ID,
+				EmployeeID: &employee.ID,
 				Password:   "changeme123", // Temporary password
 				CreatedAt:  now,
 				UpdatedAt:  now,
@@ -183,7 +184,7 @@ func (r *EmployeeRepository) Create(employee *model.Employee) error {
 			}
 
 			userCollection := db.GetCollection("users")
-			if _, err := userCollection.InsertOne(sessCtx, user); err != nil {
+			if _, err := userCollection.InsertOne(ctx, user); err != nil {
 				if mongo.IsDuplicateKeyError(err) {
 					return fmt.Errorf("user with email %s already exists", employee.Email)
 				}
@@ -193,6 +194,28 @@ func (r *EmployeeRepository) Create(employee *model.Employee) error {
 
 		return nil
 	})
+}
+
+// tryTransactionOrDirect attempts to use a transaction, but falls back to direct execution if transactions are not supported
+func (r *EmployeeRepository) tryTransactionOrDirect(fn func(context.Context) error) error {
+	// First try with transaction
+	err := r.Transaction(func(sessCtx mongo.SessionContext) error {
+		return fn(sessCtx)
+	})
+	
+	// If transaction failed due to not being supported, try without transaction
+	if err != nil && (strings.Contains(err.Error(), "Transaction numbers are only allowed") || 
+		strings.Contains(err.Error(), "IllegalOperation")) {
+		// Log that we're falling back to non-transactional operation
+		fmt.Printf("Transactions not supported, falling back to direct operations: %v\n", err)
+		
+		// Fall back to direct execution without transaction
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		return fn(ctx)
+	}
+	
+	return err
 }
 
 // FindByID findet einen Mitarbeiter anhand seiner MongoDB ID
@@ -317,6 +340,36 @@ func (r *EmployeeRepository) Update(employee *model.Employee) error {
 	if employee.RemainingVacation >= 0 {
 		setFields["remainingVacation"] = employee.RemainingVacation
 	}
+
+	// Update time entries if provided
+	if employee.TimeEntries != nil {
+		setFields["timeEntries"] = employee.TimeEntries
+	}
+
+	// Update other arrays if provided
+	if employee.Absences != nil {
+		setFields["absences"] = employee.Absences
+	}
+	if employee.WeeklyTimeEntries != nil {
+		setFields["weeklyTimeEntries"] = employee.WeeklyTimeEntries
+	}
+	if employee.OvertimeAdjustments != nil {
+		setFields["overtimeAdjustments"] = employee.OvertimeAdjustments
+	}
+	if employee.ProjectAssignments != nil {
+		setFields["projectAssignments"] = employee.ProjectAssignments
+	}
+
+	// Update integration IDs
+	if employee.TimebutlerUserID != "" {
+		setFields["timebutlerUserId"] = employee.TimebutlerUserID
+	}
+	if employee.Erfasst123ID != "" {
+		setFields["erfasst123Id"] = employee.Erfasst123ID
+	}
+
+	// Update overtime balance
+	setFields["overtimeBalance"] = employee.OvertimeBalance
 
 	return r.UpdateByID(employee.ID.Hex(), updateDoc)
 }

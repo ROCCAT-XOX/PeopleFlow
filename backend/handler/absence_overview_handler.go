@@ -37,7 +37,7 @@ func (h *AbsenceOverviewHandler) GetAbsenceOverview(c *gin.Context) {
 	employeeRepo := repository.NewEmployeeRepository()
 
 	// Alle Mitarbeiter abrufen
-	employees, err := employeeRepo.FindAll()
+	employees, _, err := employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		employees = []*model.Employee{}
 	}

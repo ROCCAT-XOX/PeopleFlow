@@ -179,7 +179,7 @@ func (r *ActivityRepository) FindByType(activityType model.ActivityType, limit i
 		SetLimit(limit)
 
 	filter := bson.M{"type": activityType}
-	err = r.FindAll(filter, &activities, findOptions)
+	err := r.FindAll(filter, &activities, findOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -372,6 +372,45 @@ func (r *ActivityRepository) FindRecent(limit int) ([]*model.Activity, error) {
 	err := r.BaseRepository.FindAll(bson.M{}, &activities, findOptions)
 	if err != nil {
 		return nil, err
+	}
+
+	return activities, nil
+}
+
+// GetActivitiesForEmployeeInDateRange findet Aktivitäten für einen bestimmten Mitarbeiter in einem Zeitraum
+func (r *ActivityRepository) GetActivitiesForEmployeeInDateRange(employeeID interface{}, start, end time.Time) ([]model.Activity, error) {
+	var activities []model.Activity
+
+	// Convert employeeID to ObjectID if it's a string
+	var objID primitive.ObjectID
+	var err error
+	
+	switch id := employeeID.(type) {
+	case string:
+		objID, err = primitive.ObjectIDFromHex(id)
+		if err != nil {
+			return nil, fmt.Errorf("invalid employee ID: %v", err)
+		}
+	case primitive.ObjectID:
+		objID = id
+	default:
+		return nil, fmt.Errorf("unsupported employee ID type: %T", employeeID)
+	}
+
+	filter := bson.M{
+		"targetId": objID,
+		"timestamp": bson.M{
+			"$gte": start,
+			"$lte": end,
+		},
+	}
+
+	findOptions := options.Find().
+		SetSort(bson.M{"timestamp": -1})
+
+	err = r.FindAll(filter, &activities, findOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get activities for employee: %w", err)
 	}
 
 	return activities, nil

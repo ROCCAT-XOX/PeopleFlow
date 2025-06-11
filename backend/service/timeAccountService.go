@@ -261,7 +261,7 @@ func (s *TimeAccountService) GetWorkingDaysInMonthForEmployee(employee *model.Em
 
 // RecalculateAllEmployeeOvertimes berechnet Überstunden für alle Mitarbeiter neu
 func (s *TimeAccountService) RecalculateAllEmployeeOvertimes() error {
-	employees, err := s.employeeRepo.FindAll()
+	employees, _, err := s.employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		return fmt.Errorf("fehler beim Abrufen der Mitarbeiter: %w", err)
 	}
@@ -532,7 +532,7 @@ func (s *TimeAccountService) GetWorkingDaysForEmployeeBetween(employee *model.Em
 
 // GetOvertimeStatistics erstellt Überstunden-Statistiken für alle Mitarbeiter
 func (s *TimeAccountService) GetOvertimeStatistics() (map[string]interface{}, error) {
-	employees, err := s.employeeRepo.FindAll()
+	employees, _, err := s.employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		return nil, fmt.Errorf("fehler beim Abrufen der Mitarbeiter: %w", err)
 	}

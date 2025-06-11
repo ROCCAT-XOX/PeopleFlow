@@ -47,7 +47,7 @@ func (h *StatisticsAPIHandler) GetFilteredStatistics(c *gin.Context) {
 	}
 
 	// Alle Mitarbeiter abrufen
-	employees, err := h.employeeRepo.FindAll()
+	employees, _, err := h.employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -342,7 +342,7 @@ func (h *StatisticsAPIHandler) GetExtendedStatistics(c *gin.Context) {
 	}
 
 	// Retrieve all employees
-	employees, err := h.employeeRepo.FindAll()
+	employees, _, err := h.employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,

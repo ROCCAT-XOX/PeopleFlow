@@ -33,6 +33,7 @@ type SystemSettings struct {
 	ID                  primitive.ObjectID         `bson:"_id,omitempty" json:"id"`
 	CompanyName         string                     `bson:"companyName" json:"companyName"`
 	CompanyAddress      string                     `bson:"companyAddress" json:"companyAddress"`
+	Language            string                     `bson:"language" json:"language"` // Interface language
 	State               string                     `bson:"state" json:"state"` // German state for holiday calculation
 	DefaultWorkingHours float64                    `bson:"defaultWorkingHours" json:"defaultWorkingHours"`
 	DefaultVacationDays int                        `bson:"defaultVacationDays" json:"defaultVacationDays"`
@@ -44,6 +45,7 @@ type SystemSettings struct {
 // DefaultSystemSettings erstellt Standardeinstellungen
 func DefaultSystemSettings() *SystemSettings {
 	return &SystemSettings{
+		Language:            "de", // Default to German
 		State:               string(StateNordrheinWestfalen),
 		DefaultWorkingHours: 40,
 		DefaultVacationDays: 30,
@@ -121,4 +123,26 @@ func (ss *SystemSettings) IsEmailConfigured() bool {
 	return en.SMTPHost != "" && en.SMTPPort > 0 &&
 		en.SMTPUser != "" && en.SMTPPass != "" &&
 		en.FromEmail != "" && en.FromName != ""
+}
+
+// GetGermanStates returns all German states with their labels
+func GetGermanStates() []map[string]string {
+	return []map[string]string{
+		{"value": string(StateBadenWuerttemberg), "label": StateBadenWuerttemberg.GetLabel()},
+		{"value": string(StateBayern), "label": StateBayern.GetLabel()},
+		{"value": string(StateBerlin), "label": StateBerlin.GetLabel()},
+		{"value": string(StateBrandenburg), "label": StateBrandenburg.GetLabel()},
+		{"value": string(StateBremen), "label": StateBremen.GetLabel()},
+		{"value": string(StateHamburg), "label": StateHamburg.GetLabel()},
+		{"value": string(StateHessen), "label": StateHessen.GetLabel()},
+		{"value": string(StateMecklenburgVorpommern), "label": StateMecklenburgVorpommern.GetLabel()},
+		{"value": string(StateNiedersachsen), "label": StateNiedersachsen.GetLabel()},
+		{"value": string(StateNordrheinWestfalen), "label": StateNordrheinWestfalen.GetLabel()},
+		{"value": string(StateRheinlandPfalz), "label": StateRheinlandPfalz.GetLabel()},
+		{"value": string(StateSaarland), "label": StateSaarland.GetLabel()},
+		{"value": string(StateSachsen), "label": StateSachsen.GetLabel()},
+		{"value": string(StateSachsenAnhalt), "label": StateSachsenAnhalt.GetLabel()},
+		{"value": string(StateSchleswigHolstein), "label": StateSchleswigHolstein.GetLabel()},
+		{"value": string(StateThueringen), "label": StateThueringen.GetLabel()},
+	}
 }

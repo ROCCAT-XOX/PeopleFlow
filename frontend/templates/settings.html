@@ -59,6 +59,10 @@
             </span>
             </button>
 
+            <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="email">
+                E-Mail-Konfiguration
+            </button>
+
             <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400 flex items-center cursor-not-allowed" data-tab="notifications">
                 Benachrichtigungen
                 <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -643,7 +647,110 @@
         </div>
     </div>
 
-    <!-- 3. Appearance Settings -->
+    <!-- 3. Email Configuration -->
+    <div id="email-tab" class="tab-content hidden">
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">SMTP-Konfiguration</h3>
+                <div class="mt-2 max-w-xl text-sm text-gray-500">
+                    <p>Konfigurieren Sie SMTP-Einstellungen für E-Mail-Benachrichtigungen und Passwort-Reset-E-Mails.</p>
+                </div>
+                
+                <form action="/api/settings/email" method="POST" class="mt-5 space-y-6">
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div>
+                            <label for="smtp-host" class="block text-sm font-medium text-gray-700">SMTP-Server</label>
+                            <input type="text" name="smtp-host" id="smtp-host" 
+                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" 
+                                   placeholder="smtp.gmail.com"
+                                   value="{{if .systemSettings.EmailNotifications}}{{.systemSettings.EmailNotifications.SMTPHost}}{{end}}">
+                        </div>
+                        
+                        <div>
+                            <label for="smtp-port" class="block text-sm font-medium text-gray-700">SMTP-Port</label>
+                            <input type="number" name="smtp-port" id="smtp-port" 
+                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" 
+                                   placeholder="587"
+                                   value="{{if .systemSettings.EmailNotifications}}{{.systemSettings.EmailNotifications.SMTPPort}}{{end}}">
+                        </div>
+                        
+                        <div>
+                            <label for="smtp-user" class="block text-sm font-medium text-gray-700">Benutzername</label>
+                            <input type="text" name="smtp-user" id="smtp-user" 
+                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" 
+                                   placeholder="your-email@gmail.com"
+                                   value="{{if .systemSettings.EmailNotifications}}{{.systemSettings.EmailNotifications.SMTPUser}}{{end}}">
+                        </div>
+                        
+                        <div>
+                            <label for="smtp-pass" class="block text-sm font-medium text-gray-700">Passwort</label>
+                            <input type="password" name="smtp-pass" id="smtp-pass" 
+                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" 
+                                   placeholder="App-Passwort oder normales Passwort"
+                                   value="{{if .systemSettings.EmailNotifications}}{{.systemSettings.EmailNotifications.SMTPPass}}{{end}}">
+                        </div>
+                        
+                        <div>
+                            <label for="from-email" class="block text-sm font-medium text-gray-700">Absender E-Mail</label>
+                            <input type="email" name="from-email" id="from-email" 
+                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" 
+                                   placeholder="noreply@company.com"
+                                   value="{{if .systemSettings.EmailNotifications}}{{.systemSettings.EmailNotifications.FromEmail}}{{end}}">
+                        </div>
+                        
+                        <div>
+                            <label for="from-name" class="block text-sm font-medium text-gray-700">Absender Name</label>
+                            <input type="text" name="from-name" id="from-name" 
+                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm" 
+                                   placeholder="PeopleFlow System"
+                                   value="{{if .systemSettings.EmailNotifications}}{{.systemSettings.EmailNotifications.FromName}}{{end}}">
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="use-tls" name="use-tls" type="checkbox" 
+                                   class="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300 rounded"
+                                   {{if .systemSettings.EmailNotifications}}{{if .systemSettings.EmailNotifications.UseTLS}}checked{{end}}{{end}}>
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="use-tls" class="font-medium text-gray-700">TLS verwenden</label>
+                            <p class="text-gray-500">Verschlüsselte Verbindung für erhöhte Sicherheit.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="email-enabled" name="email-enabled" type="checkbox" 
+                                   class="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300 rounded"
+                                   {{if .systemSettings.EmailNotifications}}{{if .systemSettings.EmailNotifications.Enabled}}checked{{end}}{{end}}>
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="email-enabled" class="font-medium text-gray-700">E-Mail-Benachrichtigungen aktivieren</label>
+                            <p class="text-gray-500">E-Mail-Funktionen für Passwort-Reset und wöchentliche Berichte aktivieren.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <button type="button" id="test-email-btn" 
+                                class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            Test-E-Mail senden
+                        </button>
+                        
+                        <button type="submit" 
+                                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            Konfiguration speichern
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Appearance Settings -->
     <div id="appearance-tab" class="tab-content hidden">
         <div class="bg-white shadow sm:rounded-lg">
             <div class="px-4 py-5 sm:p-6">
@@ -722,7 +829,7 @@
         </div>
     </div>
 
-    <!-- 4. Notification Settings -->
+    <!-- 5. Notification Settings -->
     <div id="notifications-tab" class="tab-content hidden">
         <div class="bg-white shadow sm:rounded-lg">
             <div class="px-4 py-5 sm:p-6">
@@ -1178,7 +1285,49 @@
                     }
                 }
             });
+
+        // Test-E-Mail-Button Event Listener
+        const testEmailBtn = document.getElementById('test-email-btn');
+        if (testEmailBtn) {
+            testEmailBtn.addEventListener('click', function() {
+                sendTestEmail();
+            });
+        }
     });
+
+    // Test-E-Mail senden
+    function sendTestEmail() {
+        const testBtn = document.getElementById('test-email-btn');
+        const originalText = testBtn.textContent;
+        
+        // Button deaktivieren und Text ändern
+        testBtn.disabled = true;
+        testBtn.textContent = 'Wird gesendet...';
+        
+        fetch('/api/settings/email/test', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Test-E-Mail wurde erfolgreich gesendet! Bitte überprüfen Sie Ihr E-Mail-Postfach.');
+            } else {
+                alert('Fehler beim Senden der Test-E-Mail: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ein Fehler ist aufgetreten beim Senden der Test-E-Mail.');
+        })
+        .finally(() => {
+            // Button wieder aktivieren
+            testBtn.disabled = false;
+            testBtn.textContent = originalText;
+        });
+    }
 </script>
 </body>
 </html>

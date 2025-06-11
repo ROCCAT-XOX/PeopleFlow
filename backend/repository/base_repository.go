@@ -17,11 +17,12 @@ import (
 
 // Common errors
 var (
-	ErrNotFound     = errors.New("document not found")
-	ErrInvalidID    = errors.New("invalid object ID")
-	ErrDuplicateKey = errors.New("duplicate key error")
-	ErrTimeout      = errors.New("operation timeout")
-	ErrValidation   = errors.New("validation error")
+	ErrNotFound       = errors.New("document not found")
+	ErrInvalidID      = errors.New("invalid object ID")
+	ErrDuplicateKey   = errors.New("duplicate key error")
+	ErrDuplicateEntry = errors.New("duplicate entry")
+	ErrTimeout        = errors.New("operation timeout")
+	ErrValidation     = errors.New("validation error")
 )
 
 // BaseRepository provides common database operations with logging and error handling

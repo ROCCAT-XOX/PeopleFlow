@@ -40,7 +40,7 @@ func (h *EmployeeHandler) ListEmployees(c *gin.Context) {
 	userRole, _ := c.Get("userRole")
 
 	// Alle Mitarbeiter abrufen
-	employees, err := h.employeeRepo.FindAll()
+	employees, _, err := h.employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"title":   "Fehler",
@@ -120,11 +120,44 @@ func (h *EmployeeHandler) ListEmployees(c *gin.Context) {
 // AddEmployee fügt einen neuen Mitarbeiter hinzu
 func (h *EmployeeHandler) AddEmployee(c *gin.Context) {
 	// Formulardaten abrufen
-	firstName := c.PostForm("firstName")
-	lastName := c.PostForm("lastName")
-	email := c.PostForm("email")
-	position := c.PostForm("position")
-	department := c.PostForm("department")
+	firstName := strings.TrimSpace(c.PostForm("firstName"))
+	lastName := strings.TrimSpace(c.PostForm("lastName"))
+	email := strings.TrimSpace(c.PostForm("email"))
+	position := strings.TrimSpace(c.PostForm("position"))
+	department := strings.TrimSpace(c.PostForm("department"))
+	
+	// Grundlegende Validierung
+	if firstName == "" || lastName == "" || email == "" {
+		c.HTML(http.StatusBadRequest, "error.html", gin.H{
+			"title":   "Fehler",
+			"message": "Vorname, Nachname und E-Mail sind Pflichtfelder",
+			"year":    time.Now().Year(),
+		})
+		return
+	}
+	
+	// Repository-Verfügbarkeit prüfen
+	if h.employeeRepo == nil {
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+			"title":   "Fehler",
+			"message": "Datenbankverbindung nicht verfügbar",
+			"year":    time.Now().Year(),
+		})
+		return
+	}
+	
+	// Prüfen, ob E-Mail bereits existiert
+	if email != "" {
+		existingEmployee, err := h.employeeRepo.FindByEmail(email)
+		if err == nil && existingEmployee != nil {
+			c.HTML(http.StatusBadRequest, "error.html", gin.H{
+				"title":   "Fehler",
+				"message": "Ein Mitarbeiter mit dieser E-Mail-Adresse existiert bereits",
+				"year":    time.Now().Year(),
+			})
+			return
+		}
+	}
 
 	// Weitere Felder aus dem Formular extrahieren
 	// (gekürzt für Übersichtlichkeit)
@@ -182,8 +215,16 @@ func (h *EmployeeHandler) AddEmployee(c *gin.Context) {
 
 	flexibleWorkingHours := c.PostForm("flexibleWorkingHours") == "true"
 
+	// EmployeeID generieren (falls nicht vom Formular bereitgestellt)
+	employeeID := strings.TrimSpace(c.PostForm("employeeID"))
+	if employeeID == "" {
+		// Generiere eine Employee-ID basierend auf Namen (als Fallback)
+		employeeID = strings.ToUpper(string(firstName[0]) + string(lastName[0])) + fmt.Sprintf("%d", time.Now().Unix()%10000)
+	}
+
 	// Neues Employee-Objekt erstellen
 	employee := &model.Employee{
+		EmployeeID:        employeeID,
 		FirstName:         firstName,
 		LastName:          lastName,
 		Email:             email,
@@ -231,19 +272,23 @@ func (h *EmployeeHandler) AddEmployee(c *gin.Context) {
 	}
 
 	// Aktivität loggen
-	user, _ := c.Get("user")
-	userModel := user.(*model.User)
-
-	activityRepo := repository.NewActivityRepository()
-	_, _ = activityRepo.LogActivity(
-		model.ActivityTypeEmployeeAdded,
-		userModel.ID,
-		userModel.FirstName+" "+userModel.LastName,
-		employee.ID,
-		"employee",
-		employee.FirstName+" "+employee.LastName,
-		"Neuer Mitarbeiter hinzugefügt",
-	)
+	user, exists := c.Get("user")
+	if exists && user != nil {
+		userModel := user.(*model.User)
+		
+		activityRepo := repository.NewActivityRepository()
+		if activityRepo != nil {
+			_, _ = activityRepo.LogActivity(
+				model.ActivityTypeEmployeeAdded,
+				userModel.ID,
+				userModel.FirstName+" "+userModel.LastName,
+				employee.ID,
+				"employee",
+				employee.FirstName+" "+employee.LastName,
+				"Neuer Mitarbeiter hinzugefügt",
+			)
+		}
+	}
 
 	// Zurück zur Mitarbeiterliste mit Erfolgsmeldung
 	c.Redirect(http.StatusFound, "/employees?success=added")
@@ -259,7 +304,7 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 	}
 
 	// Mitarbeiter inklusive Anpassungen laden
-	employee, err := h.employeeRepo.FindByIDWithAdjustments(id)
+	employee, err := h.employeeRepo.FindByID(id)
 	if err != nil {
 		c.HTML(http.StatusNotFound, "error.html", gin.H{
 			"title":      "Fehler",
@@ -282,7 +327,15 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 	}
 
 	// Aktuellen Benutzer aus dem Context abrufen
-	user, _ := c.Get("user")
+	user, exists := c.Get("user")
+	if !exists || user == nil {
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+			"title":   "Fehler",
+			"message": "Benutzer-Session ungültig",
+			"year":    time.Now().Year(),
+		})
+		return
+	}
 	userModel := user.(*model.User)
 	userRole, _ := c.Get("userRole")
 
@@ -623,7 +676,15 @@ func (h *EmployeeHandler) ShowEditEmployeeForm(c *gin.Context) {
 	}
 
 	// Aktuellen Benutzer aus dem Context abrufen
-	user, _ := c.Get("user")
+	user, exists := c.Get("user")
+	if !exists || user == nil {
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+			"title":   "Fehler",
+			"message": "Benutzer-Session ungültig",
+			"year":    time.Now().Year(),
+		})
+		return
+	}
 	userModel := user.(*model.User)
 
 	// Liste der Manager abrufen
@@ -708,11 +769,19 @@ func (h *EmployeeHandler) UploadProfileImage(c *gin.Context) {
 
 func (h *EmployeeHandler) ListUpcomingConversations(c *gin.Context) {
 	// Aktuellen Benutzer aus dem Context abrufen
-	user, _ := c.Get("user")
+	user, exists := c.Get("user")
+	if !exists || user == nil {
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+			"title":   "Fehler",
+			"message": "Benutzer-Session ungültig",
+			"year":    time.Now().Year(),
+		})
+		return
+	}
 	userModel := user.(*model.User)
 
 	// Alle Mitarbeiter abrufen
-	employees, err := h.employeeRepo.FindAll()
+	employees, _, err := h.employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"title":   "Fehler",
@@ -868,19 +937,21 @@ func (h *EmployeeHandler) RecalculateEmployeeOvertime(c *gin.Context) {
 	}
 
 	// Aktivität loggen
-	user, _ := c.Get("user")
-	userModel := user.(*model.User)
+	user, exists := c.Get("user")
+	if exists && user != nil {
+		userModel := user.(*model.User)
 
-	activityRepo := repository.NewActivityRepository()
-	_, _ = activityRepo.LogActivity(
-		model.ActivityTypeEmployeeUpdated,
-		userModel.ID,
-		userModel.FirstName+" "+userModel.LastName,
-		employee.ID,
-		"employee",
-		employee.FirstName+" "+employee.LastName,
-		"Überstunden neu berechnet",
-	)
+		activityRepo := repository.NewActivityRepository()
+		_, _ = activityRepo.LogActivity(
+			model.ActivityTypeEmployeeUpdated,
+			userModel.ID,
+			userModel.FirstName+" "+userModel.LastName,
+			employee.ID,
+			"employee",
+			employee.FirstName+" "+employee.LastName,
+			"Überstunden neu berechnet",
+		)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

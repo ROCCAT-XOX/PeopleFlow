@@ -2,6 +2,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -102,7 +103,9 @@ func (r *IntegrationRepository) SaveApiKey(integrationType string, apiKey string
 	}
 
 	opts := options.Update().SetUpsert(true)
-	_, err = r.UpdateOne(filter, update, opts)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_, err = r.collection.UpdateOne(ctx, filter, update, opts)
 
 	return err
 }
@@ -234,6 +237,25 @@ func (r *IntegrationRepository) GetActiveIntegrations() ([]model.Integration, er
 	return integrations, nil
 }
 
+// tryTransactionOrDirect attempts to use a transaction, but falls back to direct execution if transactions are not supported
+func (r *IntegrationRepository) tryTransactionOrDirect(fn func(context.Context) error) error {
+	// First try with transaction
+	err := r.Transaction(func(sessCtx mongo.SessionContext) error {
+		return fn(sessCtx)
+	})
+	
+	// If transaction failed due to not being supported, try without transaction
+	if err != nil && (strings.Contains(err.Error(), "Transaction numbers are only allowed") || 
+		strings.Contains(err.Error(), "IllegalOperation")) {
+		// Fall back to direct execution without transaction
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		return fn(ctx)
+	}
+	
+	return err
+}
+
 // SetMetadata speichert Metadaten für eine Integration
 func (r *IntegrationRepository) SetMetadata(integrationType string, key string, value string) error {
 	// Validate input
@@ -248,11 +270,11 @@ func (r *IntegrationRepository) SetMetadata(integrationType string, key string, 
 		return fmt.Errorf("%w: key cannot be empty", ErrInvalidMetadata)
 	}
 
-	// Use transaction to ensure atomic update
-	return r.Transaction(func(sessCtx mongo.SessionContext) error {
+	// Use transaction with fallback to ensure atomic update
+	return r.tryTransactionOrDirect(func(ctx context.Context) error {
 		// Check if integration exists
 		var integration model.Integration
-		err := r.collection.FindOne(sessCtx, bson.M{"type": integrationType}).Decode(&integration)
+		err := r.collection.FindOne(ctx, bson.M{"type": integrationType}).Decode(&integration)
 
 		if err == mongo.ErrNoDocuments {
 			// Create new integration if it doesn't exist
@@ -264,7 +286,7 @@ func (r *IntegrationRepository) SetMetadata(integrationType string, key string, 
 				UpdatedAt: time.Now(),
 				Metadata:  map[string]string{key: value},
 			}
-			_, err = r.collection.InsertOne(sessCtx, integration)
+			_, err = r.collection.InsertOne(ctx, integration)
 			return err
 		} else if err != nil {
 			return err
@@ -279,7 +301,7 @@ func (r *IntegrationRepository) SetMetadata(integrationType string, key string, 
 			},
 		}
 
-		_, err = r.collection.UpdateOne(sessCtx, bson.M{"type": integrationType}, update)
+		_, err = r.collection.UpdateOne(ctx, bson.M{"type": integrationType}, update)
 		return err
 	})
 }
@@ -407,7 +429,7 @@ func (r *IntegrationRepository) DeleteIntegration(integrationType string) error 
 
 	integrationType = strings.ToLower(strings.TrimSpace(integrationType))
 
-	err := r.DeleteOne(bson.M{"type": integrationType})
+	_, err := r.DeleteOne(bson.M{"type": integrationType})
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return ErrIntegrationNotFound

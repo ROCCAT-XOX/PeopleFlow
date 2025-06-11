@@ -31,7 +31,7 @@ func (h *StatisticsHandler) GetStatisticsView(c *gin.Context) {
 	userRole, _ := c.Get("userRole")
 
 	// Alle Mitarbeiter abrufen
-	employees, err := h.employeeRepo.FindAll()
+	employees, _, err := h.employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"title":   "Fehler",

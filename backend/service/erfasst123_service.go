@@ -345,7 +345,7 @@ func (s *Erfasst123Service) SyncErfasst123Employees() (int, error) {
 	employeeRepo := repository.NewEmployeeRepository()
 
 	// Alle Mitarbeiter aus der Datenbank abrufen
-	peopleFlowEmployees, err := employeeRepo.FindAll()
+	peopleFlowEmployees, _, err := employeeRepo.FindAll(0, 1000, "lastName", 1) // Get up to 1000 employees, sorted by lastName
 	if err != nil {
 		return 0, err
 	}
@@ -386,8 +386,8 @@ func (s *Erfasst123Service) SyncErfasst123Employees() (int, error) {
 		}
 
 		// Logging
-		fmt.Printf("Gefunden: Übereinstimmung für %s %s mit 123erfasst ID: %s\n",
-			employee.FirstName, employee.LastName, matchedEmployee.Ident)
+		fmt.Printf("✓ ZUGEORDNET via Email: %s %s (%s) → 123erfasst ID: %s\n",
+			employee.FirstName, employee.LastName, employee.Email, matchedEmployee.Ident)
 
 		// Flag, um zu prüfen, ob Änderungen vorgenommen wurden
 		updated := false
@@ -838,7 +838,7 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 	employeeRepo := repository.NewEmployeeRepository()
 
 	// Alle Mitarbeiter abrufen
-	allEmployees, err := employeeRepo.FindAll()
+	allEmployees, _, err := employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		return 0, fmt.Errorf("Fehler beim Abrufen der Mitarbeiter: %v", err)
 	}
@@ -913,18 +913,25 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 		}
 		duplicateCheck[duplicateKey] = true
 
-		// Mitarbeiter suchen
+		// Mitarbeiter suchen - Email hat Priorität
 		var employee *model.Employee
+		var matchMethod string
 
-		// Methode 1: Über 123erfasst ID
-		if timeEntry.Person.Ident != "" {
-			employee = employeeByErfasst123ID[timeEntry.Person.Ident]
-		}
-
-		// Methode 2: Über Email
-		if employee == nil && timeEntry.Person.Mail != "" {
+		// Methode 1: Über Email (primär)
+		if timeEntry.Person.Mail != "" {
 			emailKey := strings.ToLower(strings.TrimSpace(timeEntry.Person.Mail))
 			employee = employeeMap[emailKey]
+			if employee != nil {
+				matchMethod = "Email"
+			}
+		}
+
+		// Methode 2: Über 123erfasst ID (fallback)
+		if employee == nil && timeEntry.Person.Ident != "" {
+			employee = employeeByErfasst123ID[timeEntry.Person.Ident]
+			if employee != nil {
+				matchMethod = "123erfasst ID"
+			}
 		}
 
 		// Nicht gefunden
@@ -937,6 +944,14 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 					timeEntry.Person.Ident, timeEntry.Person.Mail)
 			}
 			continue
+		}
+
+		// Debug: Log successful matches (only for first few entries)
+		if len(employeeTimeEntries) < 5 {
+			fmt.Printf("✓ ZUGEORDNET via %s: %s %s → %s %s\n",
+				matchMethod,
+				timeEntry.Person.Firstname, timeEntry.Person.Lastname,
+				employee.FirstName, employee.LastName)
 		}
 
 		// Neuen Zeiteintrag erstellen
@@ -955,6 +970,16 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 
 		if timeEntry.WageType != nil {
 			newTimeEntry.WageType = timeEntry.WageType.Name
+		}
+
+		// Debug: Log first few time entries being created
+		if len(employeeTimeEntries) == 0 && len(employeeTimeEntries[employee.ID.Hex()]) < 3 {
+			fmt.Printf("    Erstelle Zeiteintrag: %s - %s von %s bis %s (%.2f h)\n",
+				newTimeEntry.Date.Format("2006-01-02"),
+				newTimeEntry.Activity,
+				newTimeEntry.StartTime.Format("15:04"),
+				newTimeEntry.EndTime.Format("15:04"),
+				newTimeEntry.Duration)
 		}
 
 		// Zeiteintrag zur Map hinzufügen
@@ -1003,6 +1028,14 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 		fmt.Printf("  Einträge vorher: %d\n", len(dbEmployee.TimeEntries))
 		fmt.Printf("  Davon entfernt (123erfasst im Sync-Zeitraum): %d\n", removedCount)
 		fmt.Printf("  Neue Einträge von 123erfasst: %d\n", len(newEntries))
+		
+		// Debug: Show sample of new entries
+		if len(newEntries) > 0 {
+			fmt.Printf("  Beispiel neuer Eintrag: %s - %s (%s)\n", 
+				newEntries[0].Date.Format("2006-01-02"),
+				newEntries[0].Activity, 
+				newEntries[0].ProjectName)
+		}
 
 		// Schritt 2: Neue Einträge hinzufügen
 		dbEmployee.TimeEntries = append(keptEntries, newEntries...)
@@ -1044,6 +1077,14 @@ func (s *Erfasst123Service) SyncErfasst123TimeEntries(startDate, endDate string)
 
 		updateCount++
 		fmt.Printf("✓ Erfolgreich aktualisiert: %s %s\n", dbEmployee.FirstName, dbEmployee.LastName)
+		
+		// Debug: Verify data was saved by re-reading from database
+		verifyEmployee, err := employeeRepo.FindByID(dbEmployee.ID.Hex())
+		if err == nil {
+			fmt.Printf("  Verifikation: %d Zeiteinträge in der Datenbank gespeichert\n", len(verifyEmployee.TimeEntries))
+		} else {
+			fmt.Printf("  Verifikation fehlgeschlagen: %v\n", err)
+		}
 	}
 
 	fmt.Printf("\n=== ZUSAMMENFASSUNG ===\n")
@@ -1186,7 +1227,10 @@ func (s *Erfasst123Service) GetProjects(startDate, endDate string) ([]model.Erfa
 	auth := fmt.Sprintf("%s:%s", email, password)
 	encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
 
-	// GraphQL-Anfrage für Projekte
+	// Debug: Log the date range being queried
+	fmt.Printf("Fetching project plannings from %s to %s\n", startDate, endDate)
+
+	// GraphQL-Anfrage für Projekte - DIFFERENT from time entries!
 	query := fmt.Sprintf(`{
 		"query": "query GetPlannings($dateFrom: Date!, $dateTo: Date!) { plannings(dateFrom: $dateFrom, dateTo: $dateTo) { nodes { project { id name } persons { ident firstname lastname mail } dateStart dateEnd } totalCount } }",
 		"variables": {
@@ -1194,6 +1238,10 @@ func (s *Erfasst123Service) GetProjects(startDate, endDate string) ([]model.Erfa
 			"dateTo": "%s"
 		}
 	}`, startDate, endDate)
+
+	fmt.Printf("=== PROJECT SYNC QUERY ===\n")
+	fmt.Printf("Query: %s\n", query)
+	fmt.Printf("=== END QUERY ===\n")
 
 	// HTTP-Anfrage
 	client := &http.Client{
@@ -1214,17 +1262,33 @@ func (s *Erfasst123Service) GetProjects(startDate, endDate string) ([]model.Erfa
 	}
 	defer res.Body.Close()
 
+	// Read the response body for debugging
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
 	if res.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(res.Body)
 		return nil, fmt.Errorf("123erfasst API Fehler: %s - %s", res.Status, string(body))
+	}
+
+	// Debug: Log the API response
+	fmt.Printf("API Response Status: %s\n", res.Status)
+	if len(body) > 300 {
+		fmt.Printf("Response (erste 300 Zeichen): %s...\n", string(body[:300]))
+	} else {
+		fmt.Printf("Response: %s\n", string(body))
 	}
 
 	// Antwort parsen
 	var response model.Erfasst123PlanningResponse
-	decoder := json.NewDecoder(res.Body)
-	if err := decoder.Decode(&response); err != nil {
-		return nil, err
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, fmt.Errorf("fehler beim Parsen der Planning Response: %v", err)
 	}
+
+	// Debug: Log parsed response
+	fmt.Printf("Gefunden: %d Projektplanungen (totalCount: %d)\n",
+		len(response.Data.Plannings.Nodes), response.Data.Plannings.TotalCount)
 
 	location := getGermanLocation()
 
@@ -1247,6 +1311,20 @@ func (s *Erfasst123Service) GetProjects(startDate, endDate string) ([]model.Erfa
 		}
 	}
 
+	// Debug: Show first few projects
+	if len(response.Data.Plannings.Nodes) > 0 {
+		fmt.Printf("Erste 3 Projektplanungen:\n")
+		for i, planning := range response.Data.Plannings.Nodes {
+			if i >= 3 {
+				break
+			}
+			fmt.Printf("  - %s (ID: %s) vom %s bis %s mit %d Personen\n",
+				planning.Project.Name, planning.Project.ID,
+				planning.DateStart, planning.DateEnd,
+				len(planning.Persons))
+		}
+	}
+
 	// Integration als aktiv markieren
 	s.integrationRepo.SetIntegrationStatus("123erfasst", true)
 	s.integrationRepo.SetLastSync("123erfasst", time.Now())
@@ -1256,21 +1334,503 @@ func (s *Erfasst123Service) GetProjects(startDate, endDate string) ([]model.Erfa
 
 // SyncErfasst123Projects synchronisiert 123erfasst Projekte mit PeopleFlow Mitarbeitern
 func (s *Erfasst123Service) SyncErfasst123Projects(startDate, endDate string) (int, error) {
-	// Projekte von 123erfasst abrufen
+	fmt.Printf("\n=== START SYNC 123ERFASST PROJEKTE ===\n")
+	fmt.Printf("Zeitraum: %s bis %s\n", startDate, endDate)
+
+	// ALTERNATIVE: Versuche Projektdaten aus Zeiteinträgen zu extrahieren
+	fmt.Printf("\n=== ALTERNATIVE: Extrahiere Projekte aus Zeiteinträgen ===\n")
+	timeEntries, err := s.GetTimeEntries(startDate, endDate)
+	if err == nil && len(timeEntries) > 0 {
+		fmt.Printf("Gefundene Zeiteinträge: %d\n", len(timeEntries))
+		return s.createProjectAssignmentsFromTimeEntries(timeEntries, startDate, endDate)
+	}
+
+	// Projekte von 123erfasst abrufen (ursprüngliche Methode)
 	projects, err := s.GetProjects(startDate, endDate)
 	if err != nil {
 		return 0, err
 	}
 
-	fmt.Printf("Erhalten: %d Projekte von 123erfasst\n", len(projects))
+	fmt.Printf("Erhaltene Projektplanungen: %d\n", len(projects))
 
-	// TODO: Implementierung der Projektsynchronisation
-	// Dies könnte beinhalten:
-	// - Erstellen von Projekten in PeopleFlow
-	// - Zuordnung von Mitarbeitern zu Projekten
-	// - Aktualisierung von Projektinformationen
+	if len(projects) == 0 {
+		fmt.Printf("Keine Projektplanungen für den angegebenen Zeitraum gefunden.\n")
+		fmt.Printf("Versuche Alternative: Projekte aus Zeiteinträgen extrahieren...\n")
+		return 0, nil
+	}
 
-	return len(projects), nil
+	// Repository für Mitarbeiter initialisieren
+	employeeRepo := repository.NewEmployeeRepository()
+
+	// Alle Mitarbeiter abrufen
+	allEmployees, _, err := employeeRepo.FindAll(0, 1000, "lastName", 1)
+	if err != nil {
+		return 0, fmt.Errorf("Fehler beim Abrufen der Mitarbeiter: %v", err)
+	}
+
+	fmt.Printf("Geladene Mitarbeiter: %d\n", len(allEmployees))
+
+	// Mitarbeiter-Maps erstellen für schnellen Zugriff
+	employeeMap := make(map[string]*model.Employee)
+	employeeByErfasst123ID := make(map[string]*model.Employee)
+
+	for _, emp := range allEmployees {
+		key := strings.ToLower(strings.TrimSpace(emp.Email))
+		employeeMap[key] = emp
+
+		if emp.Erfasst123ID != "" {
+			employeeByErfasst123ID[emp.Erfasst123ID] = emp
+		}
+	}
+
+	// Map für zu aktualisierende Mitarbeiter
+	employeeProjectAssignments := make(map[string][]model.ProjectAssignment)
+	updateCount := 0
+	assignmentCount := 0
+
+	// Parse dates für Filterung
+	location := getGermanLocation()
+	startDateParsed, err := time.ParseInLocation("2006-01-02", startDate, location)
+	if err != nil {
+		return 0, fmt.Errorf("ungültiges Startdatum: %v", err)
+	}
+	startDateParsed = time.Date(startDateParsed.Year(), startDateParsed.Month(), startDateParsed.Day(),
+		0, 0, 0, 0, location)
+
+	endDateParsed, err := time.ParseInLocation("2006-01-02", endDate, location)
+	if err != nil {
+		return 0, fmt.Errorf("ungültiges Enddatum: %v", err)
+	}
+	endDateParsed = time.Date(endDateParsed.Year(), endDateParsed.Month(), endDateParsed.Day(),
+		23, 59, 59, 999999999, location)
+
+	fmt.Printf("\n=== VERARBEITUNG DER PROJEKTPLANUNGEN ===\n")
+
+	// Projektplanungen durchgehen
+	for _, planning := range projects {
+		fmt.Printf("\nProjekt: %s (ID: %s)\n", planning.Project.Name, planning.Project.ID)
+		fmt.Printf("Zeitraum: %s - %s\n", planning.DateStart, planning.DateEnd)
+		fmt.Printf("Zugewiesene Personen: %d\n", len(planning.Persons))
+
+		// Für jede Person in der Projektplanung
+		for _, person := range planning.Persons {
+			// Mitarbeiter suchen - Email hat Priorität
+			var employee *model.Employee
+			var matchMethod string
+
+			// Methode 1: Über Email (primär)
+			if person.Mail != "" {
+				emailKey := strings.ToLower(strings.TrimSpace(person.Mail))
+				employee = employeeMap[emailKey]
+				if employee != nil {
+					matchMethod = "Email"
+				}
+			}
+
+			// Methode 2: Über 123erfasst ID (fallback)
+			if employee == nil && person.Ident != "" {
+				employee = employeeByErfasst123ID[person.Ident]
+				if employee != nil {
+					matchMethod = "123erfasst ID"
+				}
+			}
+
+			// Nicht gefunden
+			if employee == nil {
+				fmt.Printf("  ✗ NICHT GEFUNDEN: %s %s (ID: %s, Email: %s)\n",
+					person.Firstname, person.Lastname, person.Ident, person.Mail)
+				continue
+			}
+
+			fmt.Printf("  ✓ ZUGEORDNET via %s: %s %s → %s %s\n",
+				matchMethod, person.Firstname, person.Lastname,
+				employee.FirstName, employee.LastName)
+
+			// Neue Projektzuordnung erstellen
+			newAssignment := model.ProjectAssignment{
+				ID:          primitive.NewObjectID(),
+				ProjectID:   planning.Project.ID,
+				ProjectName: planning.Project.Name,
+				StartDate:   planning.DateStartParsed,
+				EndDate:     planning.DateEndParsed,
+				Role:        "", // 123erfasst provides no role information
+				Notes:       fmt.Sprintf("Imported from 123erfasst planning"),
+				Source:      "123erfasst",
+			}
+
+			// Projektzuordnung zur Map hinzufügen
+			employeeID := employee.ID.Hex()
+			employeeProjectAssignments[employeeID] = append(employeeProjectAssignments[employeeID], newAssignment)
+			assignmentCount++
+		}
+	}
+
+	fmt.Printf("\n=== BEREINIGUNG UND SPEICHERUNG ===\n")
+	fmt.Printf("Mitarbeiter mit neuen Projektzuordnungen: %d\n", len(employeeProjectAssignments))
+	fmt.Printf("Gesamte neue Zuordnungen: %d\n", assignmentCount)
+
+	// Updates durchführen
+	for employeeID, newAssignments := range employeeProjectAssignments {
+		// Mitarbeiter aus DB neu laden für sauberen Stand
+		dbEmployee, err := employeeRepo.FindByID(employeeID)
+		if err != nil {
+			fmt.Printf("✗ Fehler beim Abrufen von Mitarbeiter %s: %v\n", employeeID, err)
+			continue
+		}
+
+		// Schritt 1: Bestehende 123erfasst Projektzuordnungen im Zeitraum entfernen
+		var keptAssignments []model.ProjectAssignment
+		removedCount := 0
+
+		for _, assignment := range dbEmployee.ProjectAssignments {
+			shouldKeep := true
+
+			if assignment.Source == "123erfasst" {
+				// Prüfe ob die Zuordnung im Sync-Zeitraum liegt
+				assignmentStart := assignment.StartDate.In(location)
+				assignmentEnd := assignment.EndDate.In(location)
+
+				// Entferne wenn Überlappung mit Sync-Zeitraum
+				if !(assignmentEnd.Before(startDateParsed) || assignmentStart.After(endDateParsed)) {
+					shouldKeep = false
+					removedCount++
+					fmt.Printf("  → Entferne 123erfasst-Projektzuordnung: %s (%s - %s)\n",
+						assignment.ProjectName,
+						assignmentStart.Format("2006-01-02"),
+						assignmentEnd.Format("2006-01-02"))
+				}
+			}
+
+			if shouldKeep {
+				keptAssignments = append(keptAssignments, assignment)
+			}
+		}
+
+		// Debug-Ausgabe
+		fmt.Printf("\nMitarbeiter %s %s:\n", dbEmployee.FirstName, dbEmployee.LastName)
+		fmt.Printf("  Projektzuordnungen vorher: %d\n", len(dbEmployee.ProjectAssignments))
+		fmt.Printf("  Davon entfernt (123erfasst im Sync-Zeitraum): %d\n", removedCount)
+		fmt.Printf("  Neue Zuordnungen von 123erfasst: %d\n", len(newAssignments))
+
+		// Schritt 2: Neue Zuordnungen hinzufügen
+		dbEmployee.ProjectAssignments = append(keptAssignments, newAssignments...)
+
+		// Schritt 3: Nach Startdatum sortieren
+		sort.Slice(dbEmployee.ProjectAssignments, func(i, j int) bool {
+			return dbEmployee.ProjectAssignments[i].StartDate.Before(dbEmployee.ProjectAssignments[j].StartDate)
+		})
+
+		fmt.Printf("  Projektzuordnungen nachher: %d\n", len(dbEmployee.ProjectAssignments))
+
+		dbEmployee.UpdatedAt = time.Now()
+
+		// Mitarbeiter aktualisieren
+		if err := employeeRepo.Update(dbEmployee); err != nil {
+			fmt.Printf("✗ Fehler beim Aktualisieren von %s %s: %v\n",
+				dbEmployee.FirstName, dbEmployee.LastName, err)
+			continue
+		}
+
+		updateCount++
+		fmt.Printf("✓ Erfolgreich aktualisiert: %s %s\n", dbEmployee.FirstName, dbEmployee.LastName)
+	}
+
+	fmt.Printf("\n=== ZUSAMMENFASSUNG ===\n")
+	fmt.Printf("Projektplanungen von 123erfasst: %d\n", len(projects))
+	fmt.Printf("Neue Projektzuordnungen: %d\n", assignmentCount)
+	fmt.Printf("Aktualisierte Mitarbeiter: %d\n", updateCount)
+	fmt.Printf("=== PROJEKT SYNC ENDE ===\n\n")
+
+	// Letzte Synchronisation aktualisieren
+	s.integrationRepo.SetLastSync("123erfasst", time.Now())
+
+	return updateCount, nil
+}
+
+// createProjectAssignmentsFromTimeEntries erstellt Projektzuordnungen aus Zeiteinträgen
+func (s *Erfasst123Service) createProjectAssignmentsFromTimeEntries(timeEntries []model.Erfasst123Time, startDate, endDate string) (int, error) {
+	fmt.Printf("=== ERSTELLE PROJEKTZUORDNUNGEN AUS ZEITEINTRÄGEN ===\n")
+	
+	// Parse dates
+	location := getGermanLocation()
+	startDateParsed, err := time.ParseInLocation("2006-01-02", startDate, location)
+	if err != nil {
+		return 0, fmt.Errorf("ungültiges Startdatum: %v", err)
+	}
+	endDateParsed, err := time.ParseInLocation("2006-01-02", endDate, location)
+	if err != nil {
+		return 0, fmt.Errorf("ungültiges Enddatum: %v", err)
+	}
+
+	// Repository für Mitarbeiter initialisieren
+	employeeRepo := repository.NewEmployeeRepository()
+	allEmployees, _, err := employeeRepo.FindAll(0, 1000, "lastName", 1)
+	if err != nil {
+		return 0, fmt.Errorf("Fehler beim Abrufen der Mitarbeiter: %v", err)
+	}
+
+	// Mitarbeiter-Maps erstellen
+	employeeMap := make(map[string]*model.Employee)
+	employeeByErfasst123ID := make(map[string]*model.Employee)
+
+	for _, emp := range allEmployees {
+		key := strings.ToLower(strings.TrimSpace(emp.Email))
+		employeeMap[key] = emp
+		if emp.Erfasst123ID != "" {
+			employeeByErfasst123ID[emp.Erfasst123ID] = emp
+		}
+	}
+
+	// Sammle einzigartige Projektzuordnungen pro Mitarbeiter
+	type ProjectAssignmentKey struct {
+		EmployeeID  string
+		ProjectID   string
+		ProjectName string
+	}
+	
+	projectAssignments := make(map[ProjectAssignmentKey]struct {
+		StartDate time.Time
+		EndDate   time.Time
+		Employee  *model.Employee
+	})
+
+	processedEntries := 0
+	for _, timeEntry := range timeEntries {
+		// Validierung der geparsten Daten
+		if timeEntry.DateParsed.IsZero() || timeEntry.Project.ID == "" {
+			continue
+		}
+
+		// Mitarbeiter suchen
+		var employee *model.Employee
+		if timeEntry.Person.Mail != "" {
+			emailKey := strings.ToLower(strings.TrimSpace(timeEntry.Person.Mail))
+			employee = employeeMap[emailKey]
+		}
+		if employee == nil && timeEntry.Person.Ident != "" {
+			employee = employeeByErfasst123ID[timeEntry.Person.Ident]
+		}
+
+		if employee == nil {
+			continue
+		}
+
+		// Erstelle Schlüssel für diese Projektzuordnung
+		key := ProjectAssignmentKey{
+			EmployeeID:  employee.ID.Hex(),
+			ProjectID:   timeEntry.Project.ID,
+			ProjectName: timeEntry.Project.Name,
+		}
+
+		// Prüfe ob bereits vorhanden oder erweitere Zeitraum
+		if existing, exists := projectAssignments[key]; exists {
+			// Erweitere Zeitraum falls nötig
+			if timeEntry.DateParsed.Before(existing.StartDate) {
+				existing.StartDate = timeEntry.DateParsed
+			}
+			if timeEntry.DateParsed.After(existing.EndDate) {
+				existing.EndDate = timeEntry.DateParsed
+			}
+			projectAssignments[key] = existing
+		} else {
+			// Neue Projektzuordnung
+			projectAssignments[key] = struct {
+				StartDate time.Time
+				EndDate   time.Time
+				Employee  *model.Employee
+			}{
+				StartDate: timeEntry.DateParsed,
+				EndDate:   timeEntry.DateParsed,
+				Employee:  employee,
+			}
+		}
+		processedEntries++
+	}
+
+	fmt.Printf("Verarbeitete Zeiteinträge: %d\n", processedEntries)
+	fmt.Printf("Einzigartige Projektzuordnungen: %d\n", len(projectAssignments))
+
+	// Erstelle und speichere Projektzuordnungen
+	employeeUpdates := make(map[string][]model.ProjectAssignment)
+	
+	for key, assignment := range projectAssignments {
+		newAssignment := model.ProjectAssignment{
+			ID:          primitive.NewObjectID(),
+			ProjectID:   key.ProjectID,
+			ProjectName: key.ProjectName,
+			StartDate:   assignment.StartDate,
+			EndDate:     assignment.EndDate,
+			Role:        "", 
+			Notes:       "Erstellt aus 123erfasst Zeiteinträgen",
+			Source:      "123erfasst",
+		}
+
+		employeeUpdates[key.EmployeeID] = append(employeeUpdates[key.EmployeeID], newAssignment)
+		
+		fmt.Printf("Projektzuordnung: %s → %s (%s bis %s)\n",
+			assignment.Employee.FirstName+" "+assignment.Employee.LastName,
+			key.ProjectName,
+			assignment.StartDate.Format("2006-01-02"),
+			assignment.EndDate.Format("2006-01-02"))
+	}
+
+	// Aktualisiere Mitarbeiter
+	updateCount := 0
+	for employeeID, newAssignments := range employeeUpdates {
+		dbEmployee, err := employeeRepo.FindByID(employeeID)
+		if err != nil {
+			fmt.Printf("✗ Fehler beim Abrufen von Mitarbeiter %s: %v\n", employeeID, err)
+			continue
+		}
+
+		// Entferne alte 123erfasst Projektzuordnungen im Zeitraum
+		var keptAssignments []model.ProjectAssignment
+		for _, assignment := range dbEmployee.ProjectAssignments {
+			if assignment.Source != "123erfasst" ||
+				assignment.EndDate.Before(startDateParsed) ||
+				assignment.StartDate.After(endDateParsed) {
+				keptAssignments = append(keptAssignments, assignment)
+			}
+		}
+
+		// Füge neue Zuordnungen hinzu
+		dbEmployee.ProjectAssignments = append(keptAssignments, newAssignments...)
+		dbEmployee.UpdatedAt = time.Now()
+
+		if err := employeeRepo.Update(dbEmployee); err != nil {
+			fmt.Printf("✗ Fehler beim Aktualisieren von %s %s: %v\n",
+				dbEmployee.FirstName, dbEmployee.LastName, err)
+			continue
+		}
+
+		updateCount++
+		fmt.Printf("✓ Aktualisiert: %s %s (%d Projektzuordnungen)\n",
+			dbEmployee.FirstName, dbEmployee.LastName, len(newAssignments))
+	}
+
+	fmt.Printf("=== PROJEKTZUORDNUNGEN AUS ZEITEINTRÄGEN ABGESCHLOSSEN ===\n")
+	fmt.Printf("Aktualisierte Mitarbeiter: %d\n", updateCount)
+
+	return updateCount, nil
+}
+
+// TestProjectAPI testet die Projekt-API von 123erfasst
+func (s *Erfasst123Service) TestProjectAPI() error {
+	fmt.Println("=== TEST: 123erfasst Projekt API ===")
+
+	// Erste Überprüfung: Teste einfache Schema-Abfrage
+	fmt.Println("\n1. Teste Schema-Verfügbarkeit...")
+	if err := s.testGraphQLSchema(); err != nil {
+		fmt.Printf("Schema-Test fehlgeschlagen: %v\n", err)
+	}
+
+	// Test verschiedene Zeiträume
+	testRanges := []struct {
+		name      string
+		startDate string
+		endDate   string
+	}{
+		{"Großer Zeitraum", "2020-01-01", "2030-12-31"},
+		{"Aktueller Monat", time.Now().Format("2006-01-01"), time.Now().Format("2006-01-31")},
+		{"Letzter Monat", time.Now().AddDate(0, -1, 0).Format("2006-01-01"), time.Now().AddDate(0, -1, 0).Format("2006-01-31")},
+		{"Nächster Monat", time.Now().AddDate(0, 1, 0).Format("2006-01-01"), time.Now().AddDate(0, 1, 0).Format("2006-01-31")},
+		{"Letztes Jahr", time.Now().AddDate(-1, 0, 0).Format("2006-01-01"), time.Now().AddDate(-1, 0, 0).Format("2006-12-31")},
+	}
+
+	for _, testRange := range testRanges {
+		fmt.Printf("\n--- Test: %s (%s bis %s) ---\n", testRange.name, testRange.startDate, testRange.endDate)
+		
+		projects, err := s.GetProjects(testRange.startDate, testRange.endDate)
+		if err != nil {
+			fmt.Printf("Fehler: %v\n", err)
+			continue
+		}
+		
+		fmt.Printf("Gefunden: %d Projektplanungen\n", len(projects))
+		if len(projects) > 0 {
+			return nil // Erfolgreich, mindestens ein Zeitraum hat Daten
+		}
+	}
+
+	fmt.Println("\nKeine Projektplanungen in keinem der getesteten Zeiträume gefunden.")
+	fmt.Println("Das könnte bedeuten:")
+	fmt.Println("1. Keine Projektplanungen in 123erfasst erstellt")
+	fmt.Println("2. Projektplanungen liegen außerhalb der getesteten Zeiträume") 
+	fmt.Println("3. API-Berechtigung fehlt")
+	fmt.Println("4. Andere API-Struktur als erwartet")
+
+	return nil
+}
+
+// testGraphQLSchema testet verfügbare GraphQL-Queries
+func (s *Erfasst123Service) testGraphQLSchema() error {
+	email, password, err := s.GetCredentials()
+	if err != nil {
+		return err
+	}
+
+	// Basic Auth Token erstellen
+	auth := fmt.Sprintf("%s:%s", email, password)
+	encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
+
+	// Teste verschiedene Query-Strukturen
+	queries := []struct {
+		name  string
+		query string
+	}{
+		{
+			"Schema Introspection",
+			`{"query": "{ __schema { types { name } } }"}`,
+		},
+		{
+			"Einfache Plannings Query",
+			`{"query": "{ plannings { totalCount } }"}`,
+		},
+		{
+			"Projects Query (falls verfügbar)",
+			`{"query": "{ projects { totalCount } }"}`,
+		},
+		{
+			"Available Root Fields",
+			`{"query": "{ __schema { queryType { fields { name } } } }"}`,
+		},
+	}
+
+	for _, queryTest := range queries {
+		fmt.Printf("\nTeste: %s\n", queryTest.name)
+		
+		client := &http.Client{Timeout: 10 * time.Second}
+		req, err := http.NewRequest("POST", "https://server.123erfasst.de/api/graphql", strings.NewReader(queryTest.query))
+		if err != nil {
+			fmt.Printf("  Fehler beim Erstellen der Anfrage: %v\n", err)
+			continue
+		}
+
+		req.Header.Add("Content-Type", "application/json")
+		req.Header.Add("Authorization", "Basic "+encodedAuth)
+
+		res, err := client.Do(req)
+		if err != nil {
+			fmt.Printf("  Fehler bei der Anfrage: %v\n", err)
+			continue
+		}
+		defer res.Body.Close()
+
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			fmt.Printf("  Fehler beim Lesen der Antwort: %v\n", err)
+			continue
+		}
+
+		fmt.Printf("  Status: %s\n", res.Status)
+		if len(body) > 200 {
+			fmt.Printf("  Antwort (erste 200 Zeichen): %s...\n", string(body[:200]))
+		} else {
+			fmt.Printf("  Antwort: %s\n", string(body))
+		}
+	}
+
+	return nil
 }
 
 // TestEmployeeMapping testet die Zuordnung zwischen 123erfasst und PeopleFlow Mitarbeitern
@@ -1297,7 +1857,7 @@ func (s *Erfasst123Service) TestEmployeeMapping() error {
 	// 2. Hole PeopleFlow Mitarbeiter
 	fmt.Println("\n2. Hole Mitarbeiter aus PeopleFlow Datenbank...")
 	employeeRepo := repository.NewEmployeeRepository()
-	peopleFlowEmployees, err := employeeRepo.FindAll()
+	peopleFlowEmployees, _, err := employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		return fmt.Errorf("Fehler beim Abrufen der PeopleFlow Mitarbeiter: %v", err)
 	}
@@ -1404,7 +1964,7 @@ func (s *Erfasst123Service) CleanupDuplicateTimeEntries() (int, error) {
 	fmt.Printf("\n=== START BEREINIGUNG DUPLIKATE ===\n")
 
 	employeeRepo := repository.NewEmployeeRepository()
-	employees, err := employeeRepo.FindAll()
+	employees, _, err := employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {
 		return 0, fmt.Errorf("Fehler beim Abrufen der Mitarbeiter: %v", err)
 	}
