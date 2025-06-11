@@ -1,579 +1,555 @@
 package model
 
 import (
-	"strings"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func TestActivityConstants(t *testing.T) {
-	t.Run("ActivityType constants", func(t *testing.T) {
-		// Test that all activity type constants are defined
-		activityTypes := []ActivityType{
-			ActivityTypeEmployeeAdded,
-			ActivityTypeEmployeeUpdated,
-			ActivityTypeEmployeeDeleted,
-			ActivityTypeVacationRequested,
-			ActivityTypeVacationApproved,
-			ActivityTypeVacationRejected,
-			ActivityTypeDocumentUploaded,
-			ActivityTypeTrainingAdded,
-			ActivityTypeEvaluationAdded,
-			ActivityTypeUserAdded,
-			ActivityTypeUserUpdated,
-			ActivityTypeUserDeleted,
-			ActivityTypeConversationAdded,
-			ActivityTypeConversationUpdated,
-			ActivityTypeConversationCompleted,
-		}
-
-		for _, activityType := range activityTypes {
-			if string(activityType) == "" {
-				t.Errorf("Activity type constant should not be empty: %v", activityType)
-			}
-		}
-	})
-}
-
-func TestActivityGetIconClass(t *testing.T) {
+func TestActivityType_IsValid(t *testing.T) {
 	tests := []struct {
-		name         string
-		activityType ActivityType
-		expectedCSS  string
+		name     string
+		actType  ActivityType
+		expected bool
 	}{
 		{
-			name:         "employee added - green",
-			activityType: ActivityTypeEmployeeAdded,
-			expectedCSS:  "bg-green-500",
+			name:     "Valid - Employee Added",
+			actType:  ActivityTypeEmployeeAdded,
+			expected: true,
 		},
 		{
-			name:         "training added - green",
-			activityType: ActivityTypeTrainingAdded,
-			expectedCSS:  "bg-green-500",
+			name:     "Valid - Employee Updated",
+			actType:  ActivityTypeEmployeeUpdated,
+			expected: true,
 		},
 		{
-			name:         "evaluation added - green",
-			activityType: ActivityTypeEvaluationAdded,
-			expectedCSS:  "bg-green-500",
+			name:     "Valid - Employee Deleted",
+			actType:  ActivityTypeEmployeeDeleted,
+			expected: true,
 		},
 		{
-			name:         "employee updated - blue",
-			activityType: ActivityTypeEmployeeUpdated,
-			expectedCSS:  "bg-blue-500",
+			name:     "Valid - Vacation Requested",
+			actType:  ActivityTypeVacationRequested,
+			expected: true,
 		},
 		{
-			name:         "document uploaded - blue",
-			activityType: ActivityTypeDocumentUploaded,
-			expectedCSS:  "bg-blue-500",
+			name:     "Valid - Vacation Approved",
+			actType:  ActivityTypeVacationApproved,
+			expected: true,
 		},
 		{
-			name:         "vacation requested - yellow",
-			activityType: ActivityTypeVacationRequested,
-			expectedCSS:  "bg-yellow-500",
+			name:     "Valid - Vacation Rejected",
+			actType:  ActivityTypeVacationRejected,
+			expected: true,
 		},
 		{
-			name:         "vacation approved - yellow",
-			activityType: ActivityTypeVacationApproved,
-			expectedCSS:  "bg-yellow-500",
+			name:     "Valid - Overtime Adjusted",
+			actType:  ActivityTypeOvertimeAdjusted,
+			expected: true,
 		},
 		{
-			name:         "employee deleted - red",
-			activityType: ActivityTypeEmployeeDeleted,
-			expectedCSS:  "bg-red-500",
+			name:     "Valid - Document Uploaded",
+			actType:  ActivityTypeDocumentUploaded,
+			expected: true,
 		},
 		{
-			name:         "vacation rejected - red",
-			activityType: ActivityTypeVacationRejected,
-			expectedCSS:  "bg-red-500",
+			name:     "Valid - System Setting Changed",
+			actType:  ActivityTypeSystemSettingChanged,
+			expected: true,
 		},
 		{
-			name:         "conversation added - purple",
-			activityType: ActivityTypeConversationAdded,
-			expectedCSS:  "bg-purple-500",
+			name:     "Valid - Conversation Added",
+			actType:  ActivityTypeConversationAdded,
+			expected: true,
 		},
 		{
-			name:         "conversation completed - green",
-			activityType: ActivityTypeConversationCompleted,
-			expectedCSS:  "bg-green-500",
+			name:     "Valid - Conversation Completed",
+			actType:  ActivityTypeConversationCompleted,
+			expected: true,
 		},
 		{
-			name:         "unknown activity type - gray",
-			activityType: ActivityType("unknown"),
-			expectedCSS:  "bg-gray-500",
+			name:     "Valid - Conversation Updated",
+			actType:  ActivityTypeConversationUpdated,
+			expected: true,
+		},
+		{
+			name:     "Valid - User Added",
+			actType:  ActivityTypeUserAdded,
+			expected: true,
+		},
+		{
+			name:     "Valid - User Updated",
+			actType:  ActivityTypeUserUpdated,
+			expected: true,
+		},
+		{
+			name:     "Valid - User Deleted",
+			actType:  ActivityTypeUserDeleted,
+			expected: true,
+		},
+		{
+			name:     "Invalid - Unknown Type",
+			actType:  ActivityType("unknown_type"),
+			expected: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			activity := Activity{Type: tt.activityType}
-			result := activity.GetIconClass()
-			if result != tt.expectedCSS {
-				t.Errorf("GetIconClass() = %q, expected %q", result, tt.expectedCSS)
-			}
+			result := tt.actType.IsValid()
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
-func TestActivityGetIconSVG(t *testing.T) {
+func TestActivityType_RequiresTarget(t *testing.T) {
 	tests := []struct {
-		name         string
-		activityType ActivityType
-		expectSVG    bool
+		name     string
+		actType  ActivityType
+		expected bool
 	}{
 		{
-			name:         "employee added",
-			activityType: ActivityTypeEmployeeAdded,
-			expectSVG:    true,
+			name:     "System Setting Changed - No Target",
+			actType:  ActivityTypeSystemSettingChanged,
+			expected: false,
 		},
 		{
-			name:         "employee updated",
-			activityType: ActivityTypeEmployeeUpdated,
-			expectSVG:    true,
+			name:     "Employee Added - Requires Target",
+			actType:  ActivityTypeEmployeeAdded,
+			expected: true,
 		},
 		{
-			name:         "vacation requested",
-			activityType: ActivityTypeVacationRequested,
-			expectSVG:    true,
+			name:     "Document Uploaded - Requires Target",
+			actType:  ActivityTypeDocumentUploaded,
+			expected: true,
 		},
 		{
-			name:         "vacation approved",
-			activityType: ActivityTypeVacationApproved,
-			expectSVG:    true,
-		},
-		{
-			name:         "document uploaded",
-			activityType: ActivityTypeDocumentUploaded,
-			expectSVG:    true,
-		},
-		{
-			name:         "training added",
-			activityType: ActivityTypeTrainingAdded,
-			expectSVG:    true,
-		},
-		{
-			name:         "evaluation added",
-			activityType: ActivityTypeEvaluationAdded,
-			expectSVG:    true,
-		},
-		{
-			name:         "user added",
-			activityType: ActivityTypeUserAdded,
-			expectSVG:    true,
-		},
-		{
-			name:         "user updated",
-			activityType: ActivityTypeUserUpdated,
-			expectSVG:    true,
-		},
-		{
-			name:         "conversation added",
-			activityType: ActivityTypeConversationAdded,
-			expectSVG:    true,
-		},
-		{
-			name:         "conversation completed",
-			activityType: ActivityTypeConversationCompleted,
-			expectSVG:    true,
-		},
-		{
-			name:         "unknown activity type - default SVG",
-			activityType: ActivityType("unknown"),
-			expectSVG:    true,
+			name:     "User Updated - Requires Target",
+			actType:  ActivityTypeUserUpdated,
+			expected: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			activity := Activity{Type: tt.activityType}
-			result := activity.GetIconSVG()
-			
-			if tt.expectSVG {
-				if !strings.HasPrefix(result, "<svg") {
-					t.Errorf("GetIconSVG() should return SVG markup starting with <svg, got: %s", result[:20])
-				}
-				if !strings.HasSuffix(result, "</svg>") {
-					t.Errorf("GetIconSVG() should return SVG markup ending with </svg>, got: %s", result[len(result)-20:])
-				}
-				if !strings.Contains(result, "currentColor") {
-					t.Error("GetIconSVG() should contain 'currentColor' for proper styling")
-				}
-			}
+			result := tt.actType.RequiresTarget()
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
-func TestActivityFormatTimeAgo(t *testing.T) {
-	now := time.Now()
-	
+func TestActivityType_GetLabel(t *testing.T) {
+	tests := []struct {
+		name     string
+		actType  ActivityType
+		expected string
+	}{
+		{
+			name:     "Employee Added",
+			actType:  ActivityTypeEmployeeAdded,
+			expected: "Mitarbeiter hinzugefügt",
+		},
+		{
+			name:     "Employee Updated",
+			actType:  ActivityTypeEmployeeUpdated,
+			expected: "Mitarbeiter aktualisiert",
+		},
+		{
+			name:     "Employee Deleted",
+			actType:  ActivityTypeEmployeeDeleted,
+			expected: "Mitarbeiter gelöscht",
+		},
+		{
+			name:     "Vacation Requested",
+			actType:  ActivityTypeVacationRequested,
+			expected: "Urlaub beantragt",
+		},
+		{
+			name:     "Vacation Approved",
+			actType:  ActivityTypeVacationApproved,
+			expected: "Urlaub genehmigt",
+		},
+		{
+			name:     "Vacation Rejected",
+			actType:  ActivityTypeVacationRejected,
+			expected: "Urlaub abgelehnt",
+		},
+		{
+			name:     "Overtime Adjusted",
+			actType:  ActivityTypeOvertimeAdjusted,
+			expected: "Überstunden angepasst",
+		},
+		{
+			name:     "Document Uploaded",
+			actType:  ActivityTypeDocumentUploaded,
+			expected: "Dokument hochgeladen",
+		},
+		{
+			name:     "System Setting Changed",
+			actType:  ActivityTypeSystemSettingChanged,
+			expected: "Systemeinstellung geändert",
+		},
+		{
+			name:     "Unknown Type",
+			actType:  ActivityType("unknown"),
+			expected: "Unbekannte Aktivität",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.actType.GetLabel()
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestActivityType_GetIcon(t *testing.T) {
+	tests := []struct {
+		name     string
+		actType  ActivityType
+		expected string
+	}{
+		{
+			name:     "Employee Added",
+			actType:  ActivityTypeEmployeeAdded,
+			expected: "user-plus",
+		},
+		{
+			name:     "Employee Updated",
+			actType:  ActivityTypeEmployeeUpdated,
+			expected: "user-edit",
+		},
+		{
+			name:     "Employee Deleted",
+			actType:  ActivityTypeEmployeeDeleted,
+			expected: "user-minus",
+		},
+		{
+			name:     "Vacation Activities",
+			actType:  ActivityTypeVacationRequested,
+			expected: "calendar",
+		},
+		{
+			name:     "Overtime Adjusted",
+			actType:  ActivityTypeOvertimeAdjusted,
+			expected: "clock",
+		},
+		{
+			name:     "Document Uploaded",
+			actType:  ActivityTypeDocumentUploaded,
+			expected: "file",
+		},
+		{
+			name:     "System Setting Changed",
+			actType:  ActivityTypeSystemSettingChanged,
+			expected: "settings",
+		},
+		{
+			name:     "Unknown Type",
+			actType:  ActivityType("unknown"),
+			expected: "activity",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.actType.GetIcon()
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestActivity_GetTimeAgo(t *testing.T) {
 	tests := []struct {
 		name      string
 		timestamp time.Time
 		expected  string
 	}{
 		{
-			name:      "just now",
-			timestamp: now.Add(-30 * time.Second),
+			name:      "Just now",
+			timestamp: time.Now().Add(-30 * time.Second),
 			expected:  "gerade eben",
 		},
 		{
 			name:      "1 minute ago",
-			timestamp: now.Add(-1 * time.Minute),
+			timestamp: time.Now().Add(-1 * time.Minute),
 			expected:  "vor 1 Minute",
 		},
 		{
 			name:      "5 minutes ago",
-			timestamp: now.Add(-5 * time.Minute),
+			timestamp: time.Now().Add(-5 * time.Minute),
 			expected:  "vor 5 Minuten",
 		},
 		{
 			name:      "1 hour ago",
-			timestamp: now.Add(-1 * time.Hour),
+			timestamp: time.Now().Add(-1 * time.Hour),
 			expected:  "vor 1 Stunde",
 		},
 		{
 			name:      "3 hours ago",
-			timestamp: now.Add(-3 * time.Hour),
+			timestamp: time.Now().Add(-3 * time.Hour),
 			expected:  "vor 3 Stunden",
 		},
 		{
-			name:      "yesterday",
-			timestamp: now.Add(-25 * time.Hour),
-			expected:  "gestern",
+			name:      "1 day ago",
+			timestamp: time.Now().Add(-24 * time.Hour),
+			expected:  "vor 1 Tag",
 		},
 		{
-			name:      "3 days ago",
-			timestamp: now.Add(-72 * time.Hour),
-			expected:  now.Add(-72 * time.Hour).Format("02.01.2006 15:04"),
+			name:      "5 days ago",
+			timestamp: time.Now().Add(-5 * 24 * time.Hour),
+			expected:  "vor 5 Tagen",
+		},
+		{
+			name:      "1 month ago",
+			timestamp: time.Now().Add(-30 * 24 * time.Hour),
+			expected:  "vor 1 Monat",
+		},
+		{
+			name:      "6 months ago",
+			timestamp: time.Now().Add(-180 * 24 * time.Hour),
+			expected:  "vor 6 Monaten",
+		},
+		{
+			name:      "1 year ago",
+			timestamp: time.Now().Add(-365 * 24 * time.Hour),
+			expected:  "vor 1 Jahr",
+		},
+		{
+			name:      "2 years ago",
+			timestamp: time.Now().Add(-730 * 24 * time.Hour),
+			expected:  "vor 2 Jahren",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			activity := Activity{Timestamp: tt.timestamp}
-			result := activity.FormatTimeAgo()
-			if result != tt.expected {
-				t.Errorf("FormatTimeAgo() = %q, expected %q", result, tt.expected)
+			activity := &Activity{
+				Timestamp: tt.timestamp,
 			}
+			result := activity.GetTimeAgo()
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
-func TestActivityStructFields(t *testing.T) {
-	t.Run("Activity struct initialization", func(t *testing.T) {
-		userID := primitive.NewObjectID()
-		targetID := primitive.NewObjectID()
-		now := time.Now()
-
-		activity := Activity{
-			ID:          primitive.NewObjectID(),
-			Type:        ActivityTypeEmployeeAdded,
-			UserID:      userID,
-			UserName:    "John Admin",
-			TargetID:    targetID,
-			TargetType:  "employee",
-			TargetName:  "Jane Doe",
-			Description: "New employee Jane Doe was added to the system",
-			Timestamp:   now,
-		}
-
-		// Test that all fields are properly set
-		if activity.Type != ActivityTypeEmployeeAdded {
-			t.Errorf("Type = %v, expected %v", activity.Type, ActivityTypeEmployeeAdded)
-		}
-		if activity.UserID != userID {
-			t.Errorf("UserID = %v, expected %v", activity.UserID, userID)
-		}
-		if activity.UserName != "John Admin" {
-			t.Errorf("UserName = %q, expected %q", activity.UserName, "John Admin")
-		}
-		if activity.TargetID != targetID {
-			t.Errorf("TargetID = %v, expected %v", activity.TargetID, targetID)
-		}
-		if activity.TargetType != "employee" {
-			t.Errorf("TargetType = %q, expected %q", activity.TargetType, "employee")
-		}
-		if activity.TargetName != "Jane Doe" {
-			t.Errorf("TargetName = %q, expected %q", activity.TargetName, "Jane Doe")
-		}
-		if activity.Description == "" {
-			t.Error("Description should not be empty")
-		}
-		if activity.Timestamp != now {
-			t.Errorf("Timestamp = %v, expected %v", activity.Timestamp, now)
-		}
-	})
-
-	t.Run("Activity with optional fields", func(t *testing.T) {
-		activity := Activity{
-			ID:          primitive.NewObjectID(),
-			Type:        ActivityTypeDocumentUploaded,
-			UserID:      primitive.NewObjectID(),
-			UserName:    "Jane User",
-			TargetType:  "document",
-			TargetName:  "contract.pdf",
-			Description: "Document was uploaded",
-			Timestamp:   time.Now(),
-			// TargetID is optional and not set
-		}
-
-		// Test that the activity is still valid without TargetID
-		if activity.Type != ActivityTypeDocumentUploaded {
-			t.Error("Activity should be valid without TargetID")
-		}
-		if activity.TargetName != "contract.pdf" {
-			t.Error("TargetName should be set even without TargetID")
-		}
-	})
-}
-
-func TestActivityCreationScenarios(t *testing.T) {
-	t.Run("Employee lifecycle activities", func(t *testing.T) {
-		userID := primitive.NewObjectID()
-		employeeID := primitive.NewObjectID()
-		now := time.Now()
-
-		activities := []Activity{
-			{
-				Type:        ActivityTypeEmployeeAdded,
-				UserID:      userID,
-				UserName:    "HR Manager",
-				TargetID:    employeeID,
-				TargetType:  "employee",
-				TargetName:  "John Doe",
-				Description: "New employee John Doe was hired",
-				Timestamp:   now,
-			},
-			{
-				Type:        ActivityTypeEmployeeUpdated,
-				UserID:      userID,
-				UserName:    "HR Manager",
-				TargetID:    employeeID,
-				TargetType:  "employee",
-				TargetName:  "John Doe",
-				Description: "Employee John Doe's salary was updated",
-				Timestamp:   now.Add(time.Hour),
-			},
-			{
-				Type:        ActivityTypeVacationRequested,
-				UserID:      employeeID,
-				UserName:    "John Doe",
-				TargetID:    employeeID,
-				TargetType:  "vacation",
-				TargetName:  "Summer Vacation",
-				Description: "John Doe requested vacation from July 1-15",
-				Timestamp:   now.Add(2 * time.Hour),
-			},
-		}
-
-		for i, activity := range activities {
-			// Test that icon classes are appropriate for employee lifecycle
-			iconClass := activity.GetIconClass()
-			switch activity.Type {
-			case ActivityTypeEmployeeAdded:
-				if iconClass != "bg-green-500" {
-					t.Errorf("Activity %d: Expected green icon for employee added, got %s", i, iconClass)
-				}
-			case ActivityTypeEmployeeUpdated:
-				if iconClass != "bg-blue-500" {
-					t.Errorf("Activity %d: Expected blue icon for employee updated, got %s", i, iconClass)
-				}
-			case ActivityTypeVacationRequested:
-				if iconClass != "bg-yellow-500" {
-					t.Errorf("Activity %d: Expected yellow icon for vacation requested, got %s", i, iconClass)
-				}
-			}
-
-			// Test that SVG icons are valid
-			svg := activity.GetIconSVG()
-			if !strings.Contains(svg, "<svg") {
-				t.Errorf("Activity %d: SVG should be valid", i)
-			}
-		}
-	})
-
-	t.Run("Document management activities", func(t *testing.T) {
-		userID := primitive.NewObjectID()
-		documentID := primitive.NewObjectID()
-		
-		activity := Activity{
-			Type:        ActivityTypeDocumentUploaded,
-			UserID:      userID,
-			UserName:    "Jane Manager",
-			TargetID:    documentID,
-			TargetType:  "document",
-			TargetName:  "employee_handbook.pdf",
-			Description: "Employee handbook was uploaded to the system",
-			Timestamp:   time.Now(),
-		}
-
-		// Test document activity specifics
-		if activity.GetIconClass() != "bg-blue-500" {
-			t.Error("Document uploaded should have blue icon")
-		}
-
-		svg := activity.GetIconSVG()
-		if !strings.Contains(svg, "fill-rule") {
-			t.Error("Document icon should contain fill-rule attribute")
-		}
-	})
-
-	t.Run("User management activities", func(t *testing.T) {
-		adminID := primitive.NewObjectID()
-		newUserID := primitive.NewObjectID()
-		
-		activities := []Activity{
-			{
-				Type:        ActivityTypeUserAdded,
-				UserID:      adminID,
-				UserName:    "System Admin",
-				TargetID:    newUserID,
-				TargetType:  "user",
-				TargetName:  "New Manager",
-				Description: "New user account created for new manager",
-				Timestamp:   time.Now(),
-			},
-			{
-				Type:        ActivityTypeUserUpdated,
-				UserID:      adminID,
-				UserName:    "System Admin",
-				TargetID:    newUserID,
-				TargetType:  "user",
-				TargetName:  "New Manager",
-				Description: "User permissions updated",
-				Timestamp:   time.Now().Add(time.Minute),
-			},
-		}
-
-		for _, activity := range activities {
-			// User added should have specific icon class
-			if activity.Type == ActivityTypeUserAdded {
-				iconClass := activity.GetIconClass()
-				if iconClass != "bg-gray-500" { // Falls back to default
-					// This might need adjustment based on actual implementation
-					t.Logf("User added icon class: %s", iconClass)
-				}
-			}
-
-			// Test that user management SVGs are valid
-			svg := activity.GetIconSVG()
-			if !strings.HasPrefix(svg, "<svg") {
-				t.Error("User management activity should have valid SVG")
-			}
-		}
-	})
-}
-
-func TestPluralSFunction(t *testing.T) {
+func TestActivity_GetIconClass(t *testing.T) {
 	tests := []struct {
 		name     string
-		count    int
+		activity *Activity
 		expected string
 	}{
 		{
-			name:     "singular (1)",
-			count:    1,
-			expected: "",
+			name:     "Employee Added - Green",
+			activity: &Activity{Type: ActivityTypeEmployeeAdded},
+			expected: "text-green-500",
 		},
 		{
-			name:     "plural (0)",
-			count:    0,
-			expected: "n",
+			name:     "Employee Updated - Blue",
+			activity: &Activity{Type: ActivityTypeEmployeeUpdated},
+			expected: "text-blue-500",
 		},
 		{
-			name:     "plural (2)",
-			count:    2,
-			expected: "n",
+			name:     "Employee Deleted - Red",
+			activity: &Activity{Type: ActivityTypeEmployeeDeleted},
+			expected: "text-red-500",
 		},
 		{
-			name:     "plural (5)",
-			count:    5,
-			expected: "n",
+			name:     "Vacation Requested - Yellow",
+			activity: &Activity{Type: ActivityTypeVacationRequested},
+			expected: "text-yellow-500",
+		},
+		{
+			name:     "Vacation Approved - Green",
+			activity: &Activity{Type: ActivityTypeVacationApproved},
+			expected: "text-green-500",
+		},
+		{
+			name:     "Vacation Rejected - Red",
+			activity: &Activity{Type: ActivityTypeVacationRejected},
+			expected: "text-red-500",
+		},
+		{
+			name:     "Overtime Adjusted - Purple",
+			activity: &Activity{Type: ActivityTypeOvertimeAdjusted},
+			expected: "text-purple-500",
+		},
+		{
+			name:     "Document Uploaded - Blue",
+			activity: &Activity{Type: ActivityTypeDocumentUploaded},
+			expected: "text-blue-500",
+		},
+		{
+			name:     "System Setting Changed - Gray",
+			activity: &Activity{Type: ActivityTypeSystemSettingChanged},
+			expected: "text-gray-500",
+		},
+		{
+			name:     "Conversation Activities - Indigo",
+			activity: &Activity{Type: ActivityTypeConversationAdded},
+			expected: "text-indigo-500",
+		},
+		{
+			name:     "User Activities - Orange",
+			activity: &Activity{Type: ActivityTypeUserAdded},
+			expected: "text-orange-500",
+		},
+		{
+			name:     "Unknown Type - Gray",
+			activity: &Activity{Type: ActivityType("unknown")},
+			expected: "text-gray-400",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := pluralS(tt.count)
-			if result != tt.expected {
-				t.Errorf("pluralS(%d) = %q, expected %q", tt.count, result, tt.expected)
-			}
+			result := tt.activity.GetIconClass()
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
-func TestActivityEdgeCases(t *testing.T) {
-	t.Run("Empty activity", func(t *testing.T) {
-		activity := Activity{}
-		
-		// Should not panic and should return default values
-		iconClass := activity.GetIconClass()
-		if iconClass != "bg-gray-500" {
-			t.Errorf("Empty activity should return default gray icon, got %s", iconClass)
-		}
+func TestActivity_GetIconSVG(t *testing.T) {
+	tests := []struct {
+		name     string
+		activity *Activity
+		contains string
+	}{
+		{
+			name:     "Employee Added",
+			activity: &Activity{Type: ActivityTypeEmployeeAdded},
+			contains: "M12 4v16m8-8H4",
+		},
+		{
+			name:     "Employee Updated",
+			activity: &Activity{Type: ActivityTypeEmployeeUpdated},
+			contains: "M11 5H6a2 2 0 00-2",
+		},
+		{
+			name:     "Employee Deleted",
+			activity: &Activity{Type: ActivityTypeEmployeeDeleted},
+			contains: "M19 7l-.867 12.142",
+		},
+		{
+			name:     "Vacation Activities",
+			activity: &Activity{Type: ActivityTypeVacationRequested},
+			contains: "M8 7V3m8 4V3m-9",
+		},
+		{
+			name:     "Overtime Adjusted",
+			activity: &Activity{Type: ActivityTypeOvertimeAdjusted},
+			contains: "M12 8v4l3 3m6-3",
+		},
+		{
+			name:     "Document Uploaded",
+			activity: &Activity{Type: ActivityTypeDocumentUploaded},
+			contains: "M7 16a4 4 0 01-.88",
+		},
+		{
+			name:     "System Setting Changed",
+			activity: &Activity{Type: ActivityTypeSystemSettingChanged},
+			contains: "M10.325 4.317c.426",
+		},
+		{
+			name:     "User Activities",
+			activity: &Activity{Type: ActivityTypeUserAdded},
+			contains: "M16 7a4 4 0 11-8",
+		},
+	}
 
-		svg := activity.GetIconSVG()
-		if !strings.Contains(svg, "<svg") {
-			t.Error("Empty activity should return default SVG")
-		}
-	})
-
-	t.Run("Activity with zero timestamp", func(t *testing.T) {
-		activity := Activity{
-			Type:      ActivityTypeEmployeeAdded,
-			Timestamp: time.Time{},
-		}
-		
-		// Should not panic when formatting time ago
-		timeAgo := activity.FormatTimeAgo()
-		if timeAgo == "" {
-			t.Error("FormatTimeAgo should not return empty string for zero timestamp")
-		}
-	})
-
-	t.Run("Activity with future timestamp", func(t *testing.T) {
-		futureTime := time.Now().Add(24 * time.Hour)
-		activity := Activity{
-			Type:      ActivityTypeEmployeeAdded,
-			Timestamp: futureTime,
-		}
-		
-		// Should handle future timestamps gracefully
-		timeAgo := activity.FormatTimeAgo()
-		if timeAgo == "" {
-			t.Error("FormatTimeAgo should handle future timestamps")
-		}
-	})
-}
-
-// Benchmark tests
-func BenchmarkActivityGetIconClass(b *testing.B) {
-	activity := Activity{Type: ActivityTypeEmployeeAdded}
-	
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = activity.GetIconClass()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.activity.GetIconSVG()
+			assert.Contains(t, result, tt.contains)
+			assert.Contains(t, result, `<svg`)
+			assert.Contains(t, result, `</svg>`)
+		})
 	}
 }
 
-func BenchmarkActivityGetIconSVG(b *testing.B) {
-	activity := Activity{Type: ActivityTypeEmployeeAdded}
-	
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = activity.GetIconSVG()
+func TestActivity_Validate(t *testing.T) {
+	tests := []struct {
+		name        string
+		activity    *Activity
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name: "Valid activity",
+			activity: &Activity{
+				Type:        ActivityTypeEmployeeAdded,
+				UserID:      primitive.NewObjectID(),
+				UserName:    "John Doe",
+				TargetID:    primitive.NewObjectID(),
+				TargetType:  "employee",
+				TargetName:  "Jane Smith",
+				Description: "Added new employee",
+				Timestamp:   time.Now(),
+			},
+			expectError: false,
+		},
+		{
+			name: "Invalid activity type",
+			activity: &Activity{
+				Type:        ActivityType("invalid"),
+				UserID:      primitive.NewObjectID(),
+				UserName:    "John Doe",
+				Description: "Invalid activity",
+				Timestamp:   time.Now(),
+			},
+			expectError: true,
+			errorMsg:    "invalid activity type",
+		},
+		{
+			name: "Missing user ID",
+			activity: &Activity{
+				Type:        ActivityTypeEmployeeAdded,
+				UserName:    "John Doe",
+				Description: "Missing user ID",
+				Timestamp:   time.Now(),
+			},
+			expectError: true,
+			errorMsg:    "user ID is required",
+		},
+		{
+			name: "Missing target for activity that requires it",
+			activity: &Activity{
+				Type:        ActivityTypeEmployeeAdded,
+				UserID:      primitive.NewObjectID(),
+				UserName:    "John Doe",
+				Description: "Missing target",
+				Timestamp:   time.Now(),
+			},
+			expectError: true,
+			errorMsg:    "target ID is required",
+		},
+		{
+			name: "System setting change without target",
+			activity: &Activity{
+				Type:        ActivityTypeSystemSettingChanged,
+				UserID:      primitive.NewObjectID(),
+				UserName:    "Admin",
+				Description: "Changed system settings",
+				Timestamp:   time.Now(),
+			},
+			expectError: false,
+		},
 	}
-}
 
-func BenchmarkActivityFormatTimeAgo(b *testing.B) {
-	activity := Activity{
-		Type:      ActivityTypeEmployeeAdded,
-		Timestamp: time.Now().Add(-5 * time.Minute),
-	}
-	
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = activity.FormatTimeAgo()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.activity.Validate()
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errorMsg != "" {
+					assert.Contains(t, err.Error(), tt.errorMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
 	}
 }

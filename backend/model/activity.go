@@ -208,3 +208,25 @@ func (a *Activity) GetIconSVG() string {
 		return `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`
 	}
 }
+
+
+// Validate checks if the activity is valid
+func (a *Activity) Validate() error {
+	if !a.Type.IsValid() {
+		return fmt.Errorf("invalid activity type: %s", a.Type)
+	}
+
+	if a.UserID.IsZero() {
+		return fmt.Errorf("user ID is required")
+	}
+
+	if a.Type.RequiresTarget() && a.TargetID.IsZero() {
+		return fmt.Errorf("target ID is required for activity type: %s", a.Type)
+	}
+
+	if a.Description == "" {
+		return fmt.Errorf("description is required")
+	}
+
+	return nil
+}
