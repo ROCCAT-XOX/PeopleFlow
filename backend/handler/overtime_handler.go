@@ -49,6 +49,13 @@ func (h *OvertimeHandler) GetOvertimeView(c *gin.Context) {
 	userModel := user.(*model.User)
 	userRole, _ := c.Get("userRole")
 
+	// Überstunden automatisch neu berechnen bei Seitenaufruf
+	err := h.timeAccountService.RecalculateAllEmployeeOvertimes()
+	if err != nil {
+		fmt.Printf("Warning: Could not recalculate overtimes automatically: %v\n", err)
+		// Trotzdem fortfahren, um die Seite zu laden
+	}
+
 	// Alle Mitarbeiter abrufen
 	employees, _, err := h.employeeRepo.FindAll(0, 1000, "lastName", 1)
 	if err != nil {

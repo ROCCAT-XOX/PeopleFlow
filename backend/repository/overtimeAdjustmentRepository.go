@@ -265,37 +265,48 @@ func (r *OvertimeAdjustmentRepository) UpdateStatus(adjustmentID string, status 
 		return err
 	}
 
-	// Use transaction to ensure atomicity
-	return r.Transaction(func(sessCtx mongo.SessionContext) error {
-		// First check if adjustment exists and is still pending
+	ctx, cancel := r.GetContext()
+	defer cancel()
+
+	// Use atomic update with condition to ensure only pending adjustments are updated
+	update := bson.M{
+		"$set": bson.M{
+			"status":       status,
+			"approvedBy":   approverID,
+			"approverName": approverName,
+			"approvedAt":   time.Now(),
+			"updatedAt":    time.Now(),
+		},
+	}
+
+	// Only update if the status is still "pending"
+	filter := bson.M{
+		"_id":    objID,
+		"status": StatusPending,
+	}
+
+	result, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return r.HandleError(ctx, err, "UpdateStatus")
+	}
+
+	// Check if any document was modified
+	if result.ModifiedCount == 0 {
+		// Check if the adjustment exists at all
 		var adjustment model.OvertimeAdjustment
-		err := r.collection.FindOne(sessCtx, bson.M{"_id": objID}).Decode(&adjustment)
+		err := r.collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&adjustment)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				return ErrAdjustmentNotFound
 			}
-			return err
+			return r.HandleError(ctx, err, "UpdateStatus")
 		}
 
-		// Check if already processed
-		if adjustment.Status != StatusPending {
-			return fmt.Errorf("%w: current status is %s", ErrAlreadyProcessed, adjustment.Status)
-		}
+		// Adjustment exists but wasn't updated, must be already processed
+		return fmt.Errorf("%w: current status is %s", ErrAlreadyProcessed, adjustment.Status)
+	}
 
-		// Update status
-		update := bson.M{
-			"$set": bson.M{
-				"status":       status,
-				"approvedBy":   approverID,
-				"approverName": approverName,
-				"approvedAt":   time.Now(),
-				"updatedAt":    time.Now(),
-			},
-		}
-
-		_, err = r.collection.UpdateOne(sessCtx, bson.M{"_id": objID}, update)
-		return err
-	})
+	return nil
 }
 
 // Update aktualisiert eine Anpassung (nur wenn noch pending)
@@ -305,32 +316,39 @@ func (r *OvertimeAdjustmentRepository) Update(adjustment *model.OvertimeAdjustme
 		return err
 	}
 
-	// Use transaction to check status before update
-	return r.Transaction(func(sessCtx mongo.SessionContext) error {
-		// Check current status
+	ctx, cancel := r.GetContext()
+	defer cancel()
+
+	adjustment.UpdatedAt = time.Now()
+
+	// Use atomic update with condition to ensure only pending adjustments are updated
+	filter := bson.M{
+		"_id":    adjustment.ID,
+		"status": StatusPending,
+	}
+
+	result, err := r.collection.UpdateOne(ctx, filter, bson.M{"$set": adjustment})
+	if err != nil {
+		return r.HandleError(ctx, err, "Update")
+	}
+
+	// Check if any document was modified
+	if result.ModifiedCount == 0 {
+		// Check if the adjustment exists at all
 		var current model.OvertimeAdjustment
-		err := r.collection.FindOne(sessCtx, bson.M{"_id": adjustment.ID}).Decode(&current)
+		err := r.collection.FindOne(ctx, bson.M{"_id": adjustment.ID}).Decode(&current)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				return ErrAdjustmentNotFound
 			}
-			return err
+			return r.HandleError(ctx, err, "Update")
 		}
 
-		// Only allow updates if still pending
-		if current.Status != StatusPending {
-			return fmt.Errorf("%w: cannot update adjustment with status %s", ErrAlreadyProcessed, current.Status)
-		}
+		// Adjustment exists but wasn't updated, must be already processed
+		return fmt.Errorf("%w: cannot update adjustment with status %s", ErrAlreadyProcessed, current.Status)
+	}
 
-		adjustment.UpdatedAt = time.Now()
-
-		_, err = r.collection.UpdateOne(
-			sessCtx,
-			bson.M{"_id": adjustment.ID},
-			bson.M{"$set": adjustment},
-		)
-		return err
-	})
+	return nil
 }
 
 // Delete löscht eine Anpassung (nur wenn noch pending)
@@ -340,26 +358,37 @@ func (r *OvertimeAdjustmentRepository) Delete(id string) error {
 		return err
 	}
 
-	// Use transaction to check status before deletion
-	return r.Transaction(func(sessCtx mongo.SessionContext) error {
-		// Check current status
+	ctx, cancel := r.GetContext()
+	defer cancel()
+
+	// Use atomic delete with condition to ensure only pending adjustments are deleted
+	filter := bson.M{
+		"_id":    objID,
+		"status": StatusPending,
+	}
+
+	result, err := r.collection.DeleteOne(ctx, filter)
+	if err != nil {
+		return r.HandleError(ctx, err, "Delete")
+	}
+
+	// Check if any document was deleted
+	if result.DeletedCount == 0 {
+		// Check if the adjustment exists at all
 		var adjustment model.OvertimeAdjustment
-		err := r.collection.FindOne(sessCtx, bson.M{"_id": objID}).Decode(&adjustment)
+		err := r.collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&adjustment)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				return ErrAdjustmentNotFound
 			}
-			return err
+			return r.HandleError(ctx, err, "Delete")
 		}
 
-		// Only allow deletion if still pending
-		if adjustment.Status != StatusPending {
-			return fmt.Errorf("%w: cannot delete adjustment with status %s", ErrAlreadyProcessed, adjustment.Status)
-		}
+		// Adjustment exists but wasn't deleted, must be already processed
+		return fmt.Errorf("%w: cannot delete adjustment with status %s", ErrAlreadyProcessed, adjustment.Status)
+	}
 
-		_, err = r.collection.DeleteOne(sessCtx, bson.M{"_id": objID})
-		return err
-	})
+	return nil
 }
 
 // GetSummaryByEmployee gibt eine Zusammenfassung der Anpassungen für einen Mitarbeiter
@@ -451,30 +480,31 @@ func (r *OvertimeAdjustmentRepository) BulkUpdateStatus(adjustmentIDs []string, 
 		objectIDs = append(objectIDs, *objID)
 	}
 
-	// Use transaction for bulk update
-	return r.Transaction(func(sessCtx mongo.SessionContext) error {
-		// Update all adjustments
-		update := bson.M{
-			"$set": bson.M{
-				"status":       status,
-				"approvedBy":   approverID,
-				"approverName": approverName,
-				"approvedAt":   time.Now(),
-				"updatedAt":    time.Now(),
-			},
-		}
+	ctx, cancel := r.GetContext()
+	defer cancel()
 
-		_, err := r.collection.UpdateMany(
-			sessCtx,
-			bson.M{
-				"_id":    bson.M{"$in": objectIDs},
-				"status": StatusPending, // Only update pending adjustments
-			},
-			update,
-		)
+	// Update all adjustments atomically (only pending ones)
+	update := bson.M{
+		"$set": bson.M{
+			"status":       status,
+			"approvedBy":   approverID,
+			"approverName": approverName,
+			"approvedAt":   time.Now(),
+			"updatedAt":    time.Now(),
+		},
+	}
 
-		return err
-	})
+	filter := bson.M{
+		"_id":    bson.M{"$in": objectIDs},
+		"status": StatusPending, // Only update pending adjustments
+	}
+
+	_, err := r.collection.UpdateMany(ctx, filter, update)
+	if err != nil {
+		return r.HandleError(ctx, err, "BulkUpdateStatus")
+	}
+
+	return nil
 }
 
 // CreateIndexes erstellt erforderliche Indizes
