@@ -27,9 +27,13 @@ func NewIntegrationHandler() *IntegrationHandler {
 
 // SaveTimebutlerApiKey speichert den API-Schlüssel für Timebutler
 func (h *IntegrationHandler) SaveTimebutlerApiKey(c *gin.Context) {
+	fmt.Println("[DEBUG] SaveTimebutlerApiKey called")
+	
 	apiKey := c.PostForm("timebutler-api")
+	fmt.Printf("[DEBUG] Received API key (length: %d)\n", len(apiKey))
 
 	if apiKey == "" {
+		fmt.Println("[ERROR] API key is empty")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"message": "API-Schlüssel ist erforderlich",
@@ -37,8 +41,10 @@ func (h *IntegrationHandler) SaveTimebutlerApiKey(c *gin.Context) {
 		return
 	}
 
+	fmt.Println("[DEBUG] Calling timebutlerService.SaveApiKey")
 	err := h.timebutlerService.SaveApiKey(apiKey)
 	if err != nil {
+		fmt.Printf("[ERROR] Failed to save API key: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"message": "Fehler beim Speichern des API-Schlüssels: " + err.Error(),
@@ -46,6 +52,7 @@ func (h *IntegrationHandler) SaveTimebutlerApiKey(c *gin.Context) {
 		return
 	}
 
+	fmt.Println("[SUCCESS] API key saved successfully")
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Timebutler-Integration erfolgreich konfiguriert",
@@ -166,8 +173,14 @@ func (h *IntegrationHandler) SyncTimebutlerUsers(c *gin.Context) {
 
 // SyncTimebutlerAbsences synchronisiert Timebutler-Abwesenheiten mit PeopleFlow-Mitarbeitern
 func (h *IntegrationHandler) SyncTimebutlerAbsences(c *gin.Context) {
+	fmt.Println("[DEBUG] SyncTimebutlerAbsences called")
+	
 	// Prüfen, ob Timebutler verbunden ist
-	if !h.timebutlerService.IsConnected() {
+	isConnected := h.timebutlerService.IsConnected()
+	fmt.Printf("[DEBUG] Timebutler connected: %v\n", isConnected)
+	
+	if !isConnected {
+		fmt.Println("[ERROR] Timebutler is not connected")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"message": "Timebutler ist nicht verbunden",
@@ -177,10 +190,18 @@ func (h *IntegrationHandler) SyncTimebutlerAbsences(c *gin.Context) {
 
 	// Jahr aus der Anfrage holen oder aktuelles Jahr verwenden
 	year := c.DefaultQuery("year", fmt.Sprintf("%d", time.Now().Year()))
+	fmt.Printf("[DEBUG] Sync year: %s\n", year)
+	
+	// Start date from request (optional) - for future use
+	startDate := c.DefaultQuery("startDate", "")
+	fmt.Printf("[DEBUG] Start date: %s\n", startDate)
 
 	// Synchronisierung durchführen
+	// TODO: Pass startDate to service method when implemented
+	fmt.Println("[DEBUG] Starting absence synchronization")
 	updatedCount, err := h.timebutlerService.SyncTimebutlerAbsences(year)
 	if err != nil {
+		fmt.Printf("[ERROR] Sync failed: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"message": "Fehler bei der Synchronisierung: " + err.Error(),
@@ -188,6 +209,7 @@ func (h *IntegrationHandler) SyncTimebutlerAbsences(c *gin.Context) {
 		return
 	}
 
+	fmt.Printf("[SUCCESS] Sync completed, updated %d employees\n", updatedCount)
 	c.JSON(http.StatusOK, gin.H{
 		"success":      true,
 		"message":      fmt.Sprintf("%d Mitarbeiter mit Abwesenheiten wurden synchronisiert", updatedCount),
@@ -208,8 +230,12 @@ func (h *IntegrationHandler) SyncTimebutlerHolidayEntitlements(c *gin.Context) {
 
 	// Year from request or use current year
 	year := c.DefaultQuery("year", fmt.Sprintf("%d", time.Now().Year()))
+	
+	// Start date from request (optional) - for future use
+	// startDate := c.DefaultQuery("startDate", "")
 
 	// Perform synchronization
+	// TODO: Pass startDate to service method when implemented
 	updatedCount, err := h.timebutlerService.SyncHolidayEntitlements(year)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

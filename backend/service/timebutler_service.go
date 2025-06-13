@@ -29,18 +29,34 @@ func NewTimebutlerService() *TimebutlerService {
 
 // SaveApiKey speichert den Timebutler API-Schlüssel und testet die Verbindung
 func (s *TimebutlerService) SaveApiKey(apiKey string) error {
+	fmt.Printf("[DEBUG] TimebutlerService.SaveApiKey called with key length: %d\n", len(apiKey))
+	
 	// Testen, ob der API-Schlüssel funktioniert
+	fmt.Println("[DEBUG] Testing API connection...")
 	if err := s.testConnection(apiKey); err != nil {
-		return err
+		fmt.Printf("[ERROR] API connection test failed: %v\n", err)
+		return fmt.Errorf("API connection test failed: %w", err)
 	}
+	fmt.Println("[DEBUG] API connection test successful")
 
 	// API-Schlüssel speichern
+	fmt.Println("[DEBUG] Saving API key to repository...")
 	if err := s.integrationRepo.SaveApiKey("timebutler", apiKey); err != nil {
-		return err
+		fmt.Printf("[ERROR] Failed to save API key to repository: %v\n", err)
+		return fmt.Errorf("failed to save API key: %w", err)
 	}
+	fmt.Println("[DEBUG] API key saved to repository")
 
 	// Integration als aktiv markieren
-	return s.integrationRepo.SetIntegrationStatus("timebutler", true)
+	fmt.Println("[DEBUG] Setting integration status to active...")
+	err := s.integrationRepo.SetIntegrationStatus("timebutler", true)
+	if err != nil {
+		fmt.Printf("[ERROR] Failed to set integration status: %v\n", err)
+		return fmt.Errorf("failed to set integration status: %w", err)
+	}
+	fmt.Println("[DEBUG] Integration status set to active")
+	
+	return nil
 }
 
 // testConnection testet die Verbindung zu Timebutler mit dem angegebenen API-Schlüssel
@@ -49,27 +65,38 @@ func (s *TimebutlerService) testConnection(apiKey string) error {
 	method := "POST"
 	payload := strings.NewReader(fmt.Sprintf("auth=%s", apiKey))
 
+	fmt.Printf("[DEBUG] Testing connection to %s\n", url)
+
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
 	req, err := http.NewRequest(method, url, payload)
 	if err != nil {
-		return err
+		fmt.Printf("[ERROR] Failed to create HTTP request: %v\n", err)
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	fmt.Println("[DEBUG] Sending HTTP request...")
 
 	res, err := client.Do(req)
 	if err != nil {
-		return err
+		fmt.Printf("[ERROR] HTTP request failed: %v\n", err)
+		return fmt.Errorf("HTTP request failed: %w", err)
 	}
 	defer res.Body.Close()
 
+	fmt.Printf("[DEBUG] Received HTTP response: %d %s\n", res.StatusCode, res.Status)
+
 	if res.StatusCode != http.StatusOK {
-		return errors.New(fmt.Sprintf("Timebutler API Fehler: %s", res.Status))
+		// Read response body for more details
+		body, _ := io.ReadAll(res.Body)
+		fmt.Printf("[ERROR] API returned non-200 status. Body: %s\n", string(body))
+		return fmt.Errorf("Timebutler API error %d: %s", res.StatusCode, res.Status)
 	}
 
+	fmt.Println("[DEBUG] Connection test successful")
 	return nil
 }
 
@@ -118,10 +145,14 @@ func (s *TimebutlerService) GetUsers() (string, error) {
 
 // GetAbsences ruft Abwesenheiten von Timebutler ab
 func (s *TimebutlerService) GetAbsences(year string) (string, error) {
+	fmt.Printf("[DEBUG] GetAbsences called for year: %s\n", year)
+	
 	apiKey, err := s.integrationRepo.GetApiKey("timebutler")
 	if err != nil {
-		return "", err
+		fmt.Printf("[ERROR] Failed to get API key: %v\n", err)
+		return "", fmt.Errorf("failed to get API key: %w", err)
 	}
+	fmt.Printf("[DEBUG] Retrieved API key (length: %d)\n", len(apiKey))
 
 	// URL für den API-Endpunkt für Abwesenheiten
 	url := "https://app.timebutler.com/api/v1/absences"
@@ -166,26 +197,36 @@ func (s *TimebutlerService) GetAbsences(year string) (string, error) {
 
 // IsConnected prüft, ob die Timebutler-Integration aktiv ist
 func (s *TimebutlerService) IsConnected() bool {
+	fmt.Println("[DEBUG] Checking if Timebutler is connected...")
+	
 	active, err := s.integrationRepo.GetIntegrationStatus("timebutler")
 	if err != nil {
+		fmt.Printf("[ERROR] Failed to get integration status: %v\n", err)
 		return false
 	}
+	fmt.Printf("[DEBUG] Integration status from DB: %v\n", active)
 
 	// Wenn die Integration aktiv ist, testen wir auch die Verbindung
 	if active {
+		fmt.Println("[DEBUG] Integration is active, testing API connection...")
 		apiKey, err := s.integrationRepo.GetApiKey("timebutler")
 		if err != nil {
+			fmt.Printf("[ERROR] Failed to get API key: %v\n", err)
 			return false
 		}
+		fmt.Printf("[DEBUG] Retrieved API key (length: %d)\n", len(apiKey))
 
 		// Einfacher Verbindungstest
 		if err := s.testConnection(apiKey); err != nil {
+			fmt.Printf("[ERROR] Connection test failed, marking integration as inactive: %v\n", err)
 			// Bei Fehler setzen wir die Integration auf inaktiv
 			s.integrationRepo.SetIntegrationStatus("timebutler", false)
 			return false
 		}
+		fmt.Println("[DEBUG] Connection test passed")
 	}
 
+	fmt.Printf("[DEBUG] Returning connection status: %v\n", active)
 	return active
 }
 
@@ -581,11 +622,16 @@ func (s *TimebutlerService) ParseTimebutlerAbsences(data string) (map[string][]m
 
 // SyncTimebutlerAbsences synchronizes Timebutler absences with PeopleFlow employees
 func (s *TimebutlerService) SyncTimebutlerAbsences(year string) (int, error) {
+	fmt.Printf("[DEBUG] SyncTimebutlerAbsences called for year: %s\n", year)
+	
 	// Timebutler-Abwesenheiten abrufen
+	fmt.Println("[DEBUG] Fetching absences from Timebutler API...")
 	absencesData, err := s.GetAbsences(year)
 	if err != nil {
-		return 0, err
+		fmt.Printf("[ERROR] Failed to fetch absences: %v\n", err)
+		return 0, fmt.Errorf("failed to fetch absences: %w", err)
 	}
+	fmt.Printf("[DEBUG] Successfully fetched absences data (length: %d)\n", len(absencesData))
 
 	// Logging für Debugging
 	fmt.Println("Received absence data from Timebutler API. First 500 chars:")
@@ -737,8 +783,15 @@ func (s *TimebutlerService) SyncTimebutlerAbsences(year string) (int, error) {
 			employee.VacationDays = standardVacationDays
 		}
 
-		// Verbleibende Urlaubstage berechnen
-		employee.RemainingVacation = employee.VacationDays - int(usedVacationDays)
+		// Verbleibende Urlaubstage berechnen (mit Schutz vor negativen Werten)
+		remainingVacation := employee.VacationDays - int(usedVacationDays)
+		if remainingVacation < 0 {
+			employee.RemainingVacation = 0
+			fmt.Printf("Warning: Clamped negative remaining vacation days (%d) to 0 for employee %s %s\n", 
+				remainingVacation, employee.FirstName, employee.LastName)
+		} else {
+			employee.RemainingVacation = remainingVacation
+		}
 
 		// Mitarbeiter aktualisieren, wenn Abwesenheiten hinzugefügt wurden oder Urlaubstage berechnet wurden
 		if abwesenheitenHinzugefuegt || employee.VacationDays > 0 {
@@ -919,9 +972,17 @@ func (s *TimebutlerService) SyncHolidayEntitlements(year string) (int, error) {
 		if employee.VacationDays != vacationInfo.TotalVacationDays ||
 			employee.RemainingVacation != vacationInfo.RemainingVacationDays {
 
-			// Update vacation days
+			// Update vacation days with validation
 			employee.VacationDays = vacationInfo.TotalVacationDays
-			employee.RemainingVacation = vacationInfo.RemainingVacationDays
+			
+			// Ensure remaining vacation is not negative (clamp to 0)
+			if vacationInfo.RemainingVacationDays < 0 {
+				employee.RemainingVacation = 0
+				fmt.Printf("Warning: Clamped negative remaining vacation days (%d) to 0 for employee %s %s\n", 
+					vacationInfo.RemainingVacationDays, employee.FirstName, employee.LastName)
+			} else {
+				employee.RemainingVacation = vacationInfo.RemainingVacationDays
+			}
 
 			// Update employee
 			employee.UpdatedAt = time.Now()

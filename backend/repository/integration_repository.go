@@ -68,23 +68,31 @@ func (r *IntegrationRepository) ValidateIntegrationType(integrationType string) 
 
 // SaveApiKey speichert einen API-Schlüssel für eine Integration (verschlüsselt)
 func (r *IntegrationRepository) SaveApiKey(integrationType string, apiKey string) error {
+	fmt.Printf("[DEBUG] IntegrationRepository.SaveApiKey called for type: %s, key length: %d\n", integrationType, len(apiKey))
+	
 	// Validate input
 	if err := r.ValidateIntegrationType(integrationType); err != nil {
+		fmt.Printf("[ERROR] Invalid integration type: %v\n", err)
 		return err
 	}
 
 	integrationType = strings.ToLower(strings.TrimSpace(integrationType))
 	apiKey = strings.TrimSpace(apiKey)
+	fmt.Printf("[DEBUG] Normalized integration type: %s\n", integrationType)
 
 	if apiKey == "" {
+		fmt.Println("[ERROR] API key is empty after trimming")
 		return ErrInvalidApiKey
 	}
 
 	// Encrypt API key
+	fmt.Println("[DEBUG] Encrypting API key...")
 	encryptedKey, err := utils.EncryptString(apiKey)
 	if err != nil {
+		fmt.Printf("[ERROR] Failed to encrypt API key: %v\n", err)
 		return fmt.Errorf("%w: %v", ErrEncryptionFailed, err)
 	}
+	fmt.Printf("[DEBUG] API key encrypted successfully (length: %d)\n", len(encryptedKey))
 
 	// Use upsert to create or update
 	filter := bson.M{"type": integrationType}
@@ -102,42 +110,63 @@ func (r *IntegrationRepository) SaveApiKey(integrationType string, apiKey string
 		},
 	}
 
+	fmt.Println("[DEBUG] Executing MongoDB update operation...")
 	opts := options.Update().SetUpsert(true)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	_, err = r.collection.UpdateOne(ctx, filter, update, opts)
+	result, err := r.collection.UpdateOne(ctx, filter, update, opts)
+	
+	if err != nil {
+		fmt.Printf("[ERROR] MongoDB update failed: %v\n", err)
+		return fmt.Errorf("database update failed: %w", err)
+	}
+	
+	fmt.Printf("[DEBUG] MongoDB update successful - Matched: %d, Modified: %d, Upserted: %v\n", 
+		result.MatchedCount, result.ModifiedCount, result.UpsertedID != nil)
 
-	return err
+	return nil
 }
 
 // GetApiKey holt einen API-Schlüssel für eine Integration und entschlüsselt ihn
 func (r *IntegrationRepository) GetApiKey(integrationType string) (string, error) {
+	fmt.Printf("[DEBUG] IntegrationRepository.GetApiKey called for type: %s\n", integrationType)
+	
 	// Validate input
 	if err := r.ValidateIntegrationType(integrationType); err != nil {
+		fmt.Printf("[ERROR] Invalid integration type: %v\n", err)
 		return "", err
 	}
 
 	integrationType = strings.ToLower(strings.TrimSpace(integrationType))
+	fmt.Printf("[DEBUG] Normalized integration type: %s\n", integrationType)
 
 	var integration model.Integration
+	fmt.Println("[DEBUG] Querying database for integration...")
 	err := r.FindOne(bson.M{"type": integrationType}, &integration)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
+			fmt.Printf("[ERROR] Integration not found for type: %s\n", integrationType)
 			return "", ErrIntegrationNotFound
 		}
-		return "", err
+		fmt.Printf("[ERROR] Database query failed: %v\n", err)
+		return "", fmt.Errorf("database query failed: %w", err)
 	}
+	fmt.Printf("[DEBUG] Found integration - Active: %v, ApiKey length: %d\n", integration.Active, len(integration.ApiKey))
 
 	// Check if integration is active
 	if !integration.Active {
+		fmt.Printf("[ERROR] Integration %s is not active\n", integrationType)
 		return "", fmt.Errorf("integration %s is not active", integrationType)
 	}
 
 	// Decrypt API key
+	fmt.Println("[DEBUG] Decrypting API key...")
 	apiKey, err := utils.DecryptString(integration.ApiKey)
 	if err != nil {
+		fmt.Printf("[ERROR] Failed to decrypt API key: %v\n", err)
 		return "", fmt.Errorf("%w: %v", ErrDecryptionFailed, err)
 	}
+	fmt.Printf("[DEBUG] API key decrypted successfully (length: %d)\n", len(apiKey))
 
 	return apiKey, nil
 }
