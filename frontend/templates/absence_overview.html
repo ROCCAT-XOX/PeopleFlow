@@ -220,7 +220,98 @@
 
             <!-- Alle Anträge -->
             <div id="all-tab" class="tab-content hidden">
-                <!-- Implementierung für alle Anträge mit Filter -->
+                {{if .allAbsences}}
+                <!-- Filter-Optionen -->
+                <div class="mb-4 flex flex-wrap gap-2">
+                    <select id="statusFilter" class="rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 text-sm">
+                        <option value="">Alle Status</option>
+                        <option value="requested">Ausstehend</option>
+                        <option value="approved">Genehmigt</option>
+                        <option value="rejected">Abgelehnt</option>
+                    </select>
+                    <select id="typeFilter" class="rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 text-sm">
+                        <option value="">Alle Arten</option>
+                        <option value="vacation">Urlaub</option>
+                        <option value="sick">Krankheit</option>
+                        <option value="special">Sonderurlaub</option>
+                    </select>
+                    <input type="text" id="employeeFilter" placeholder="Mitarbeitername..." class="rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 text-sm">
+                </div>
+
+                <div class="space-y-4" id="allAbsencesList">
+                    {{range .allAbsences}}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 absence-item" 
+                         data-status="{{.Status}}" 
+                         data-type="{{.Type}}" 
+                         data-employee="{{.EmployeeName}}">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center">
+                                    <h3 class="text-lg font-medium text-gray-900">{{.EmployeeName}}</h3>
+                                    <span class="ml-3 px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                        {{if eq .Status "requested"}}bg-yellow-100 text-yellow-800
+                                        {{else if eq .Status "approved"}}bg-green-100 text-green-800
+                                        {{else if eq .Status "rejected"}}bg-red-100 text-red-800
+                                        {{else}}bg-gray-100 text-gray-800{{end}}">
+                                        {{if eq .Status "requested"}}Ausstehend
+                                        {{else if eq .Status "approved"}}Genehmigt
+                                        {{else if eq .Status "rejected"}}Abgelehnt
+                                        {{else}}{{.Status}}{{end}}
+                                    </span>
+                                </div>
+                                <p class="mt-1 text-sm text-gray-500">
+                                    {{if eq .Type "vacation"}}Urlaub{{else if eq .Type "sick"}}Krankheit{{else}}Sonderurlaub{{end}}
+                                    | {{.StartDate.Format "02.01.2006"}} - {{.EndDate.Format "02.01.2006"}} ({{.Days}} Tage)
+                                </p>
+                                <p class="mt-1 text-sm text-gray-500">Abteilung: {{.Department}}</p>
+                                {{if .Reason}}
+                                <p class="mt-2 text-sm text-gray-600">Grund: {{.Reason}}</p>
+                                {{end}}
+                                {{if .ApproverName}}
+                                <p class="mt-1 text-xs text-gray-500">Bearbeitet von: {{.ApproverName}}</p>
+                                {{end}}
+                                <p class="mt-1 text-xs text-gray-500">Beantragt am: {{.CreatedAt.Format "02.01.2006 15:04"}}</p>
+                            </div>
+                            {{if or (eq $.userRole "admin") (eq $.userRole "manager")}}
+                            <div class="flex space-x-2 ml-4">
+                                {{if eq .Status "requested"}}
+                                <!-- Ausstehende Anträge können genehmigt/abgelehnt werden -->
+                                <button onclick="approveAbsence('{{.EmployeeID}}', '{{.ID}}', 'approve')" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700">
+                                    <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Genehmigen
+                                </button>
+                                <button onclick="approveAbsence('{{.EmployeeID}}', '{{.ID}}', 'reject')" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700">
+                                    <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    Ablehnen
+                                </button>
+                                {{else}}
+                                <!-- Genehmigte/Abgelehnte können bearbeitet oder gelöscht werden -->
+                                <button onclick="editAbsence('{{.EmployeeID}}', '{{.ID}}')" class="text-blue-600 hover:text-blue-900 text-sm">
+                                    Bearbeiten
+                                </button>
+                                <button onclick="deleteAbsence('{{.EmployeeID}}', '{{.ID}}')" class="text-red-600 hover:text-red-900 text-sm">
+                                    Löschen
+                                </button>
+                                {{end}}
+                            </div>
+                            {{end}}
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+                {{else}}
+                <div class="text-center py-8">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">Keine Abwesenheitsanträge</h3>
+                    <p class="mt-1 text-sm text-gray-500">Es wurden noch keine Abwesenheitsanträge gestellt.</p>
+                </div>
+                {{end}}
             </div>
         </div>
     </div>
@@ -344,6 +435,39 @@
                     });
             });
         }
+
+        // Filter-Funktionalität für "Alle Anträge" Tab
+        const statusFilter = document.getElementById('statusFilter');
+        const typeFilter = document.getElementById('typeFilter');
+        const employeeFilter = document.getElementById('employeeFilter');
+
+        function filterAbsences() {
+            const statusValue = statusFilter ? statusFilter.value : '';
+            const typeValue = typeFilter ? typeFilter.value : '';
+            const employeeValue = employeeFilter ? employeeFilter.value.toLowerCase() : '';
+
+            const absenceItems = document.querySelectorAll('.absence-item');
+            
+            absenceItems.forEach(item => {
+                const status = item.getAttribute('data-status');
+                const type = item.getAttribute('data-type');
+                const employee = item.getAttribute('data-employee').toLowerCase();
+
+                const statusMatch = !statusValue || status === statusValue;
+                const typeMatch = !typeValue || type === typeValue;
+                const employeeMatch = !employeeValue || employee.includes(employeeValue);
+
+                if (statusMatch && typeMatch && employeeMatch) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        if (statusFilter) statusFilter.addEventListener('change', filterAbsences);
+        if (typeFilter) typeFilter.addEventListener('change', filterAbsences);
+        if (employeeFilter) employeeFilter.addEventListener('input', filterAbsences);
     });
 
     // Modal-Funktionen
@@ -364,9 +488,38 @@
         const formData = new FormData();
         formData.append('action', action);
 
-        fetch(`/api/absence/${employeeId}/${absenceId}/approve`, {
+        fetch(`/api/absence/${employeeId}/${absenceId}/${action}`, {
             method: 'POST',
             body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Fehler: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ein Fehler ist aufgetreten');
+            });
+    }
+
+    // Abwesenheit bearbeiten
+    function editAbsence(employeeId, absenceId) {
+        // Zur Mitarbeiter-Detailseite weiterleiten, um Abwesenheit zu bearbeiten
+        window.location.href = `/employees/view/${employeeId}#absences`;
+    }
+
+    // Abwesenheit löschen
+    function deleteAbsence(employeeId, absenceId) {
+        if (!confirm('Möchten Sie diese Abwesenheit wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
+            return;
+        }
+
+        fetch(`/employees/${employeeId}/absences/${absenceId}`, {
+            method: 'DELETE'
         })
             .then(response => response.json())
             .then(data => {

@@ -102,6 +102,11 @@ func (h *AbsenceOverviewHandler) GetAbsenceOverview(c *gin.Context) {
 		return upcomingAbsences[i]["StartDate"].(time.Time).Before(upcomingAbsences[j]["StartDate"].(time.Time))
 	})
 
+	// Alle Abwesenheiten nach Startdatum sortieren (neueste zuerst)
+	sort.Slice(allAbsences, func(i, j int) bool {
+		return allAbsences[i]["StartDate"].(time.Time).After(allAbsences[j]["StartDate"].(time.Time))
+	})
+
 	c.HTML(http.StatusOK, "absence_overview.html", gin.H{
 		"title":            "Abwesenheitsanträge",
 		"active":           "absence-overview",
