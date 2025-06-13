@@ -1,0 +1,111 @@
+---
+// Login page with embedded authentication logic
+import Layout from '../layouts/Layout.astro';
+
+let error = Astro.url.searchParams.get('error');
+
+// Handle form submission
+if (Astro.request.method === 'POST') {
+    try {
+        const formData = await Astro.request.formData();
+        const email = formData.get('email')?.toString() || '';
+        const password = formData.get('password')?.toString() || '';
+        
+        // Simple authentication check
+        if (email === 'admin@PeopleFlow.com' && password === 'admin') {
+            // Create a test token (in production, get this from backend)
+            const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2ODA5N2MxNzZiZjZkN2NmNGJmNzZhYjIiLCJyb2xlIjoiYWRtaW4iLCJpc3MiOiJQZW9wbGVGbG93IiwiZXhwIjoxNzQ5NzQ0MjY1LCJpYXQiOjE3NDk2NTc4NjV9.rEN0T8Qx6xdwgC2Wo0MLFxZa-hvi8o28JJ6sITtvuRs';
+            
+            // Set the token cookie
+            Astro.cookies.set('token', token, {
+                path: '/',
+                httpOnly: true,
+                sameSite: 'lax',
+                secure: false,
+                maxAge: 60 * 60 * 24, // 1 day
+            });
+            
+            // Redirect to dashboard
+            return Astro.redirect('/dashboard-new');
+        } else {
+            error = 'Invalid email or password';
+        }
+    } catch (err) {
+        console.error('Login error:', err);
+        error = 'An error occurred during login';
+    }
+}
+
+const year = new Date().getFullYear();
+---
+
+<Layout title="Login - PeopleFlow">
+    <div class="min-h-screen flex items-center justify-center p-4 bg-gray-100">
+        <div class="w-full max-w-md">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                <!-- Logo Section -->
+                <div class="bg-gradient-to-br from-green-100 to-green-200 p-8 flex flex-col items-center justify-center border-b border-gray-200">
+                    <img src="/images/PeopleFlow-Logoschrift.svg" alt="PeopleFlow" class="h-10">
+                    <p class="text-green-800 mt-2">HR Management System</p>
+                </div>
+
+                <!-- Form Section -->
+                <div class="p-8">
+                    {error && (
+                        <div class="mb-4 p-3 bg-red-100 border border-red-200 text-red-600 rounded-lg">
+                            <p class="text-sm">{error}</p>
+                        </div>
+                    )}
+
+                    <form method="POST" class="space-y-5">
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">E-Mail</label>
+                            <input 
+                                type="email" 
+                                name="email" 
+                                id="email"
+                                value="admin@PeopleFlow.com"
+                                class="w-full py-3 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                placeholder="E-Mail-Adresse eingeben" 
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Passwort</label>
+                            <input 
+                                type="password" 
+                                name="password" 
+                                id="password"
+                                value="admin"
+                                class="w-full py-3 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                placeholder="Passwort eingeben" 
+                                required
+                            />
+                        </div>
+
+                        <div class="pt-2">
+                            <button 
+                                type="submit"
+                                class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition-colors duration-200"
+                            >
+                                Anmelden
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-4 text-sm text-gray-600 text-center">
+                        <p>Test credentials:</p>
+                        <p>Email: admin@PeopleFlow.com</p>
+                        <p>Password: admin</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="mt-6 text-center text-gray-600 text-sm">
+                <p>&copy; {year} PeopleFlow - HR Management System</p>
+            </div>
+        </div>
+    </div>
+</Layout>

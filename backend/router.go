@@ -236,6 +236,7 @@ func InitializeRoutes(router *gin.Engine) {
 					for _, absence := range emp.Absences {
 						if absence.Status == "requested" {
 							pendingAbsences = append(pendingAbsences, gin.H{
+								"ID":           absence.ID.Hex(),
 								"EmployeeID":   emp.ID.Hex(),
 								"EmployeeName": emp.FirstName + " " + emp.LastName,
 								"Type":         absence.Type,
@@ -424,6 +425,7 @@ func InitializeRoutes(router *gin.Engine) {
 					// Ausstehende Anträge
 					if absence.Status == "requested" {
 						pendingAbsences = append(pendingAbsences, gin.H{
+							"ID":           absence.ID.Hex(),
 							"EmployeeID":   emp.ID.Hex(),
 							"EmployeeName": emp.FirstName + " " + emp.LastName,
 							"Type":         absence.Type,
@@ -709,6 +711,7 @@ func InitializeRoutes(router *gin.Engine) {
 		// API-Endpoints für Abwesenheitsanträge
 		authorized.POST("/api/absence/request", absenceOverviewHandler.AddAbsenceRequest)
 		authorized.POST("/api/absence/:employeeId/:absenceId/approve", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), absenceOverviewHandler.ApproveAbsenceRequest)
+		authorized.POST("/api/absence/:employeeId/:absenceId/reject", middleware.RoleMiddleware(model.RoleAdmin, model.RoleManager), absenceOverviewHandler.ApproveAbsenceRequest)
 
 		// Dokument-Routen
 		authorized.POST("/employees/:id/documents", documentHandler.UploadDocument)

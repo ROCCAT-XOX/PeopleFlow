@@ -718,14 +718,14 @@
 
             <!-- Quick Action Buttons -->
             <div class="border-t border-gray-100 pt-2 mt-2 flex space-x-1">
-              <button onclick="event.stopPropagation(); approveAbsence('{{$absence.EmployeeID}}', 'TBD_ABSENCE_ID', 'approve')"
+              <button onclick="event.stopPropagation(); approveAbsence('{{$absence.EmployeeID}}', '{{$absence.ID}}', 'approve')"
                       class="flex-1 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-medium py-1.5 px-2 rounded transition-colors">
                 <svg class="h-3 w-3 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
                 Genehmigen
               </button>
-              <button onclick="event.stopPropagation(); approveAbsence('{{$absence.EmployeeID}}', 'TBD_ABSENCE_ID', 'reject')"
+              <button onclick="event.stopPropagation(); approveAbsence('{{$absence.EmployeeID}}', '{{$absence.ID}}', 'reject')"
                       class="flex-1 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-medium py-1.5 px-2 rounded transition-colors">
                 <svg class="h-3 w-3 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -1552,16 +1552,12 @@
       return;
     }
 
-    // Note: This function currently uses placeholder IDs
-    // You'll need to modify the template to pass the actual absence ID
+    const formData = new FormData();
+    formData.append('action', action);
+
     fetch(`/api/absence/${employeeId}/${absenceId}/${action}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: action
-      })
+      body: formData
     })
             .then(response => response.json())
             .then(data => {
